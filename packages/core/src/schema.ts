@@ -1,0 +1,295 @@
+import { z } from "zod";
+
+/** Normalized rectangle on a frame (0..1 on both axes, origin top-left). */
+export const Region = z.object({ x: z.number(), y: z.number(), w: z.number(), h: z.number() });
+export type Region = z.infer<typeof Region>;
+
+export const Point = z.object({ x: z.number(), y: z.number() });
+export type Point = z.infer<typeof Point>;
+
+export const Settings = z.object({
+  width: z.number().int().default(1080),
+  height: z.number().int().default(1920),
+  fps: z.number().int().default(30),
+  background: z.string().default("#000000"),
+});
+export type Settings = z.infer<typeof Settings>;
+
+// ───────────────────────── Assets ─────────────────────────
+
+export const Provenance = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("import"), path: z.string() }),
+  z.object({
+    type: z.literal("generated"),
+    provider: z.string(),
+    model: z.string(),
+    prompt: z.string(),
+    inputs: z.array(z.string()).default([]),
+    settings: z.record(z.string(), z.unknown()).default({}),
+    cost: z.number().optional(),
+    seed: z.number().optional(),
+  }),
+  z.object({
+    type: z.literal("capture"),
+    source: z.enum(["web", "ios"]),
+    target: z.string(),
+    note: z.string().optional(),
+  }),
+]);
+export type Provenance = z.infer<typeof Provenance>;
+
+/** Files computed once per source, stored in the global cache dir of the asset hash. */
+export const Derived = z.object({
+  normalized: z.string().optional(), // H.264 CFR mp4 (video) or png (image)
+  audio: z.string().optional(), // wav 48k
+  cleanAudio: z.string().optional(), // denoised voice wav
+  transcript: z.string().optional(), // transcript.json (Transcript)
+  analysis: z.string().optional(), // analysis.json (Analysis)
+  thumbs: z.string().optional(), // sprite jpg: 10 thumbs in a row
+  poster: z.string().optional(), // poster jpg
+  waveform: z.string().optional(), // waveform.json (number[] peaks 0..1)
+  cutout: z.string().optional(), // webm vp9 with alpha (person cutout)
+});
+export type Derived = z.infer<typeof Derived>;
+
+export const Asset = z.object({
+  id: z.string(),
+  kind: z.enum(["video", "image", "audio"]),
+  name: z.string(),
+  hash: z.string(),
+  file: z.string(), // original file, relative to the project dir (media/<hash>.<ext>)
+  duration: z.number().optional(), // seconds
+  width: z.number().optional(),
+  height: z.number().optional(),
+  fps: z.number().optional(),
+  hasAudio: z.boolean().default(false),
+  provenance: Provenance,
+  derived: Derived.default({}),
+  status: z.enum(["ingesting", "ready", "error"]).default("ingesting"),
+  error: z.string().optional(),
+  tags: z.array(z.string()).default([]),
+  createdAt: z.string(),
+});
+export type Asset = z.infer<typeof Asset>;
+
+export const Word = z.object({ text: z.string(), start: z.number(), end: z.number() }); // seconds
+export type Word = z.infer<typeof Word>;
+export const Transcript = z.object({ language: z.string(), words: z.array(Word) });
+export type Transcript = z.infer<typeof Transcript>;
+
+export const Analysis = z.object({
+  silences: z.array(z.object({ start: z.number(), end: z.number() })), // seconds
+  scenes: z.array(z.number()), // scene-change times (seconds)
+  loudness: z.number().optional(), // integrated LUFS
+});
+export type Analysis = z.infer<typeof Analysis>;
+
+// ───────────────────────── Montage ─────────────────────────
+
+const ClipBase = {
+  id: z.string(),
+  start: z.number().int().min(0), // timeline frame
+  duration: z.number().int().min(1), // frames
+  label: z.string().optional(),
+};
+
+export const Zoom = z.object({
+  from: z.number().default(1),
+  to: z.number().default(1.15),
+  x: z.number().default(0.5), // focus point, normalized on the source frame
+  y: z.number().default(0.5),
+  easing: z.enum(["linear", "ease", "punch"]).default("ease"),
+});
+export type Zoom = z.infer<typeof Zoom>;
+
+export const Transition = z.object({
+  type: z.enum(["fade", "whip", "zoom", "slide"]),
+  frames: z.number().int().min(1).default(8),
+});
+
+export const MediaClip = z.object({
+  ...ClipBase,
+  type: z.literal("media"),
+  assetId: z.string(),
+  srcIn: z.number().min(0).default(0), // seconds into the source
+  speed: z.number().positive().default(1),
+  volume: z.number().min(0).default(1), // linear gain of the clip audio
+  muted: z.boolean().default(false),
+  fadeIn: z.number().int().min(0).default(0), // audio fade, frames
+  fadeOut: z.number().int().min(0).default(0),
+  fit: z.enum(["cover", "contain"]).default("cover"),
+  focus: Point.default({ x: 0.5, y: 0.5 }), // what stays in frame when cover-cropping
+  zoom: Zoom.optional(),
+  cutout: z.boolean().default(false), // show the person cutout (transparent background) instead of the full frame
+  opacity: z.number().min(0).max(1).default(1),
+  transitionIn: Transition.optional(),
+  canvasRef: z.object({ canvasId: z.string(), shapeId: z.string() }).optional(),
+});
+export type MediaClip = z.infer<typeof MediaClip>;
+
+export const GraphicClip = z.object({
+  ...ClipBase,
+  type: z.literal("graphic"),
+  component: z.string(), // name in the motion-design catalog
+  props: z.record(z.string(), z.unknown()).default({}),
+});
+export type GraphicClip = z.infer<typeof GraphicClip>;
+
+export const CaptionWord = z.object({
+  text: z.string(),
+  start: z.number().int(), // frames, relative to the clip start
+  end: z.number().int(),
+  br: z.boolean().optional(), // starts a new caption page (line shown on screen)
+});
+export type CaptionWord = z.infer<typeof CaptionWord>;
+
+export const CaptionsClip = z.object({
+  ...ClipBase,
+  type: z.literal("captions"),
+  style: z.enum(["bold", "karaoke", "minimal", "box"]).default("bold"),
+  position: z.enum(["top", "center", "bottom"]).default("bottom"),
+  color: z.string().optional(), // highlight color
+  words: z.array(CaptionWord),
+});
+export type CaptionsClip = z.infer<typeof CaptionsClip>;
+
+export const Clip = z.discriminatedUnion("type", [MediaClip, GraphicClip, CaptionsClip]);
+export type Clip = z.infer<typeof Clip>;
+
+export const Track = z.object({
+  id: z.string(),
+  kind: z.enum(["video", "overlay", "audio"]),
+  name: z.string(),
+  role: z.enum(["main", "broll", "graphics", "captions", "voice", "music", "sfx"]).optional(),
+  muted: z.boolean().default(false),
+  hidden: z.boolean().default(false),
+  clips: z.array(Clip),
+});
+export type Track = z.infer<typeof Track>;
+
+export const AudioSettings = z.object({
+  targetLufs: z.number().default(-14),
+  voice: z.enum(["none", "clean", "podcast"]).default("none"),
+  duck: z.boolean().default(true), // music ducked under the voice
+  duckDb: z.number().default(-12),
+});
+export type AudioSettings = z.infer<typeof AudioSettings>;
+
+/** Tracks stack bottom → top. The first `video` track is the main track (segments follow its shots). */
+export const Montage = z.object({
+  id: z.string(),
+  name: z.string(),
+  settings: Settings,
+  tracks: z.array(Track),
+  audio: AudioSettings.default({ targetLufs: -14, voice: "none", duck: true, duckDb: -12 }),
+});
+export type Montage = z.infer<typeof Montage>;
+
+// ───────────────────────── Comments & versions ─────────────────────────
+
+export const ContentAnchor = z.object({
+  clipId: z.string(),
+  assetId: z.string().optional(),
+  srcTime: z.number().optional(), // seconds into the source under the comment
+  clipOffset: z.number().int().optional(), // frames from the clip start (graphics, captions)
+});
+export type ContentAnchor = z.infer<typeof ContentAnchor>;
+
+export const Anchor = z.discriminatedUnion("kind", [
+  z.object({
+    kind: z.literal("montage"),
+    montageId: z.string(),
+    versionId: z.string(), // version the user was watching
+    frame: z.number().int(),
+    frameEnd: z.number().int().optional(), // range comment
+    pin: Point.optional(),
+    region: Region.optional(),
+    content: ContentAnchor.optional(),
+  }),
+  z.object({
+    kind: z.literal("canvas"),
+    canvasId: z.string(),
+    shapeId: z.string().optional(),
+    pin: Point.optional(), // canvas page coordinates
+    region: Region.optional(), // normalized on the shape
+  }),
+]);
+export type Anchor = z.infer<typeof Anchor>;
+
+export const CommentStatus = z.enum(["draft", "sent", "in_progress", "fixed", "validated", "reopened"]);
+export type CommentStatus = z.infer<typeof CommentStatus>;
+
+export const Message = z.object({
+  author: z.enum(["user", "claude"]),
+  text: z.string(),
+  at: z.string(),
+  versionId: z.string().optional(),
+});
+export type Message = z.infer<typeof Message>;
+
+export const Comment = z.object({
+  id: z.string(),
+  n: z.number().int(), // display number (#1, #2…)
+  status: CommentStatus,
+  anchor: Anchor,
+  thread: z.array(Message),
+  snapshot: z.string().optional(), // project-relative jpg of what the user saw
+  fixedIn: z.string().optional(), // version id
+  createdAt: z.string(),
+});
+export type Comment = z.infer<typeof Comment>;
+
+export const FrameRange = z.object({ start: z.number().int(), end: z.number().int() });
+export type FrameRange = z.infer<typeof FrameRange>;
+
+export const Version = z.object({
+  id: z.string(), // "v1"
+  n: z.number().int(),
+  montageId: z.string(),
+  revision: z.number().int(),
+  author: z.enum(["claude", "user"]),
+  summary: z.string(),
+  status: z.enum(["rendering", "ready", "error"]),
+  progress: z.number().default(0),
+  error: z.string().optional(),
+  file: z.string().optional(), // project-relative mp4
+  poster: z.string().optional(),
+  montageFile: z.string(), // frozen montage json
+  durationFrames: z.number().int(),
+  fps: z.number().int(),
+  changed: z.array(FrameRange).default([]), // re-rendered passages vs the previous version
+  comments: z.array(z.string()).default([]), // comments handled in this version
+  segmentKeys: z.array(z.string()).default([]),
+  renderSeconds: z.number().optional(),
+  createdAt: z.string(),
+});
+export type Version = z.infer<typeof Version>;
+
+// ───────────────────────── Project ─────────────────────────
+
+export const DocRef = z.object({ id: z.string(), name: z.string() });
+
+export const Project = z.object({
+  name: z.string(),
+  createdAt: z.string(),
+  settings: z
+    .object({
+      claudeModel: z.string().default("sonnet"),
+      budgetEur: z.number().default(5),
+      spentEur: z.number().default(0),
+    })
+    .default({ claudeModel: "sonnet", budgetEur: 5, spentEur: 0 }),
+  assets: z.array(Asset).default([]),
+  montages: z.array(DocRef).default([]),
+  canvases: z.array(DocRef).default([]),
+});
+export type Project = z.infer<typeof Project>;
+
+/** A canvas document: the tldraw store snapshot, owned by the server. */
+export const CanvasDoc = z.object({
+  id: z.string(),
+  name: z.string(),
+  snapshot: z.unknown().optional(),
+  updatedAt: z.string(),
+});
+export type CanvasDoc = z.infer<typeof CanvasDoc>;

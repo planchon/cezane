@@ -1,0 +1,2 @@
+{ "name": "@cezane/engine", "version": "0.1.0", "type": "module", "main": "src/index.ts",
+  "dependencies": { "@cezane/core": "workspace:*", "@cezane/remotion": "workspace:*", "puppeteer-core": "^25.17.0", "zod": "^4.6.7" } }

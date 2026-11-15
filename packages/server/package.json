@@ -1,0 +1,2 @@
+{ "name": "@cezane/server", "version": "0.1.0", "type": "module", "bin": { "cezane": "src/cli.ts" },
+  "dependencies": { "@cezane/core": "workspace:*", "@cezane/engine": "workspace:*", "@cezane/remotion": "workspace:*", "@modelcontextprotocol/sdk": "^1.32.2", "zod": "^4.6.7" } }

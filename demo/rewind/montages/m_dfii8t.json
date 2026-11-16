@@ -2,8 +2,8 @@
   "id": "m_dfii8t",
   "name": "Montage",
   "settings": {
-    "width": 1080,
-    "height": 1920,
+    "width": 1920,
+    "height": 1080,
     "fps": 30,
     "background": "#000000"
   },
@@ -26,145 +26,57 @@
       "hidden": false,
       "clips": [
         {
-          "id": "c_0dwnt1",
+          "id": "c_8z41mn",
           "start": 0,
-          "duration": 111,
+          "duration": 135,
           "type": "graphic",
           "component": "ScreenshotShowcase",
           "props": {
-            "assetId": "a_nepkcb",
+            "assetId": "a_a8bhfm",
             "device": "browser",
-            "background": "dark",
-            "url": "rewind.codes",
-            "zoom": {
-              "x": 0.02,
-              "y": 0.6,
-              "w": 0.66,
-              "h": 0.3
-            },
-            "zoomAt": 35
-          }
-        },
-        {
-          "id": "c_ubv2fy",
-          "start": 111,
-          "duration": 114,
-          "type": "graphic",
-          "component": "ScreenshotShowcase",
-          "props": {
-            "assetId": "a_aamouo",
-            "device": "browser",
-            "background": "dark",
-            "url": "rewind.codes",
-            "zoom": {
-              "x": 0.05,
-              "y": 0.1,
-              "w": 0.82,
-              "h": 0.52
-            },
-            "zoomAt": 10
-          }
-        },
-        {
-          "id": "c_od2k88",
-          "start": 225,
-          "duration": 105,
-          "type": "graphic",
-          "component": "ScreenshotShowcase",
-          "props": {
-            "assetId": "a_aq8xrr",
-            "device": "browser",
-            "background": "dark",
-            "url": "rewind.codes/#built-for-agents",
-            "highlight": {
-              "x": 0.03,
-              "y": 0.1,
-              "w": 0.45,
-              "h": 0.28
-            },
-            "highlightAt": 12
-          }
-        },
-        {
-          "id": "c_tf813z",
-          "start": 330,
-          "duration": 114,
-          "type": "graphic",
-          "component": "ScreenshotShowcase",
-          "props": {
-            "assetId": "a_e9jd72",
-            "device": "browser",
-            "background": "dark",
-            "url": "docs.rewind.codes",
-            "zoom": {
-              "x": 0.24,
-              "y": 0.5,
-              "w": 0.52,
-              "h": 0.48
-            },
-            "zoomAt": 12
-          }
-        },
-        {
-          "id": "c_mj3gkc",
-          "start": 444,
-          "duration": 114,
-          "type": "graphic",
-          "component": "ScreenshotShowcase",
-          "props": {
-            "assetId": "a_aq8xrr",
-            "device": "browser",
-            "background": "dark",
-            "url": "rewind.codes",
-            "zoom": {
-              "x": 0.49,
-              "y": 0.66,
-              "w": 0.45,
-              "h": 0.33
-            },
-            "zoomAt": 8
-          }
-        },
-        {
-          "id": "c_1htvch",
-          "start": 558,
-          "duration": 102,
-          "type": "graphic",
-          "component": "ScreenshotShowcase",
-          "props": {
-            "assetId": "a_ltth0z",
-            "device": "browser",
-            "background": "dark",
-            "url": "rewind.codes",
-            "highlight": {
-              "x": 0.3,
-              "y": 0.17,
-              "w": 0.42,
-              "h": 0.52
-            },
-            "highlightAt": 10
-          }
-        },
-        {
-          "id": "c_dg1sr4",
-          "start": 660,
-          "duration": 120,
-          "type": "graphic",
-          "component": "ScreenshotShowcase",
-          "props": {
-            "assetId": "a_nepkcb",
-            "device": "none",
-            "background": "dark",
-            "url": "rewind.codes",
-            "tilt": false,
+            "from": 0.6,
             "float": false,
-            "zoom": {
-              "x": 0.32,
-              "y": 0.06,
-              "w": 0.66,
-              "h": 0.4
-            },
-            "zoomAt": 0
+            "background": "sea",
+            "url": "rewind.codes",
+            "label": "Rewind · Overview",
+            "caption": "A runtime for code",
+            "muted": "no human wrote."
+          }
+        },
+        {
+          "id": "c_3cn619",
+          "start": 135,
+          "duration": 288,
+          "type": "graphic",
+          "component": "ScreenshotShowcase",
+          "props": {
+            "assetId": "a_7643vy",
+            "device": "browser",
+            "from": 0.4,
+            "float": false,
+            "background": "sky",
+            "url": "docs.rewind.codes",
+            "label": "Docs · Get started",
+            "caption": "Read how it works,",
+            "muted": "then the journal."
+          }
+        },
+        {
+          "id": "c_6uxfql",
+          "start": 423,
+          "duration": 180,
+          "type": "graphic",
+          "component": "ScreenshotShowcase",
+          "props": {
+            "assetId": "a_wrxvct",
+            "device": "browser",
+            "from": 0.1,
+            "float": false,
+            "background": "wall",
+            "url": "docs.rewind.codes",
+            "label": "Docs · Search",
+            "caption": "Find anything",
+            "muted": "in a keystroke."
           }
         }
       ]
@@ -178,108 +90,29 @@
       "hidden": false,
       "clips": [
         {
-          "id": "c_fsph47",
-          "start": 0,
-          "duration": 780,
+          "id": "c_k5w38s",
+          "start": 603,
+          "duration": 102,
           "type": "graphic",
-          "component": "ProgressBar",
+          "component": "Plate",
           "props": {
-            "position": "top",
-            "color": "#3DDC97",
-            "height": 10
+            "background": "sea"
           }
         },
         {
-          "id": "c_97uzzh",
-          "start": 107,
-          "duration": 10,
-          "type": "graphic",
-          "component": "Whip",
-          "props": {
-            "direction": "left"
-          }
-        },
-        {
-          "id": "c_ttm6l9",
-          "start": 222,
-          "duration": 8,
-          "type": "graphic",
-          "component": "Flash",
-          "props": {
-            "color": "#3DDC97"
-          }
-        },
-        {
-          "id": "c_bby3za",
-          "start": 326,
-          "duration": 10,
-          "type": "graphic",
-          "component": "Whip",
-          "props": {
-            "direction": "up"
-          }
-        },
-        {
-          "id": "c_ht26rp",
-          "start": 440,
-          "duration": 10,
-          "type": "graphic",
-          "component": "Whip",
-          "props": {
-            "direction": "left"
-          }
-        },
-        {
-          "id": "c_2twfom",
-          "start": 456,
-          "duration": 96,
-          "type": "graphic",
-          "component": "Counter",
-          "props": {
-            "from": 0,
-            "to": 10,
-            "suffix": " days",
-            "label": "await sleep(\"10d\")",
-            "position": "top",
-            "accent": "#3DDC97"
-          }
-        },
-        {
-          "id": "c_v1sg3p",
-          "start": 554,
-          "duration": 10,
-          "type": "graphic",
-          "component": "Whip",
-          "props": {
-            "direction": "right"
-          }
-        },
-        {
-          "id": "c_2ssxwn",
-          "start": 579,
-          "duration": 75,
-          "type": "graphic",
-          "component": "Emoji",
-          "props": {
-            "emoji": "✅",
-            "x": 0.84,
-            "y": 0.27,
-            "size": 170
-          }
-        },
-        {
-          "id": "c_nxh6te",
-          "start": 666,
-          "duration": 114,
+          "id": "c_32v0l7",
+          "start": 606,
+          "duration": 99,
           "type": "graphic",
           "component": "Title",
           "props": {
-            "kicker": "DURABLE RUNTIME FOR AGENT CODE",
+            "style": "plain",
+            "scrim": false,
+            "kicker": "rewind.codes",
             "text": "Rewind",
-            "subtitle": "rewind.codes",
-            "style": "elegant",
-            "accent": "#3DDC97",
-            "size": 150
+            "muted": "Durable runtime for agent code.",
+            "position": "center",
+            "size": 130
           }
         }
       ]
@@ -291,331 +124,7 @@
       "role": "captions",
       "muted": false,
       "hidden": false,
-      "clips": [
-        {
-          "id": "c_x1xsxy",
-          "start": 0,
-          "duration": 666,
-          "type": "captions",
-          "style": "bold",
-          "position": "bottom",
-          "color": "#3DDC97",
-          "words": [
-            {
-              "text": "Your",
-              "start": 9,
-              "end": 22,
-              "br": true
-            },
-            {
-              "text": "AI",
-              "start": 22,
-              "end": 31,
-              "br": false
-            },
-            {
-              "text": "agent",
-              "start": 31,
-              "end": 46,
-              "br": false
-            },
-            {
-              "text": "just",
-              "start": 46,
-              "end": 59,
-              "br": false
-            },
-            {
-              "text": "wrote",
-              "start": 59,
-              "end": 73,
-              "br": true
-            },
-            {
-              "text": "a",
-              "start": 73,
-              "end": 81,
-              "br": false
-            },
-            {
-              "text": "workflow.",
-              "start": 81,
-              "end": 102,
-              "br": false
-            },
-            {
-              "text": "Nobody",
-              "start": 114,
-              "end": 127,
-              "br": true
-            },
-            {
-              "text": "will",
-              "start": 127,
-              "end": 138,
-              "br": false
-            },
-            {
-              "text": "ever",
-              "start": 138,
-              "end": 148,
-              "br": false
-            },
-            {
-              "text": "read",
-              "start": 148,
-              "end": 159,
-              "br": true
-            },
-            {
-              "text": "it.",
-              "start": 159,
-              "end": 168,
-              "br": false
-            },
-            {
-              "text": "So",
-              "start": 171,
-              "end": 179,
-              "br": true
-            },
-            {
-              "text": "who",
-              "start": 179,
-              "end": 187,
-              "br": false
-            },
-            {
-              "text": "runs",
-              "start": 187,
-              "end": 198,
-              "br": false
-            },
-            {
-              "text": "it",
-              "start": 198,
-              "end": 205,
-              "br": true
-            },
-            {
-              "text": "safely?",
-              "start": 205,
-              "end": 219,
-              "br": false
-            },
-            {
-              "text": "Rewind:",
-              "start": 228,
-              "end": 242,
-              "br": true
-            },
-            {
-              "text": "a",
-              "start": 242,
-              "end": 248,
-              "br": false
-            },
-            {
-              "text": "durable",
-              "start": 248,
-              "end": 261,
-              "br": false
-            },
-            {
-              "text": "runtime",
-              "start": 261,
-              "end": 275,
-              "br": true
-            },
-            {
-              "text": "for",
-              "start": 275,
-              "end": 283,
-              "br": false
-            },
-            {
-              "text": "code",
-              "start": 283,
-              "end": 293,
-              "br": false
-            },
-            {
-              "text": "no",
-              "start": 293,
-              "end": 301,
-              "br": true
-            },
-            {
-              "text": "human",
-              "start": 301,
-              "end": 312,
-              "br": false
-            },
-            {
-              "text": "wrote.",
-              "start": 312,
-              "end": 324,
-              "br": false
-            },
-            {
-              "text": "Every",
-              "start": 333,
-              "end": 346,
-              "br": true
-            },
-            {
-              "text": "call",
-              "start": 346,
-              "end": 359,
-              "br": false
-            },
-            {
-              "text": "to",
-              "start": 359,
-              "end": 368,
-              "br": false
-            },
-            {
-              "text": "the",
-              "start": 368,
-              "end": 378,
-              "br": false
-            },
-            {
-              "text": "outside",
-              "start": 378,
-              "end": 395,
-              "br": true
-            },
-            {
-              "text": "world",
-              "start": 395,
-              "end": 408,
-              "br": false
-            },
-            {
-              "text": "is",
-              "start": 408,
-              "end": 417,
-              "br": false
-            },
-            {
-              "text": "journaled.",
-              "start": 417,
-              "end": 438,
-              "br": false
-            },
-            {
-              "text": "Sleep",
-              "start": 447,
-              "end": 458,
-              "br": true
-            },
-            {
-              "text": "ten",
-              "start": 458,
-              "end": 467,
-              "br": false
-            },
-            {
-              "text": "days.",
-              "start": 467,
-              "end": 479,
-              "br": false
-            },
-            {
-              "text": "Crash.",
-              "start": 479,
-              "end": 491,
-              "br": true
-            },
-            {
-              "text": "Resume",
-              "start": 491,
-              "end": 504,
-              "br": false
-            },
-            {
-              "text": "exactly",
-              "start": 504,
-              "end": 518,
-              "br": false
-            },
-            {
-              "text": "where",
-              "start": 518,
-              "end": 529,
-              "br": true
-            },
-            {
-              "text": "it",
-              "start": 529,
-              "end": 537,
-              "br": false
-            },
-            {
-              "text": "stopped.",
-              "start": 537,
-              "end": 552,
-              "br": false
-            },
-            {
-              "text": "Replay",
-              "start": 561,
-              "end": 574,
-              "br": true
-            },
-            {
-              "text": "any",
-              "start": 574,
-              "end": 584,
-              "br": false
-            },
-            {
-              "text": "run",
-              "start": 584,
-              "end": 593,
-              "br": false
-            },
-            {
-              "text": "as",
-              "start": 593,
-              "end": 601,
-              "br": true
-            },
-            {
-              "text": "a",
-              "start": 601,
-              "end": 608,
-              "br": false
-            },
-            {
-              "text": "test,",
-              "start": 608,
-              "end": 620,
-              "br": false
-            },
-            {
-              "text": "isolated",
-              "start": 620,
-              "end": 636,
-              "br": true
-            },
-            {
-              "text": "in",
-              "start": 636,
-              "end": 645,
-              "br": false
-            },
-            {
-              "text": "V8.",
-              "start": 645,
-              "end": 654,
-              "br": false
-            }
-          ]
-        }
-      ]
+      "clips": []
     },
     {
       "id": "t_music",
@@ -626,9 +135,9 @@
       "hidden": false,
       "clips": [
         {
-          "id": "c_4lwz2v",
+          "id": "c_ppongh",
           "start": 0,
-          "duration": 780,
+          "duration": 705,
           "type": "media",
           "assetId": "a_2wj5y6",
           "srcIn": 0,

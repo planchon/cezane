@@ -12,6 +12,8 @@ export function overview(p: Project, m: Montage, comments: Comment[], versions: 
   const last = versions.at(-1);
   if (last) lines.push(`Latest version ${last.id} (${last.status}) rev ${last.revision}: ${last.summary}`);
   lines.push(`Audio: target ${m.audio.targetLufs} LUFS, voice=${m.audio.voice}, duck=${m.audio.duck}`);
+  const g = m.settings.grade;
+  lines.push(g ? `Grade: ${g.lut} ${Math.round(g.intensity * 100)}%${g.vignette ? `, vignette ${Math.round(g.vignette * 100)}%` : ""}` : "Grade: none");
   lines.push("", "Tracks (bottom→top), frames:");
   for (const t of m.tracks) {
     lines.push(`- ${t.id} ${t.kind}${t.role ? `/${t.role}` : ""} "${t.name}"${t.hidden ? " hidden" : ""}${t.muted ? " muted" : ""}`);

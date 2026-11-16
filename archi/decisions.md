@@ -117,3 +117,51 @@ le même point d'accès sert Claude headless et un Claude Code ouvert dans un te
 perd des tours à charger les outils Cezane ; ils sont chargés d'emblée (`ENABLE_TOOL_SEARCH=false`).
 
 **D31 — Les projets de démo versionnent leurs documents, pas leurs médias.**
+
+## Patte graphique (16 novembre 2026)
+
+**D32 — Le look « Studio » remplace le look Cézanne dans les vidéos.** Le serif Fraunces, le
+crème et la terracotta, les petites capitales espacées et les cartes à barre colorée faisaient
+« généré par IA ». Les vidéos passent à Inter Tight serré en graisse moyenne, titres en deux tons,
+étiquettes en Geist Mono, encre chaude et gris, bleu iOS pour le curseur. Cézanne reste dans
+l'interface, l'icône, et dans les vidéos par des fonds peints générés avec Codex, floutés avec du
+grain. Entrées de texte : léger flou et montée de 0,2 em, sans rebond. Options écartées : un look
+100 % natif TikTok (crédible mais sans identité) et un look affiche en aplats (plus marqué, moins
+adapté aux docs).
+
+**D33 — Les captures d'écran servent aux docs, à l'onboarding et à l'aide, pas à l'UGC.** La
+scène de capture fonctionne en vertical et en paysage, et montre où regarder ou cliquer avec un
+curseur à la Figma (flèche et étiquette colorées) et une loupe.
+
+**D34 — Les codes TikTok sont les réglages par défaut** (voir [tiktok.md](tiktok.md)). Ce sont
+les zones sûres, les sous-titres sur une ligne en phrase normale et l'accroche en bloc natif. Le
+look Hormozi n'est utilisé que si on le demande.
+
+**D35 — Le texte derrière la personne est décidé par le rendu, pas par Claude.** Une marque
+`behind` sur un graphique suffit. Le placement vient de la position de la tête mesurée par Vision,
+et le texte reste devant sur un gros plan ou s'il n'y a pas d'espace au-dessus de la tête.
+
+**D36 — Les textes passent en serif (Newsreader).** Titres, sous-titres et chiffres utilisent
+Newsreader, auto-hébergé en police variable pour garder ses tailles optiques : la coupe
+« display » en grand, la coupe « texte » en sous-titres. Le second ton est en italique. Inter Tight
+reste pour les éléments d'interface (étiquette du curseur), Geist Mono pour les petites
+étiquettes, TikTok Sans pour le style natif. Options montrées : Instrument Serif, Gloock,
+EB Garamond, Young Serif.
+
+**D37 — Sous-titres : on lit en avance, sans changer de couleur.** Toute la page est affichée ;
+les mots déjà dits sont blancs, les suivants à 40 % d'opacité. Aucun changement de couleur sur
+le mot actif (le style `pill` reste une option). Une page trop longue rapetisse au lieu de passer
+sur deux lignes.
+
+**D38 — L'étalonnage passe par des LUT 3D sur des copies en cache.** Un `grade` (LUT, intensité,
+vignettage) se règle sur le montage et se surcharge par clip. Le serveur prépare une copie
+étalonnée de chaque source (vidéo et détourage) avec ffmpeg `lut3d`, mise en cache par contenu de
+LUT et intensité ; le rendu la lit à la place de l'original. Le texte et les graphismes ne sont
+jamais étalonnés, ni les captures d'écran ni les images générées. Six LUT maison générées par
+script (drame, film, provence, nuit, pastel, noir) ; on peut déposer ses .cube dans `luts/`.
+
+**D39 — Les scènes d'app sont de vraies vidéos, avec leur journal d'interactions.** Un
+enregistrement d'écran est accompagné d'un `events.json` (clics, saisie, défilements, gestes). La
+scène de capture rejoue ces interactions avec le curseur à la Figma, aux bons instants. Le web est
+enregistré par Chrome (horodatage exact). Sur iOS, les instants notés sont recalés sur les
+changements visibles de l'image.

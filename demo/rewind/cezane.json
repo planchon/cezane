@@ -235,6 +235,84 @@
       "status": "ready",
       "tags": [],
       "createdAt": "2026-11-16T00:20:27.931Z"
+    },
+    {
+      "id": "a_7643vy",
+      "kind": "video",
+      "name": "rw-docs-nav",
+      "hash": "c4e1cb530691db412f36",
+      "file": "media/c4e1cb530691db412f36.webm",
+      "duration": 10.133333,
+      "width": 1440,
+      "height": 900,
+      "fps": 30,
+      "hasAudio": false,
+      "provenance": {
+        "type": "capture",
+        "source": "web",
+        "target": "https://docs.rewind.codes"
+      },
+      "derived": {
+        "events": "events.json",
+        "normalized": "normalized.mp4",
+        "thumbs": "thumbs.jpg",
+        "poster": "poster.jpg"
+      },
+      "status": "ready",
+      "tags": [],
+      "createdAt": "2026-11-16T11:09:13.647Z"
+    },
+    {
+      "id": "a_wrxvct",
+      "kind": "video",
+      "name": "rw-search",
+      "hash": "d7b361dbe910b07052ce",
+      "file": "media/d7b361dbe910b07052ce.webm",
+      "duration": 6.133333,
+      "width": 1440,
+      "height": 900,
+      "fps": 30,
+      "hasAudio": false,
+      "provenance": {
+        "type": "capture",
+        "source": "web",
+        "target": "https://docs.rewind.codes"
+      },
+      "derived": {
+        "events": "events.json",
+        "normalized": "normalized.mp4",
+        "thumbs": "thumbs.jpg",
+        "poster": "poster.jpg"
+      },
+      "status": "ready",
+      "tags": [],
+      "createdAt": "2026-11-16T11:09:13.701Z"
+    },
+    {
+      "id": "a_a8bhfm",
+      "kind": "video",
+      "name": "rw-landing",
+      "hash": "8bc63388d23222ff4984",
+      "file": "media/8bc63388d23222ff4984.webm",
+      "duration": 22.833333,
+      "width": 1440,
+      "height": 900,
+      "fps": 30,
+      "hasAudio": false,
+      "provenance": {
+        "type": "capture",
+        "source": "web",
+        "target": "https://docs.rewind.codes"
+      },
+      "derived": {
+        "events": "events.json",
+        "normalized": "normalized.mp4",
+        "thumbs": "thumbs.jpg",
+        "poster": "poster.jpg"
+      },
+      "status": "ready",
+      "tags": [],
+      "createdAt": "2026-11-16T11:09:13.806Z"
     }
   ],
   "montages": [

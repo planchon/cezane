@@ -20,7 +20,7 @@ func say(_ s: String) {
 
 let usage = """
 usage:
-  cezane-vision cutout <input.mp4> <output.webm> [--quality fast|balanced|accurate] [--fps N]
+  cezane-vision cutout <input.mp4> <output.webm> [--quality fast|balanced|accurate] [--fps N] [--subject out.json]
   cezane-vision mask-image <input.(jpg|png)> <output.png> [--quality fast|balanced|accurate]
 """
 
@@ -65,17 +65,29 @@ func readMask(_ pb: CVPixelBuffer, into out: inout [UInt8]) -> (Int, Int) {
 func composite(color: CIImage, mask: [UInt8], mw: Int, mh: Int, feather: Double) -> CIImage {
     let ext = color.extent
     let maskData = Data(mask)
-    var m = CIImage(bitmapData: maskData, bytesPerRow: mw, size: CGSize(width: mw, height: mh),
-                    format: .L8, colorSpace: nil)
-    m = m.transformed(by: CGAffineTransform(scaleX: ext.width / CGFloat(mw), y: ext.height / CGFloat(mh)),
-                      highQualityDownsample: true)
-        .samplingLinear()
-    // slight feather, then tighten contrast a touch so edges stay crisp but not jagged
-    m = m.clampedToExtent().applyingGaussianBlur(sigma: feather).cropped(to: ext)
+    let small = CIImage(bitmapData: maskData, bytesPerRow: mw, size: CGSize(width: mw, height: mh),
+                        format: .L8, colorSpace: nil)
+    // Edge-aware upsampling: the low-res mask follows the edges of the color image (hair, sleeves).
+    var m: CIImage
+    if let up = CIFilter(name: "CIEdgePreserveUpsampleFilter", parameters: [
+        kCIInputImageKey: color,
+        "inputSmallImage": small,
+        "inputSpatialSigma": 3.0,
+        "inputLumaSigma": 0.12,
+    ])?.outputImage {
+        m = up.cropped(to: ext)
+    } else {
+        m = small.transformed(by: CGAffineTransform(scaleX: ext.width / CGFloat(mw), y: ext.height / CGFloat(mh)),
+                              highQualityDownsample: true).samplingLinear()
+    }
+    // a hair of feather, then tighten contrast so edges stay crisp but not jagged
+    m = m.clampedToExtent().applyingGaussianBlur(sigma: feather * 0.6).cropped(to: ext)
     let tighten = CIFilter(name: "CIColorMatrix", parameters: [
         kCIInputImageKey: m,
-        "inputRVector": CIVector(x: 1.25, y: 0, z: 0, w: 0),
-        "inputBiasVector": CIVector(x: -0.125, y: 0, z: 0, w: 0),
+        "inputRVector": CIVector(x: 1.35, y: 0, z: 0, w: 0),
+        "inputGVector": CIVector(x: 1.35, y: 0, z: 0, w: 0),
+        "inputBVector": CIVector(x: 1.35, y: 0, z: 0, w: 0),
+        "inputBiasVector": CIVector(x: -0.17, y: -0.17, z: -0.17, w: 0),
     ])!.outputImage!.applyingFilter("CIColorClamp")
     let clear = CIImage(color: .clear).cropped(to: ext)
     return color.applyingFilter("CIBlendWithMask", parameters: [
@@ -90,10 +102,12 @@ func runCutout(_ args: [String]) async {
     var pos: [String] = []
     var quality = "balanced"
     var fpsOverride: Double? = nil
+    var subjectPath: String? = nil
     var i = 0
     while i < args.count {
         switch args[i] {
         case "--quality": i += 1; guard i < args.count else { fail("--quality needs a value") }; quality = args[i]
+        case "--subject": i += 1; guard i < args.count else { fail("--subject needs a path") }; subjectPath = args[i]
         case "--fps":
             i += 1
             guard i < args.count, let f = Double(args[i]), f > 0 else { fail("--fps needs a positive number") }
@@ -145,6 +159,9 @@ func runCutout(_ args: [String]) async {
     let sink = pipe.fileHandleForWriting
 
     let request = makeRequest(q)
+    let faceRequest = VNDetectFaceRectanglesRequest()
+    var lastFace: CGRect? = nil
+    var subject: [[Double]] = []
     let seq = VNSequenceRequestHandler()
     var prev: [UInt8] = []
     var cur: [UInt8] = []
@@ -176,6 +193,43 @@ func runCutout(_ args: [String]) async {
                 }
             }
             prev = cur
+            if subjectPath != nil {
+                // Silhouette box (mask > 50%) and the largest face, top-left origin, 0..1.
+                var x0 = mw, y0 = mh, x1 = -1, y1 = -1, area = 0
+                for yy in 0..<mh {
+                    let row = yy * mw
+                    for xx in 0..<mw where cur[row + xx] > 127 {
+                        area += 1
+                        if xx < x0 { x0 = xx }; if xx > x1 { x1 = xx }
+                        if yy < y0 { y0 = yy }; if yy > y1 { y1 = yy }
+                    }
+                }
+                if written % 10 == 0 {
+                    let fh = VNImageRequestHandler(cvPixelBuffer: pb, options: [:])
+                    try? fh.perform([faceRequest])
+                    lastFace = (faceRequest.results ?? []).max(by: { $0.boundingBox.width * $0.boundingBox.height < $1.boundingBox.width * $1.boundingBox.height })?.boundingBox
+                }
+                let r3 = { (v: Double) in (v * 1000).rounded() / 1000 }
+                var row: [Double] = [r3(pts)]
+                if x1 >= 0 {
+                    row += [r3(Double(x0) / Double(mw)), r3(Double(y0) / Double(mh)), r3(Double(x1 - x0 + 1) / Double(mw)), r3(Double(y1 - y0 + 1) / Double(mh)), r3(Double(area) / Double(mw * mh))]
+                } else { row += [-1, -1, -1, -1, 0] }
+                if let f = lastFace {
+                    row += [r3(f.minX), r3(1 - f.maxY), r3(f.width), r3(f.height)]
+                    // Top of the hair: first mask row with person pixels within the face columns.
+                    let fx0 = max(0, Int(f.minX * Double(mw))), fx1 = min(mw - 1, Int(f.maxX * Double(mw)))
+                    let faceRow = min(mh - 1, Int((1 - f.maxY) * Double(mh)))
+                    var top = -1
+                    if faceRow < 0 { top = 0 } // the face already touches the top edge
+                    else if fx1 > fx0 {
+                        rows: for yy in 0...faceRow {
+                            for xx in fx0...fx1 where cur[yy * mw + xx] > 127 { top = yy; break rows }
+                        }
+                    }
+                    row.append(top >= 0 ? r3(Double(top) / Double(mh)) : -1)
+                } else { row += [-1, -1, -1, -1, -1] }
+                subject.append(row)
+            }
             var color = CIImage(cvPixelBuffer: pb)
             color = color.cropped(to: CGRect(x: 0, y: 0, width: W, height: H))
             let img = composite(color: color, mask: cur, mw: mw, mh: mh, feather: feather)
@@ -197,6 +251,12 @@ func runCutout(_ args: [String]) async {
     try? sink.close()
     ff.waitUntilExit()
     guard ff.terminationStatus == 0 else { fail("ffmpeg exited with \(ff.terminationStatus)") }
+    if let sp = subjectPath {
+        let doc: [String: Any] = ["fps": outFps, "width": W, "height": H,
+                                  "columns": ["t", "x", "y", "w", "h", "area", "faceX", "faceY", "faceW", "faceH", "headTop"], "frames": subject]
+        do { try JSONSerialization.data(withJSONObject: doc).write(to: URL(fileURLWithPath: sp)) }
+        catch { fail("write subject: \(error)") }
+    }
     say("progress 1.000")
     say(String(format: "done %d %.2f", written, Date().timeIntervalSince(t0)))
 }

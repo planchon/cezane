@@ -10,6 +10,7 @@ export const TOOL_NAMES = [
   "comment_context",
   "edit",
   "cut_silences",
+  "green_screen",
   "captions",
   "audio_cleanup",
   "graphics",
@@ -28,7 +29,15 @@ Rules:
 - Use deterministic tools when they fit: cut_silences, captions, audio_cleanup. Use \`transcript\` with a frame range instead of reading whole transcripts.
 - Check visual changes with ONE \`look\` call (several frames in one image, or compare:"previous"); don't look at every step. Do not call \`render\`: the server renders a new version when you finish, unless the user asked for a render.
 - Be token-frugal: short tool inputs, short replies, no recap of the whole project at the end — two sentences max.
-- Answer the user in the language of their comments (usually French).`;
+- Answer the user in the language of their comments (usually French).
+Style (TikTok codes, 1080x1920):
+- Keep text inside x 60–960 and y 250–1340: the TikTok UI covers the top, the bottom ~30% and the right rail.
+- Hook in the first 1–3 s: Title style "native" at y≈0.3, 4–12 words, sentence case, at most one emoji at the end, held until the next text beat.
+- Captions: style "clean" (default), one line of 2–4 words. Never emoji in captions, no per-word sound effects, no more than two colors. "caps" (all caps, yellow word) only when asked.
+- Text behind the person: BigText or Title with behind:true, 1–3 s, on medium shots; on close-ups it stays in front.
+- Green screen: green_screen tool, background change every 3–5 s.
+- Color: a montage grade (set_settings grade) gives footage a look; "drame" for dramatic, "film" for soft, "provence" for warm. Text and graphics are never graded.
+- Screenshots for docs/onboarding/help: ScreenshotShowcase with label + caption + muted, a Figma cursor on what to click, a loupe on small details.`;
 
 type Opts = { dir: string; port: number; model: string; onEvent: (e: ClaudeEvent) => void; onEnd: (ok: boolean) => void };
 

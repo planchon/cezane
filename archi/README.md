@@ -27,6 +27,7 @@ Ce dossier fixe l'architecture avant d'écrire du code.
 | [stack.md](stack.md) | Les technologies retenues et les points à valider |
 | [decisions.md](decisions.md) | Le journal des décisions, avec leurs raisons et les options écartées |
 | [v0.1.md](v0.1.md) | Ce que la v0.1 fait, ses écarts avec l'architecture, ce qui reste |
+| [tiktok.md](tiktok.md) | Les codes TikTok, ce que Cezane en fait déjà et ce qui manque |
 
 ## Principes
 

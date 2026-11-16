@@ -24,7 +24,7 @@ function hashTree(dirs: string[]): string {
     for (const e of readdirSync(dir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
       const p = join(dir, e.name);
       if (e.isDirectory()) walk(p);
-      else if (/\.(tsx?|json)$/.test(e.name)) h.update(relative(pkgDir, p)).update(readFileSync(p));
+      else if (/\.(tsx?|json|jpe?g|png|webp|woff2?)$/.test(e.name)) h.update(relative(pkgDir, p)).update(readFileSync(p));
     }
   };
   for (const d of dirs) walk(d);
@@ -35,20 +35,28 @@ const chromiumOptions: ChromiumOptions = { gl: "angle" };
 // 8-core M1 Pro, 16 GB: leave room for ffmpeg, the server and the Electron UI.
 const concurrency = Math.max(2, Math.min(6, cpus().length - 2));
 
-let serveUrl: string | null = null;
+let bundled: { hash: string; dir: string } | null = null;
+let bundling: Promise<string> | null = null;
 let browser: Awaited<ReturnType<typeof openBrowser>> | null = null;
 
+/** The bundle of the current sources: re-hashed on every request, so code edits apply without a restart. */
 async function ensureBundle(force = false): Promise<string> {
-  if (serveUrl && !force) return serveUrl;
-  const outDir = join(homedir(), "Cezane", "cache", "remotion-bundle", hashTree([here, coreSrc]));
-  if (force || !existsSync(join(outDir, "index.html"))) {
-    mkdirSync(dirname(outDir), { recursive: true });
-    const t = Date.now();
-    await bundle({ entryPoint: join(here, "index.ts"), outDir, rootDir: pkgDir, enableCaching: true, onProgress: () => {} });
-    console.error(`[remotion-worker] bundled in ${Date.now() - t} ms → ${outDir}`);
-  }
-  serveUrl = outDir;
-  return outDir;
+  const hash = hashTree([here, coreSrc, join(pkgDir, "public")].filter((d) => existsSync(d)));
+  if (!force && bundled?.hash === hash) return bundled.dir;
+  bundling ??= (async () => {
+    const outDir = join(homedir(), "Cezane", "cache", "remotion-bundle", hash);
+    if (force || !existsSync(join(outDir, "index.html"))) {
+      mkdirSync(dirname(outDir), { recursive: true });
+      const t = Date.now();
+      await bundle({ entryPoint: join(here, "index.ts"), outDir, rootDir: pkgDir, enableCaching: true, onProgress: () => {} });
+      console.error(`[remotion-worker] bundled in ${Date.now() - t} ms → ${outDir}`);
+    }
+    bundled = { hash, dir: outDir };
+    return outDir;
+  })().finally(() => {
+    bundling = null;
+  });
+  return bundling;
 }
 
 async function getBrowser() {
@@ -166,8 +174,12 @@ process.stdin.on("data", (chunk: string) => {
     nl = buffer.indexOf("\n");
   }
 });
-process.stdin.on("end", async () => {
-  await chain;
-  await browser?.close({ silent: true }).catch(() => {});
+/** Closes Chrome before leaving: a killed worker must not leave its browser running. */
+async function shutdown() {
+  const timeout = (ms: number) => new Promise((r) => setTimeout(r, ms));
+  await Promise.race([chain, timeout(3000)]);
+  await Promise.race([browser?.close({ silent: true }).catch(() => {}), timeout(2000)]);
   process.exit(0);
-});
+}
+process.stdin.on("end", () => void shutdown());
+for (const sig of ["SIGTERM", "SIGINT", "SIGHUP"] as const) process.on(sig, () => void shutdown());

@@ -30,7 +30,14 @@
         "thumbs": "thumbs.jpg",
         "poster": "poster.jpg",
         "waveform": "waveform.json",
-        "cutout": "cutout-balanced.webm"
+        "cutout": "cutout-v3-balanced.webm",
+        "subject": "subject-v3-balanced.json",
+        "graded": {
+          "drame@85": {
+            "file": "graded-105c4873a1-85.mp4",
+            "cutout": "graded-cutout-105c4873a1-85-cutout-v3-balanced.webm"
+          }
+        }
       },
       "status": "ready",
       "tags": [],
@@ -86,7 +93,12 @@
         "analysis": "analysis.json",
         "thumbs": "thumbs.jpg",
         "poster": "poster.jpg",
-        "waveform": "waveform.json"
+        "waveform": "waveform.json",
+        "graded": {
+          "drame@85": {
+            "file": "graded-105c4873a1-85.mp4"
+          }
+        }
       },
       "status": "ready",
       "tags": [],
@@ -114,7 +126,12 @@
         "analysis": "analysis.json",
         "thumbs": "thumbs.jpg",
         "poster": "poster.jpg",
-        "waveform": "waveform.json"
+        "waveform": "waveform.json",
+        "graded": {
+          "drame@85": {
+            "file": "graded-105c4873a1-85.mp4"
+          }
+        }
       },
       "status": "ready",
       "tags": [],
@@ -164,7 +181,12 @@
       },
       "derived": {
         "normalized": "image.png",
-        "poster": "poster.jpg"
+        "poster": "poster.jpg",
+        "graded": {
+          "drame@85": {
+            "file": "graded-105c4873a1-85.png"
+          }
+        }
       },
       "status": "ready",
       "tags": [],
@@ -263,6 +285,58 @@
       "status": "ready",
       "tags": [],
       "createdAt": "2026-11-16T00:29:15.493Z"
+    },
+    {
+      "id": "a_94jh7d",
+      "kind": "video",
+      "name": "dax-today",
+      "hash": "a764e169c0a0f11cc058",
+      "file": "media/a764e169c0a0f11cc058.mp4",
+      "duration": 14.97,
+      "width": 1206,
+      "height": 2622,
+      "fps": 19.03807615230461,
+      "hasAudio": false,
+      "provenance": {
+        "type": "capture",
+        "source": "web",
+        "target": "recordings"
+      },
+      "derived": {
+        "events": "events.json",
+        "normalized": "normalized.mp4",
+        "thumbs": "thumbs.jpg",
+        "poster": "poster.jpg"
+      },
+      "status": "ready",
+      "tags": [],
+      "createdAt": "2026-11-16T11:09:20.006Z"
+    },
+    {
+      "id": "a_jofrl4",
+      "kind": "video",
+      "name": "rw-docs-nav",
+      "hash": "c4e1cb530691db412f36",
+      "file": "media/c4e1cb530691db412f36.webm",
+      "duration": 10.133333,
+      "width": 1440,
+      "height": 900,
+      "fps": 30,
+      "hasAudio": false,
+      "provenance": {
+        "type": "capture",
+        "source": "web",
+        "target": "recordings"
+      },
+      "derived": {
+        "events": "events.json",
+        "normalized": "normalized.mp4",
+        "thumbs": "thumbs.jpg",
+        "poster": "poster.jpg"
+      },
+      "status": "ready",
+      "tags": [],
+      "createdAt": "2026-11-16T11:09:20.060Z"
     }
   ],
   "montages": [

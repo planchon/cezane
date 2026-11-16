@@ -1,180 +1,295 @@
-import { AbsoluteFill, Easing, Img, interpolate, OffthreadVideo, spring, useCurrentFrame, useVideoConfig } from "remotion";
+import { AbsoluteFill, Img, interpolate, OffthreadVideo, useCurrentFrame, useVideoConfig } from "remotion";
 import type { ScreenshotShowcaseProps, WithDuration } from "../catalog";
 import { useAssets } from "../context";
-import { fonts } from "../fonts";
-import { palette } from "../theme";
-import { clamp, unit } from "../ui/anim";
-import { PaintedBackground } from "../ui/PaintedBackground";
+import { fonts, serif, tracking } from "../fonts";
+import { colors, isLight } from "../theme";
+import { blurIn, clamp, ENTER, fadeOut, ramp, STAGGER, unit } from "../ui/anim";
+import { Backdrop } from "../ui/Backdrop";
+import { ClickRipple, CursorTag, followPath, glide, type PathKey } from "../ui/CursorTag";
+import { Label } from "../ui/Label";
 
 const PHONE_ASPECT = 1179 / 2556;
-
 type Rect = { x: number; y: number; w: number; h: number };
 
-/** Screenshot studio: a capture in a device frame on a painted background, with highlight, zoom and scroll. */
+/** Rough line count of a text block, to place what comes under it. */
+const lineCount = (text: string, maxWidth: number, size: number) =>
+  text.split("\n").reduce((n, l) => n + Math.max(1, Math.ceil((l.length * size * 0.5) / maxWidth)), 0);
+
+/**
+ * Screenshot studio for docs, onboarding and help videos: a capture in a real-looking device on
+ * a painted plate, a two-tone headline with a mono label, and focus tools (Figma cursor, loupe,
+ * highlight, zoom, scroll). Lays out for portrait and landscape frames.
+ */
 export const ScreenshotShowcase: React.FC<WithDuration<ScreenshotShowcaseProps>> = (p) => {
   const frame = useCurrentFrame();
   const { fps, width: W, height: H } = useVideoConfig();
   const k = unit(W, H);
+  const portrait = H >= W;
   const asset = useAssets()[p.assetId];
-  const aspect = asset?.width && asset?.height ? asset.width / asset.height : p.device === "iphone" ? PHONE_ASPECT : 16 / 10;
-  const hasCaption = Boolean(p.caption);
-  const captionTop = hasCaption && p.captionPosition === "top";
+  const crop = p.crop ?? { x: 0, y: 0, w: 1, h: 1 };
+  const fullAspect = asset?.width && asset?.height ? asset.width / asset.height : p.device === "iphone" ? PHONE_ASPECT : 16 / 10;
+  const aspect = fullAspect * (crop.w / crop.h); // of the part shown
+  const light = isLight(p.background);
+  const ink = p.captionColor ?? (light ? colors.ink : colors.white);
+  const hasText = Boolean(p.caption || p.label);
 
-  // ── Layout (frame coordinates, before animation) ──
-  let screen: Rect;
-  let frameRect: Rect; // the device body
-  const bezel = 16 * k;
-  const bar = 66 * k;
-  const availH = H * (hasCaption ? 0.66 : 0.8);
-  const cy = H * (hasCaption ? (captionTop ? 0.6 : 0.42) : 0.5);
+  // ── Text block ──
+  const fs = (portrait ? 96 : 78) * k;
+  const textLeft = portrait ? 84 * k : W * 0.06;
+  const textWidth = portrait ? W - 168 * k : W * 0.32;
+  const labelH = p.label ? 54 * k + 30 * k : 0;
+  const lines = (p.caption ? lineCount(p.caption, textWidth, fs) : 0) + (p.muted ? lineCount(p.muted, textWidth, fs) : 0);
+  const textH = labelH + lines * fs * 1.02;
+  const textTop = portrait ? (p.captionPosition === "bottom" ? H - 170 * k - textH : 150 * k) : (H - textH) / 2;
+
+  // ── Device layout (before animation) ──
+  const bleed = p.bleed && portrait && hasText && p.captionPosition !== "bottom";
+  const area: Rect = portrait
+    ? hasText
+      ? p.captionPosition === "bottom"
+        ? { x: 0, y: 110 * k, w: W, h: textTop - 200 * k }
+        : { x: 0, y: textTop + textH + 80 * k, w: W, h: H - (textTop + textH + 80 * k) - 110 * k }
+      : { x: 0, y: H * 0.08, w: W, h: H * 0.84 }
+    : hasText
+      ? { x: W * 0.41, y: H * 0.08, w: W * 0.56, h: H * 0.84 }
+      : { x: W * 0.08, y: H * 0.08, w: W * 0.84, h: H * 0.84 };
+
+  let body: Rect; // the device outline
+  let screen: Rect; // the capture area, in body coordinates
+  let edge = 0;
+  let bezel = 0;
+  const bar = p.device === "browser" ? 58 * k : 0;
   if (p.device === "iphone") {
-    const sh = availH - bezel * 2;
-    const sw = Math.min(sh * PHONE_ASPECT, W * 0.8);
-    const shh = sw / PHONE_ASPECT;
-    screen = { x: (W - sw) / 2, y: cy - shh / 2, w: sw, h: shh };
-    frameRect = { x: screen.x - bezel, y: screen.y - bezel, w: sw + bezel * 2, h: shh + bezel * 2 };
-  } else if (p.device === "browser") {
-    const bw = W * 0.9;
-    const ch = Math.min(bw / aspect, availH - bar);
-    screen = { x: (W - bw) / 2, y: cy - (ch + bar) / 2 + bar, w: bw, h: ch };
-    frameRect = { x: screen.x, y: screen.y - bar, w: bw, h: ch + bar };
+    const shape = aspect < 0.6 ? aspect : PHONE_ASPECT;
+    const fromWidth = Math.min(area.w * (portrait ? 0.66 : 0.6), W * 0.7);
+    const ratio = (w: number) => (w * (1 - 2 * 0.042)) / shape + w * 2 * 0.042; // outer height for an outer width
+    let fw = bleed ? fromWidth : Math.min(fromWidth, (area.h / ratio(1)) * 1);
+    if (!bleed && ratio(fw) > area.h) fw = area.h / ratio(1);
+    edge = fw * 0.012;
+    bezel = fw * 0.03;
+    const sw = fw - 2 * (edge + bezel);
+    const sh = sw / shape;
+    const fh = sh + 2 * (edge + bezel);
+    body = { x: area.x + (area.w - fw) / 2, y: bleed ? area.y : area.y + (area.h - fh) / 2, w: fw, h: fh };
+    screen = { x: edge + bezel, y: edge + bezel, w: sw, h: sh };
   } else {
-    const bw = W * 0.86;
-    const ch = Math.min(bw / aspect, availH);
-    screen = { x: (W - bw) / 2, y: cy - ch / 2, w: bw, h: ch };
-    frameRect = screen;
+    const bw = Math.min(area.w * (portrait ? 0.9 : 0.96), (area.h - bar) * aspect * 1.6);
+    const ch = Math.min(bw / aspect, area.h - bar);
+    // Under a portrait headline the window hangs from the top of its area; otherwise it is centered.
+    const top = portrait && hasText && p.captionPosition !== "bottom" ? area.y : area.y + (area.h - ch - bar) / 2;
+    body = { x: area.x + (area.w - bw) / 2, y: top, w: bw, h: ch + bar };
+    screen = { x: 0, y: bar, w: bw, h: ch };
   }
-  const imgH = screen.w / aspect; // displayed height of the capture inside the screen
+  // The full capture is drawn scaled so that the crop fills the screen width.
+  const fullW = screen.w / crop.w;
+  const fullH = fullW / fullAspect;
+  const imgH = screen.w / aspect; // height of the shown part
   const overflow = Math.max(0, imgH - screen.h);
-  const scrollT = interpolate(frame, [15, Math.max(16, p.duration - 15)], [0, 1], { ...clamp, easing: Easing.inOut(Easing.cubic) });
+  const scrollT = interpolate(frame, [20, Math.max(21, p.duration - 20)], [0, 1], { ...clamp, easing: (t) => t * t * (3 - 2 * t) });
   const scrollY = overflow * Math.min(1, p.scroll) * scrollT;
+  /** A point of the capture (0..1 of the full image) in body coordinates. */
+  const at = (x: number, y: number) => ({ x: screen.x + (x - crop.x) * fullW, y: screen.y + (y - crop.y) * fullH - scrollY });
 
   // ── Animation ──
-  const enter = spring({ frame, fps, config: { damping: 17, stiffness: 85, mass: 0.9 } });
-  const out = interpolate(frame, [p.duration - 8, p.duration], [1, 0], clamp);
-  const zoomT = p.zoom ? spring({ frame: frame - p.zoomAt, fps, config: { damping: 200 }, durationInFrames: 26 }) : 0;
-  const hlT = p.highlight ? spring({ frame: frame - p.highlightAt, fps, config: { damping: 200 }, durationInFrames: 16 }) : 0;
-  const float = p.float ? Math.sin((frame / fps) * 1.3) * 9 * k : 0;
-  const tiltX = p.tilt ? interpolate(enter, [0, 1], [24, 7]) * (1 - zoomT) : 0;
-  const tiltY = p.tilt ? Math.sin((frame / fps) * 0.8) * 3 * (1 - zoomT) : 0;
+  const enter = ramp(frame, 2, 24);
+  const out = fadeOut(frame, p.duration, 8);
+  const float = p.float ? Math.sin((frame / fps) * 1.1) * 6 * k : 0;
+  const tiltT = p.tilt ? 1 : 0;
+  const zoomT = p.zoom ? ramp(frame, p.zoomAt, 26) : 0;
+  const hlT = p.highlight ? ramp(frame, p.highlightAt, 14) : 0;
 
-  let zoomTransform = "none";
+  let camera = "none";
   if (p.zoom) {
     const r = p.zoom;
-    const cx = screen.x + (r.x + r.w / 2) * screen.w;
-    const cyz = screen.y + (r.y + r.h / 2) * imgH - scrollY;
-    const S = Math.min((W * 0.94) / (r.w * screen.w), (H * 0.62) / (r.h * imgH), 3.4);
+    const c = at(r.x + r.w / 2, r.y + r.h / 2);
+    const cx = body.x + c.x;
+    const cy = body.y + c.y;
+    const S = Math.min((W * 0.9) / (r.w * fullW), (H * 0.6) / (r.h * fullH), 3.2);
     const s = 1 + (S - 1) * zoomT;
-    zoomTransform = `translate(${(W / 2 - cx * S) * zoomT}px, ${(H / 2 - cyz * S) * zoomT}px) scale(${s})`;
+    camera = `translate(${(W / 2 - cx * S) * zoomT}px, ${(H / 2 - cy * S) * zoomT}px) scale(${s})`;
   }
 
-  const media = !asset ? (
-    <AbsoluteFill style={{ background: palette.paper, alignItems: "center", justifyContent: "center", fontFamily: fonts.ui, color: palette.ink, fontSize: 30 * k }}>{p.assetId}</AbsoluteFill>
-  ) : asset.kind === "video" ? (
-    <OffthreadVideo src={asset.url} muted style={{ width: screen.w, height: imgH, objectFit: "cover", display: "block" }} />
-  ) : (
-    <Img src={asset.url} style={{ width: screen.w, height: imgH, display: "block", transform: `translateY(${-scrollY}px)` }} />
-  );
+  const media = (w: number, h: number, extra: React.CSSProperties = {}) =>
+    !asset ? (
+      <AbsoluteFill style={{ background: colors.paper, alignItems: "center", justifyContent: "center", fontFamily: fonts.mono, color: colors.muted, fontSize: 28 * k }}>{p.assetId}</AbsoluteFill>
+    ) : asset.kind === "video" ? (
+      <OffthreadVideo src={asset.url} muted trimBefore={Math.round(p.from * fps)} style={{ width: w, height: h, objectFit: "cover", display: "block", ...extra }} />
+    ) : (
+      <Img src={asset.url} style={{ width: w, height: h, display: "block", ...extra }} />
+    );
 
-  const screenRadius = p.device === "iphone" ? screen.w * 0.13 : p.device === "none" ? 22 * k : 0;
+  const screenRadius = p.device === "iphone" ? screen.w * 0.14 : p.device === "none" ? 26 * k : 0;
+  const shadow = `0 ${50 * k}px ${100 * k}px rgba(24,22,18,0.22), 0 ${14 * k}px ${28 * k}px rgba(24,22,18,0.14)`;
+
+  // Words of the headline enter one by one.
+  let wi = 0;
+  const words = (text: string, muted: boolean) =>
+    text.split("\n").map((l, li) => (
+      <div key={`${muted}${li}`} style={{ opacity: muted ? (light ? 0.55 : 0.68) : 1, fontStyle: muted ? "italic" : "normal" }}>
+        {l.split(" ").filter(Boolean).map((w) => {
+          const t = ramp(frame, 4 + wi++ * STAGGER, ENTER);
+          return (
+            <span key={wi} style={{ ...blurIn(t, fs), marginRight: "0.24em" }}>
+              {w}
+            </span>
+          );
+        })}
+      </div>
+    ));
+
+  // Focus tools, in body coordinates.
   const hl = p.highlight;
-
-  const captionWords = (p.caption ?? "").split(" ");
-  const caption = hasCaption && (
-    <div
-      style={{
-        position: "absolute",
-        left: W * 0.07,
-        right: W * 0.07,
-        ...(captionTop ? { top: H * 0.075 } : { bottom: H * 0.075 }),
-        textAlign: "center",
-        fontFamily: fonts.serif,
-        fontWeight: 700,
-        fontSize: 76 * k,
-        lineHeight: 1.08,
-        letterSpacing: "-0.015em",
-        color: p.captionColor,
-      }}
-    >
-      {captionWords.map((w, i) => {
-        const s = spring({ frame: frame - 4 - i * 2, fps, config: { damping: 200 }, durationInFrames: 14 });
-        return (
-          <span key={i} style={{ display: "inline-block", marginRight: "0.25em", opacity: s, transform: `translateY(${(1 - s) * 24 * k}px)` }}>
-            {w}
-          </span>
-        );
-      })}
-    </div>
-  );
+  const loupe = p.loupe;
+  const cur = p.cursor;
+  let loupeEl: React.ReactNode = null;
+  if (loupe) {
+    const lt = ramp(frame, loupe.at, 12);
+    const R = (loupe.size * screen.w) / 2;
+    const c = at(loupe.x, loupe.y);
+    const z = loupe.zoom;
+    loupeEl = lt > 0 && (
+      <div
+        style={{
+          position: "absolute",
+          left: c.x - R,
+          top: c.y - R,
+          width: R * 2,
+          height: R * 2,
+          borderRadius: 999,
+          overflow: "hidden",
+          background: "#fff",
+          opacity: lt,
+          transform: `scale(${0.7 + 0.3 * lt})`,
+          boxShadow: `0 0 0 ${7 * k}px #fff, 0 ${30 * k}px ${60 * k}px rgba(0,0,0,0.3), 0 ${6 * k}px ${14 * k}px rgba(0,0,0,0.18)`,
+        }}
+      >
+        <div style={{ position: "absolute", left: R - loupe.x * fullW * z, top: R - loupe.y * fullH * z, width: fullW * z, height: fullH * z }}>
+          {media(fullW * z, fullH * z)}
+        </div>
+        <div style={{ position: "absolute", inset: 0, borderRadius: 999, boxShadow: `inset 0 0 ${24 * k}px rgba(0,0,0,0.18)` }} />
+      </div>
+    );
+  }
+  let cursorEl: React.ReactNode = null;
+  // A screen recording with an interaction log: the cursor replays the real clicks and scrolls.
+  const recorded = !cur && p.autoCursor && asset?.kind === "video" ? asset.events?.filter((e) => e.x !== undefined && e.y !== undefined) : undefined;
+  if (recorded?.length) {
+    const keys: PathKey[] = recorded.map((e) => ({
+      at: Math.round((e.t - p.from) * fps),
+      x: e.x!,
+      y: e.y!,
+      x2: e.type === "drag" ? e.x2 : undefined,
+      y2: e.type === "drag" ? e.y2 : undefined,
+      click: e.type === "click",
+      label: e.type === "click" ? e.label : undefined,
+    }));
+    const c = followPath(frame, keys, fps);
+    if (c) {
+      const pos = at(c.x, c.y);
+      const color = colors.accent;
+      cursorEl = (
+        <>
+          {c.ripples.map((r, i) => {
+            const rp = at(r.x, r.y);
+            return <ClickRipple key={i} x={rp.x} y={rp.y} k={k} color={color} t={r.t} />;
+          })}
+          <CursorTag x={pos.x} y={pos.y} k={k} color={color} label={c.label} press={c.press} opacity={c.opacity} labelT={c.labelT} />
+        </>
+      );
+    }
+  }
+  if (cur) {
+    const to = at(cur.x, cur.y);
+    const from = at(cur.fromX ?? Math.min(1.05, cur.x + 0.3), cur.fromY ?? cur.y + 0.18);
+    const pos = glide(frame, from, to, cur.at, cur.moveFrames);
+    const clickAt = cur.at + cur.moveFrames + 4;
+    const press = cur.click ? interpolate(frame, [clickAt, clickAt + 3, clickAt + 8], [0, 1, 0], clamp) : 0;
+    const color = cur.color ?? colors.accent;
+    cursorEl = frame >= cur.at - 6 && (
+      <>
+        {cur.click && <ClickRipple x={to.x} y={to.y} k={k} color={color} t={(frame - clickAt) / (0.7 * fps)} />}
+        <CursorTag x={pos.x} y={pos.y} k={k} color={color} label={cur.label} press={press} opacity={ramp(frame, cur.at - 6, 8)} labelT={ramp(frame, cur.at, 10)} />
+      </>
+    );
+  }
 
   return (
     <AbsoluteFill style={{ opacity: out }}>
-      <PaintedBackground background={p.background} />
-      <AbsoluteFill style={{ transform: zoomTransform, transformOrigin: "0 0" }}>
-        {caption}
-        <AbsoluteFill style={{ perspective: 2400 * k }}>
+      <Backdrop background={p.background} />
+        {hasText && (
+          <div style={{ position: "absolute", left: textLeft, top: textTop, width: textWidth, display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 30 * k, opacity: 1 - zoomT }}>
+            {p.label && <Label text={p.label} k={k} t={ramp(frame, 0, ENTER)} dark={!light} />}
+            {p.caption && (
+              <div style={{ ...serif(500), fontSize: fs, lineHeight: 1.02, letterSpacing: tracking.display, color: ink }}>
+                {words(p.caption, false)}
+                {p.muted && words(p.muted, true)}
+              </div>
+            )}
+          </div>
+        )}
+      <AbsoluteFill style={{ transform: camera, transformOrigin: "0 0" }}>
+        <AbsoluteFill style={{ perspective: 2600 * k }}>
           <div
             style={{
               position: "absolute",
-              left: frameRect.x,
-              top: frameRect.y,
-              width: frameRect.w,
-              height: frameRect.h,
-              transform: `translateY(${(1 - enter) * H * 0.4 + float}px) rotateX(${tiltX}deg) rotateY(${tiltY}deg)`,
-              transformOrigin: "50% 60%",
-              opacity: interpolate(enter, [0, 0.25], [0, 1], clamp),
+              left: body.x,
+              top: body.y,
+              width: body.w,
+              height: body.h,
+              opacity: interpolate(enter, [0, 0.4], [0, 1], clamp),
+              transform: `translateY(${(1 - enter) * H * 0.06 + float}px) rotateX(${tiltT * 8}deg) rotateY(${tiltT * -12}deg) rotateZ(${tiltT * 2}deg)`,
+              transformOrigin: "50% 50%",
             }}
           >
-            {/* Device body */}
             {p.device === "iphone" && (
-              <div style={{ position: "absolute", inset: 0, borderRadius: screenRadius + bezel, background: "linear-gradient(145deg, #3a3936 0%, #141311 40%, #2b2a27 100%)", boxShadow: `0 ${60 * k}px ${120 * k}px rgba(30,26,20,0.45), 0 ${16 * k}px ${30 * k}px rgba(30,26,20,0.35), inset 0 0 0 ${2 * k}px #55524c` }} />
+              <>
+                {/* side buttons */}
+                {[
+                  { side: -1, y: 0.18, h: 0.035 },
+                  { side: -1, y: 0.245, h: 0.06 },
+                  { side: -1, y: 0.32, h: 0.06 },
+                  { side: 1, y: 0.27, h: 0.09 },
+                ].map((b, i) => (
+                  <div key={i} style={{ position: "absolute", top: body.h * b.y, height: body.h * b.h, width: edge * 2.2, [b.side < 0 ? "left" : "right"]: -edge * 1.4, borderRadius: edge, background: "linear-gradient(90deg, #6d6c69, #a9a8a4, #6d6c69)" }} />
+                ))}
+                <div style={{ position: "absolute", inset: 0, borderRadius: screenRadius + bezel + edge, background: "linear-gradient(150deg, #a3a29e 0%, #57565a 30%, #8c8b87 60%, #4a4947 100%)", boxShadow: shadow }} />
+                <div style={{ position: "absolute", inset: edge, borderRadius: screenRadius + bezel, background: "#060606" }} />
+              </>
             )}
             {p.device === "browser" && (
-              <div style={{ position: "absolute", inset: 0, borderRadius: 22 * k, background: palette.paper, boxShadow: `0 ${50 * k}px ${110 * k}px rgba(30,26,20,0.42), 0 ${12 * k}px ${26 * k}px rgba(30,26,20,0.25)`, overflow: "hidden" }}>
-                <div style={{ height: bar, display: "flex", alignItems: "center", gap: 12 * k, padding: `0 ${24 * k}px`, borderBottom: `1px solid rgba(43,42,38,0.1)`, background: "#EFE7D6" }}>
-                  {["#E0665A", "#E5B84B", "#6EAE63"].map((c) => (
-                    <div key={c} style={{ width: 18 * k, height: 18 * k, borderRadius: 99, background: c }} />
+              <div style={{ position: "absolute", inset: 0, borderRadius: 20 * k, background: "#F6F6F4", boxShadow: `${shadow}, 0 0 0 ${1 * k}px rgba(0,0,0,0.06)`, overflow: "hidden" }}>
+                <div style={{ height: bar, display: "flex", alignItems: "center", gap: 11 * k, padding: `0 ${22 * k}px` }}>
+                  {["#FF5F57", "#FEBC2E", "#28C840"].map((c) => (
+                    <div key={c} style={{ width: 15 * k, height: 15 * k, borderRadius: 99, background: c }} />
                   ))}
-                  <div style={{ flex: 1, marginLeft: 22 * k, marginRight: 60 * k, height: 38 * k, borderRadius: 99, background: palette.paper, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: fonts.ui, fontWeight: 500, fontSize: 22 * k, color: "#6d675c" }}>
+                  <div style={{ flex: 1, margin: `0 ${80 * k}px 0 ${40 * k}px`, height: 34 * k, borderRadius: 9 * k, background: "#E9E9E6", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: fonts.sans, fontWeight: 500, fontSize: 19 * k, color: colors.muted, letterSpacing: tracking.text }}>
                     {p.url ?? ""}
                   </div>
                 </div>
               </div>
             )}
-            {p.device === "none" && <div style={{ position: "absolute", inset: 0, borderRadius: screenRadius, boxShadow: `0 ${50 * k}px ${110 * k}px rgba(30,26,20,0.42)` }} />}
+            {p.device === "none" && <div style={{ position: "absolute", inset: 0, borderRadius: screenRadius, boxShadow: shadow }} />}
 
-            {/* Screen */}
-            <div
-              style={{
-                position: "absolute",
-                left: screen.x - frameRect.x,
-                top: screen.y - frameRect.y,
-                width: screen.w,
-                height: screen.h,
-                borderRadius: p.device === "browser" ? `0 0 ${22 * k}px ${22 * k}px` : screenRadius,
-                overflow: "hidden",
-                background: "#000",
-              }}
-            >
-              {media}
+            <div style={{ position: "absolute", left: screen.x, top: screen.y, width: screen.w, height: screen.h, borderRadius: p.device === "browser" ? `0 0 ${20 * k}px ${20 * k}px` : screenRadius, overflow: "hidden", background: "#000" }}>
+              {media(fullW, fullH, { transform: `translate(${-crop.x * fullW}px, ${-crop.y * fullH - scrollY}px)` })}
               {hl && (
                 <div
                   style={{
                     position: "absolute",
-                    left: hl.x * screen.w,
-                    top: hl.y * imgH - scrollY,
-                    width: hl.w * screen.w,
-                    height: hl.h * imgH,
-                    borderRadius: 16 * k,
-                    boxShadow: `0 0 0 ${3000 * k}px rgba(16,14,11,${0.6 * hlT}), 0 0 0 ${5 * k}px rgba(232,176,74,${hlT})`,
-                    transform: `scale(${interpolate(hlT, [0, 1], [1.15, 1])})`,
+                    left: (hl.x - crop.x) * fullW,
+                    top: (hl.y - crop.y) * fullH - scrollY,
+                    width: hl.w * fullW,
+                    height: hl.h * fullH,
+                    borderRadius: 18 * k,
+                    boxShadow: `0 0 0 ${3000 * k}px rgba(12,12,11,${0.55 * hlT}), 0 0 0 ${4 * k}px rgba(255,255,255,${hlT})`,
+                    transform: `scale(${interpolate(hlT, [0, 1], [1.08, 1])})`,
                   }}
                 />
               )}
-              {p.device === "iphone" && (
-                <div style={{ position: "absolute", top: screen.w * 0.03, left: "50%", width: screen.w * 0.3, height: screen.w * 0.085, transform: "translateX(-50%)", borderRadius: 99, background: "#000" }} />
-              )}
+              {p.island && <div style={{ position: "absolute", top: screen.w * 0.03, left: "50%", width: screen.w * 0.3, height: screen.w * 0.085, transform: "translateX(-50%)", borderRadius: 99, background: "#000" }} />}
             </div>
+            {loupeEl}
+            {cursorEl}
           </div>
         </AbsoluteFill>
       </AbsoluteFill>

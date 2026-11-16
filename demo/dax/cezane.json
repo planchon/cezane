@@ -189,6 +189,110 @@
       "status": "ready",
       "tags": [],
       "createdAt": "2026-11-16T00:24:50.094Z"
+    },
+    {
+      "id": "a_8u1qie",
+      "kind": "video",
+      "name": "dax-today",
+      "hash": "a764e169c0a0f11cc058",
+      "file": "media/a764e169c0a0f11cc058.mp4",
+      "duration": 14.97,
+      "width": 1206,
+      "height": 2622,
+      "fps": 19.03807615230461,
+      "hasAudio": false,
+      "provenance": {
+        "type": "capture",
+        "source": "ios",
+        "target": "Dax Dev (simulateur)"
+      },
+      "derived": {
+        "events": "events.json",
+        "normalized": "normalized.mp4",
+        "thumbs": "thumbs.jpg",
+        "poster": "poster.jpg"
+      },
+      "status": "ready",
+      "tags": [],
+      "createdAt": "2026-11-16T11:09:03.285Z"
+    },
+    {
+      "id": "a_lf9iz1",
+      "kind": "video",
+      "name": "dax-goals",
+      "hash": "8cdea4942cbfd245a921",
+      "file": "media/8cdea4942cbfd245a921.mp4",
+      "duration": 6.731667,
+      "width": 1206,
+      "height": 2622,
+      "fps": 19.163159197821244,
+      "hasAudio": false,
+      "provenance": {
+        "type": "capture",
+        "source": "ios",
+        "target": "Dax Dev (simulateur)"
+      },
+      "derived": {
+        "events": "events.json",
+        "normalized": "normalized.mp4",
+        "thumbs": "thumbs.jpg",
+        "poster": "poster.jpg"
+      },
+      "status": "ready",
+      "tags": [],
+      "createdAt": "2026-11-16T11:09:03.317Z"
+    },
+    {
+      "id": "a_9cvtui",
+      "kind": "video",
+      "name": "dax-roadmap",
+      "hash": "ac81c98b9393fcbb02a2",
+      "file": "media/ac81c98b9393fcbb02a2.mp4",
+      "duration": 12.246667,
+      "width": 1206,
+      "height": 2622,
+      "fps": 14.207947740881872,
+      "hasAudio": false,
+      "provenance": {
+        "type": "capture",
+        "source": "ios",
+        "target": "Dax Dev (simulateur)"
+      },
+      "derived": {
+        "events": "events.json",
+        "normalized": "normalized.mp4",
+        "thumbs": "thumbs.jpg",
+        "poster": "poster.jpg"
+      },
+      "status": "ready",
+      "tags": [],
+      "createdAt": "2026-11-16T11:09:03.351Z"
+    },
+    {
+      "id": "a_ofd19x",
+      "kind": "video",
+      "name": "dax-profile",
+      "hash": "1fd1bf533acd4616c2bd",
+      "file": "media/1fd1bf533acd4616c2bd.mp4",
+      "duration": 7.886667,
+      "width": 1206,
+      "height": 2622,
+      "fps": 11.538461538461538,
+      "hasAudio": false,
+      "provenance": {
+        "type": "capture",
+        "source": "ios",
+        "target": "Dax Dev (simulateur)"
+      },
+      "derived": {
+        "events": "events.json",
+        "normalized": "normalized.mp4",
+        "thumbs": "thumbs.jpg",
+        "poster": "poster.jpg"
+      },
+      "status": "ready",
+      "tags": [],
+      "createdAt": "2026-11-16T11:09:03.405Z"
     }
   ],
   "montages": [

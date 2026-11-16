@@ -5,7 +5,12 @@
     "width": 1080,
     "height": 1920,
     "fps": 30,
-    "background": "#000000"
+    "background": "#000000",
+    "grade": {
+      "lut": "drame",
+      "intensity": 0.85,
+      "vignette": 0.35
+    }
   },
   "tracks": [
     {
@@ -67,9 +72,29 @@
       "hidden": false,
       "clips": [
         {
-          "id": "c_2o1wv7",
+          "id": "c_fbu09p",
           "start": 300,
-          "duration": 90,
+          "duration": 60,
+          "type": "media",
+          "assetId": "a_z56738",
+          "srcIn": 0,
+          "speed": 1,
+          "volume": 1,
+          "muted": true,
+          "fadeIn": 0,
+          "fadeOut": 0,
+          "fit": "cover",
+          "focus": {
+            "x": 0.5,
+            "y": 0.5
+          },
+          "cutout": false,
+          "opacity": 1
+        },
+        {
+          "id": "c_mvrxpn",
+          "start": 360,
+          "duration": 60,
           "type": "media",
           "assetId": "a_13uigk",
           "srcIn": 0,
@@ -83,19 +108,8 @@
             "x": 0.5,
             "y": 0.5
           },
-          "zoom": {
-            "from": 1,
-            "to": 1.25,
-            "x": 0.5,
-            "y": 0.5,
-            "easing": "ease"
-          },
           "cutout": false,
-          "opacity": 1,
-          "transitionIn": {
-            "type": "whip",
-            "frames": 10
-          }
+          "opacity": 1
         },
         {
           "id": "c_rnbc47",
@@ -131,6 +145,45 @@
       ]
     },
     {
+      "id": "t_gs_person",
+      "kind": "video",
+      "name": "Détourage",
+      "muted": false,
+      "hidden": false,
+      "clips": [
+        {
+          "id": "c_38ub0p",
+          "start": 300,
+          "duration": 120,
+          "type": "media",
+          "assetId": "a_vk1uar",
+          "srcIn": 10,
+          "speed": 1,
+          "volume": 1,
+          "muted": true,
+          "fadeIn": 0,
+          "fadeOut": 0,
+          "fit": "cover",
+          "focus": {
+            "x": 0.5,
+            "y": 0.5
+          },
+          "cutout": true,
+          "box": {
+            "x": 0.19,
+            "y": 0.38,
+            "w": 0.62,
+            "h": 0.62
+          },
+          "outline": {
+            "width": 10,
+            "color": "#FFFFFF"
+          },
+          "opacity": 1
+        }
+      ]
+    },
+    {
       "id": "t_gfx",
       "kind": "overlay",
       "name": "Graphics",
@@ -145,22 +198,10 @@
           "type": "graphic",
           "component": "Title",
           "props": {
-            "text": "Cezane v0.1",
-            "subtitle": "Montage piloté par Claude",
-            "style": "bold",
-            "position": "center"
-          }
-        },
-        {
-          "id": "c_f3d6k7",
-          "start": 80,
-          "duration": 90,
-          "type": "graphic",
-          "component": "LowerThird",
-          "props": {
-            "name": "Rush de test",
-            "title": "vlog CC-BY",
-            "y": 0.6
+            "text": "Cette vidéo a été montée",
+            "style": "native",
+            "muted": "par Claude 👀",
+            "y": 0.3
           }
         },
         {
@@ -178,47 +219,21 @@
           }
         },
         {
-          "id": "c_2szdjn",
-          "start": 400,
-          "duration": 30,
-          "type": "graphic",
-          "component": "Emoji",
-          "props": {
-            "emoji": "🔥",
-            "x": 0.5,
-            "y": 0.3
-          }
-        },
-        {
-          "id": "c_ymz9ij",
-          "start": 485,
-          "duration": 40,
-          "type": "graphic",
-          "component": "Emoji",
-          "props": {
-            "emoji": "☕",
-            "x": 0.5,
-            "y": 0.3
-          }
-        },
-        {
           "id": "c_pm27mf",
           "start": 600,
           "duration": 75,
           "type": "graphic",
           "component": "ScreenshotShowcase",
           "props": {
-            "assetId": "a_zxo39t",
+            "assetId": "a_jofrl4",
             "device": "browser",
-            "background": "cezanne",
-            "url": "rewind.codes",
-            "highlight": {
-              "x": 0.1,
-              "y": 0.15,
-              "w": 0.5,
-              "h": 0.4
-            },
-            "highlightAt": 25
+            "background": "sky",
+            "url": "docs.rewind.codes",
+            "highlightAt": 25,
+            "label": "rewind.codes",
+            "caption": "Vraies vidéos d'app,",
+            "muted": "curseur rejoué.",
+            "from": 0.6
           }
         },
         {
@@ -228,9 +243,13 @@
           "type": "graphic",
           "component": "ScreenshotShowcase",
           "props": {
-            "assetId": "a_khi6zw",
+            "assetId": "a_94jh7d",
             "device": "iphone",
-            "background": "provence"
+            "background": "foliage",
+            "label": "Dax · iOS",
+            "caption": "Captures iOS,",
+            "muted": "taps réels.",
+            "from": 9.9
           }
         },
         {
@@ -254,10 +273,12 @@
           "type": "graphic",
           "component": "Title",
           "props": {
-            "text": "Cezane v0.1",
+            "text": "Cezane",
             "kicker": "Montage piloté par Claude",
-            "style": "elegant",
-            "position": "bottom"
+            "style": "plain",
+            "position": "center",
+            "muted": "v0.1",
+            "size": 150
           }
         }
       ]
@@ -295,7 +316,7 @@
           "start": 0,
           "duration": 990,
           "type": "captions",
-          "style": "karaoke",
+          "style": "clean",
           "position": "bottom",
           "words": [
             {

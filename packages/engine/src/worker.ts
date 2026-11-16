@@ -72,7 +72,14 @@ export class RenderWorker {
     return next;
   }
 
-  stop() {
-    this.proc?.kill();
+  /** Lets the worker close its Chrome (end of stdin), then makes sure it is gone. */
+  async stop() {
+    const proc = this.proc;
+    if (!proc || proc.exitCode !== null) return;
+    try {
+      proc.stdin.end();
+    } catch {}
+    await Promise.race([proc.exited, Bun.sleep(6000)]);
+    if (proc.exitCode === null) proc.kill();
   }
 }

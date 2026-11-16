@@ -8,3 +8,4 @@ export * from "./cutout";
 export * from "./capture";
 export * from "./generate";
 export * from "./smart";
+export * from "./grade";

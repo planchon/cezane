@@ -3,8 +3,8 @@ import { join } from "node:path";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { z } from "zod";
-import { type LookItem, type Op, clipEnd, findClip, newId, OpError, overview, resolveAnchor } from "@cezane/core";
-import { captionsOps, captureIos, captureWeb, cutSilencesOps, ffmpeg, look, timelineWords, transcriptLines } from "@cezane/engine";
+import { CAPTION_STYLES, type LookItem, type Op, clipEnd, findClip, newId, OpError, overview, resolveAnchor } from "@cezane/core";
+import { captionsOps, captureIos, captureWeb, cutSilencesOps, ffmpeg, greenScreenOps, look, timelineWords, transcriptLines } from "@cezane/engine";
 import type { Cezane } from "./app";
 
 type Content = { type: "text"; text: string } | { type: "image"; data: string; mimeType: string };
@@ -16,12 +16,12 @@ async function imageContent(path: string): Promise<Content> {
 }
 
 const EDIT_DOC = `Apply a batch of edit ops to the montage (one revision). Frames at montage fps; srcIn in seconds. Ops:
-add_clip {track, clip}: clip = {type:"media", assetId, start, duration, srcIn?, speed?, volume?, muted?, fit?:"cover"|"contain", focus?:{x,y}, zoom?:{from,to,x,y,easing:"linear"|"ease"|"punch"}, cutout?:bool (person cut out, for text behind), opacity?, transitionIn?:{type:"fade"|"whip"|"zoom"|"slide",frames}} | {type:"graphic", component, props, start, duration} (see graphics tool)
+add_clip {track, clip}: clip = {type:"media", assetId, start, duration, srcIn?, speed?, volume?, muted?, fit?:"cover"|"contain", focus?:{x,y}, zoom?:{from,to,x,y,easing:"linear"|"ease"|"punch"}, cutout?:bool (person cut out), box?:{x,y,w,h} (where it is drawn, 0..1; picture-in-picture, or green screen with cutout), outline?:{width,color} (sticker edge of a cutout), grade?:{lut,intensity,vignette} (overrides the montage look; {lut:"none"} keeps the clip raw), opacity?, transitionIn?:{type:"fade"|"whip"|"zoom"|"slide",frames}} | {type:"graphic", component, props, start, duration, behind?:bool} (see graphics tool)
 update_clip {id, set} (graphic props are merged; null removes a field/prop, e.g. {props:{zoom:null}}) · move_clip {id, start?, track?} · trim_clip {id, start?, end?} · split_clip {id, at}
 remove_clip {id, ripple?} · cut_range {start, end} (every track, closes the gap) · insert_gap {at, frames}
 add_track {kind:"video"|"overlay"|"audio", role?:"broll"|"graphics"|"captions"|"music"|"voice"|"sfx", name?, index?} · update_track {track, set:{name,muted,hidden}} · remove_track {track}
-set_settings {set:{width,height,fps,background}} · set_audio {set:{targetLufs, voice:"none"|"clean"|"podcast", duck, duckDb}}
-Tracks stack bottom→top; refer to them by id or name. Text behind a person: media clip (bottom) + graphic + same media clip with cutout:true (top).`;
+set_settings {set:{width,height,fps,background,grade:{lut,intensity?,vignette?}}} (grade = color look of all imported footage; LUTs: drame, film, provence, nuit, pastel, noir, or a .cube in the project luts/ folder; captures and generated images are not graded) · set_audio {set:{targetLufs, voice:"none"|"clean"|"podcast", duck, duckDb}}
+Tracks stack bottom→top; refer to them by id or name. Text behind the person: give the graphic behind:true (BigText or Title); it is placed from the person automatically and stays in front on close-ups (head > 35% of the frame). Green screen: use the green_screen tool.`;
 
 /** One MCP server per request (stateless Streamable HTTP). */
 export function mcpHandler(app: Cezane) {
@@ -87,6 +87,8 @@ function buildServer(app: Cezane): McpServer {
           : [{ label: `f${f}`, frame: f, region }],
       );
       const out = tmp(`look-${newId("l")}.jpg`);
+      await app.ensureCutouts();
+      await app.ensureGrades();
       await look(m, env(), items, out, other ? 2 : undefined);
       const small = out.replace(/\.jpg$/, ".s.jpg");
       await ffmpeg(["-i", out, "-vf", "scale='min(720,iw)':-2", "-q:v", "5", small]);
@@ -180,15 +182,45 @@ function buildServer(app: Cezane): McpServer {
   server.registerTool(
     "captions",
     {
-      description: "Create word-by-word captions from the transcript of the main track (replaces existing captions). Re-run after cutting.",
-      inputSchema: { style: z.enum(["bold", "karaoke", "minimal", "box"]).optional(), position: z.enum(["top", "center", "bottom"]).optional(), color: z.string().optional(), wordsPerPage: z.number().int().min(1).max(8).optional() },
+      description:
+        "Create word-by-word captions from the transcript of the main track (replaces existing captions). Re-run after cutting. Styles: clean (default: serif, whole page shown, words go from 40% to white as they are said, no color change), native (TikTok Sans with stroke), pill (active word on a pill), box (page on a box, color = box color), caps (all-caps yellow word, dated: only when asked). Pages are one line of 2–4 words; bottom = y 0.65, set y≈0.45 when the lower half holds a screen or a cut-out person.",
+      inputSchema: {
+        style: z.enum(CAPTION_STYLES).optional(),
+        position: z.enum(["top", "center", "bottom"]).optional(),
+        y: z.number().min(0.1).max(0.9).optional(),
+        color: z.string().optional(),
+        wordsPerPage: z.number().int().min(1).max(8).optional(),
+      },
     },
     async (o) => {
       const { ops, words } = captionsOps(s.montage, s.transcript, o);
       if (!words) return fail("no transcribed speech on the main track");
-      const r = s.edit(ops, "claude", `sous-titres ${o.style ?? "bold"}`);
+      const r = s.edit(ops, "claude", `sous-titres ${o.style ?? "clean"}`);
       app.changed();
       return text(`rev ${r.revision}: captions with ${words} words`);
+    },
+  );
+
+  server.registerTool(
+    "green_screen",
+    {
+      description:
+        "Green screen (TikTok explainer + screen): over [start,end) frames, the background assets (images, screenshots, videos) take turns behind the speaker of the main track, cut out and anchored at the bottom (scale = share of the frame, ~0.6). Captions move above the speaker automatically. Change backgrounds every 3–5 s.",
+      inputSchema: {
+        start: z.number().int().min(0),
+        end: z.number().int().min(1),
+        backgrounds: z.array(z.string()).min(1),
+        scale: z.number().min(0.35).max(1).optional(),
+        align: z.enum(["center", "left", "right"]).optional(),
+        outline: z.boolean().optional().describe("white sticker edge around the speaker"),
+      },
+    },
+    async (o) => {
+      const missing = o.backgrounds.filter((id) => !s.asset(id));
+      if (missing.length) return fail(`unknown assets: ${missing.join(", ")}`);
+      const r = s.edit(greenScreenOps(s.montage, o), "claude", "green screen");
+      app.changed();
+      return text(`rev ${r.revision}: ${r.summary.join("; ")}`);
     },
   );
 

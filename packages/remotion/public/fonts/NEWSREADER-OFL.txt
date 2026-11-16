@@ -1,0 +1,2 @@
+Newsreader (Production Type), SIL Open Font License 1.1 — https://github.com/productiontype/Newsreader
+Variable woff2 with opsz 6–72 and wght 200–800, latin and latin-ext subsets, from Google Fonts.

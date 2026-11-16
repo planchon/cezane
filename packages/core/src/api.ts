@@ -10,7 +10,32 @@ export type RenderAsset = {
   height?: number;
   duration?: number; // seconds
   cutoutUrl?: string; // webm vp9 with alpha
+  subject?: SubjectTrack; // where the person is, for text behind them
+  footage?: boolean; // imported footage (gets the montage grade); captures and generated images do not
+  graded?: Record<string, { url: string; cutoutUrl?: string }>; // gradeFileKey → graded copies
+  events?: CaptureEvent[]; // what happened during a screen recording (drives the cursor overlay)
 };
+
+/**
+ * One interaction of a screen recording: t in seconds of the recording, x/y 0..1 of the frame.
+ * A drag goes from (x, y) to (x2, y2) (an iOS scroll); "scroll" is a mouse wheel.
+ */
+export type CaptureEvent = {
+  t: number;
+  type: "click" | "drag" | "scroll" | "type" | "press" | "hover" | "goto";
+  x?: number;
+  y?: number;
+  x2?: number;
+  y2?: number;
+  label?: string;
+};
+
+/**
+ * Where the person is in a video, sampled over time (source coordinates, 0..1, top-left origin).
+ * Row: [t (s), x, y, w, h (silhouette box), area, faceX, faceY, faceW, faceH, headTop (hair top above
+ * the face)]; -1 when absent.
+ */
+export type SubjectTrack = { fps: number; frames: number[][] };
 
 /** Input props of the `Timeline` composition (and of `Look`). */
 export type TimelineProps = {

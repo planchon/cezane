@@ -13,11 +13,11 @@ export const Highlight: React.FC<WithDuration<HighlightProps>> = (p) => {
   const y = interpolate(t, [0, 1], [0, r.y * height]);
   const w = interpolate(t, [0, 1], [width, r.w * width]);
   const h = interpolate(t, [0, 1], [height, r.h * height]);
-  const pulse = p.pulse ? 1 + Math.sin(frame / 6) * 0.012 : 1;
+  const pulse = p.pulse ? 1 + Math.sin(frame / 9) * 0.006 : 1;
   return (
     <AbsoluteFill style={{ opacity: out, overflow: "hidden" }}>
-      <div style={{ position: "absolute", left: x, top: y, width: w, height: h, borderRadius: p.radius * k, boxShadow: `0 0 0 ${Math.max(width, height) * 2}px rgba(16,14,11,${p.dim * t})` }} />
-      <div style={{ position: "absolute", left: x, top: y, width: w, height: h, borderRadius: p.radius * k, border: `${6 * k}px solid ${p.color}`, opacity: t, transform: `scale(${pulse})`, boxShadow: `0 0 ${30 * k}px ${p.color}88` }} />
+      <div style={{ position: "absolute", left: x, top: y, width: w, height: h, borderRadius: p.radius * k, boxShadow: `0 0 0 ${Math.max(width, height) * 2}px rgba(12,12,11,${p.dim * t})` }} />
+      <div style={{ position: "absolute", left: x, top: y, width: w, height: h, borderRadius: p.radius * k, border: `${4 * k}px solid ${p.color}`, opacity: t, transform: `scale(${pulse})`, boxShadow: `0 0 ${24 * k}px rgba(0,0,0,0.25)` }} />
     </AbsoluteFill>
   );
 };

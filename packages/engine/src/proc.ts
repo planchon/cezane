@@ -74,4 +74,4 @@ export async function sha256File(path: string): Promise<string> {
   return hasher.digest("hex").slice(0, 20);
 }
 
-export const sha256 = (s: string) => new Bun.CryptoHasher("sha256").update(s).digest("hex").slice(0, 20);
+export const sha256 = (s: string | Uint8Array) => new Bun.CryptoHasher("sha256").update(s).digest("hex").slice(0, 20);

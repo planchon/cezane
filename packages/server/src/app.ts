@@ -11,10 +11,13 @@ import {
   type ServerState,
   type Version,
   contentAnchorAt,
+  cutoutAssets,
+  effectiveGrade,
+  gradeFileKey,
   montageDuration,
   newId,
 } from "@cezane/core";
-import { cutout, ffmpeg, generate as runGenerate, ingest, probe, RenderWorker, renderMontage, sha256File } from "@cezane/engine";
+import { CACHE_DIR, cacheDir, CUTOUT_VERSION, cutout, ffmpeg, gradeAsset, generate as runGenerate, ingest, probe, RenderWorker, renderMontage, sha256File } from "@cezane/engine";
 import { ClaudeRunner } from "./claude";
 import { Jobs } from "./jobs";
 import { now, ProjectStore } from "./store";
@@ -95,6 +98,13 @@ export class Cezane {
       }
       const info = await probe(src);
       const kind: Asset["kind"] = info.isImage ? "image" : info.hasVideo ? "video" : "audio";
+      // A screen recording can come with its interaction log (capture.events.json next to capture.webm).
+      const sidecar = src.replace(/\.[^.]+$/, ".events.json");
+      const derived: Asset["derived"] = {};
+      if (kind === "video" && existsSync(sidecar)) {
+        copyFileSync(sidecar, join(cacheDir(hash), "events.json"));
+        derived.events = "events.json";
+      }
       const file = join("media", `${hash}${extname(src).toLowerCase() || ".bin"}`);
       const dest = this.store.path(file);
       if (!existsSync(dest)) {
@@ -116,7 +126,7 @@ export class Cezane {
         fps: info.fps,
         hasAudio: info.hasAudio,
         provenance: provenance ?? { type: "import", path: src },
-        derived: {},
+        derived,
         status: "ingesting",
         tags: opts.tags ?? [],
         createdAt: now(),
@@ -148,16 +158,37 @@ export class Cezane {
     return { worker: this.worker, projectDir: this.store.dir, assets: this.store.assetMap(), baseUrl: this.baseUrl };
   }
 
-  /** Makes sure the person cutouts used by the montage exist (computed once per source). */
-  private async ensureCutouts(update: (p: number, label?: string) => void) {
-    const ids = new Set<string>();
-    for (const t of this.store.montage.tracks) for (const c of t.clips) if (c.type === "media" && c.cutout) ids.add(c.assetId);
-    for (const id of ids) {
+  /**
+   * Makes sure the person cutouts used by the montage exist (cutout clips and the main track under
+   * `behind` graphics), with their subject track. Computed once per source.
+   */
+  async ensureCutouts(update: (p: number, label?: string) => void = () => {}) {
+    for (const id of cutoutAssets(this.store.montage)) {
       const a = this.store.asset(id);
-      if (!a || a.derived.cutout || a.kind !== "video") continue;
-      const name = await cutout(a, (p) => update(p * 0.3, `Détourage · ${a.name}`));
-      this.store.updateAsset(id, { derived: { cutout: name } });
+      if (!a || a.kind !== "video" || (a.derived.cutout?.startsWith(`cutout-v${CUTOUT_VERSION}-`) && a.derived.subject)) continue;
+      const r = await cutout(a, (p) => update(p * 0.3, `Détourage · ${a.name}`));
+      this.store.updateAsset(id, { derived: { cutout: r.cutout, subject: r.subject } });
     }
+  }
+
+  /** Makes sure the graded copies (LUT) of the footage used by the montage exist, video and cutout. */
+  async ensureGrades(update: (p: number, label?: string) => void = () => {}) {
+    const m = this.store.montage;
+    for (const t of m.tracks)
+      for (const c of t.clips) {
+        if (c.type !== "media") continue;
+        const a = this.store.asset(c.assetId);
+        if (!a || a.kind === "audio") continue;
+        const g = effectiveGrade(c, m.settings, a.provenance.type === "import");
+        if (!g) continue;
+        const key = gradeFileKey(g);
+        const have = a.derived.graded?.[key];
+        const cutoutOk = !a.derived.cutout || have?.cutout?.includes(a.derived.cutout.replace(/\.webm$/, ""));
+        if (have && cutoutOk && existsSync(join(CACHE_DIR, a.hash, have.file))) continue;
+        update(0, `Étalonnage · ${a.name} · ${g.lut}`);
+        const r = await gradeAsset(a, g, this.store.dir);
+        this.store.updateAsset(a.id, { derived: { graded: { ...(a.derived.graded ?? {}), [key]: r } } });
+      }
   }
 
   /** Renders the current montage as a new version (V1, V2…). Only changed segments are rendered. */
@@ -191,6 +222,7 @@ export class Cezane {
     void this.jobs.add("render", `Rendu ${id}`, async (update) => {
       try {
         await this.ensureCutouts(update);
+        await this.ensureGrades(update);
         const env = this.renderEnv();
         const file = join(".cezane/renders", `${id}.mp4`);
         const r = await renderMontage(montage, env, s.path(file), prev?.segmentKeys ?? [], (p, label) => {

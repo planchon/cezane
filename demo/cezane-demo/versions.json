@@ -77,6 +77,8 @@
     "summary": "Retire zoom iPhone, URL rewind.codes, détourage texte",
     "status": "ready",
     "progress": 1,
+    "file": ".cezane/renders/v3.mp4",
+    "poster": ".cezane/renders/v3.jpg",
     "montageFile": ".cezane/versions/v3.montage.json",
     "durationFrames": 990,
     "fps": 30,
@@ -104,10 +106,8 @@
       "677f92bacb5013d941ea",
       "82bc33e1baa443bd4199"
     ],
-    "createdAt": "2026-11-16T00:35:28.063Z",
-    "file": ".cezane/renders/v3.mp4",
-    "poster": ".cezane/renders/v3.jpg",
-    "renderSeconds": 25.7
+    "renderSeconds": 25.7,
+    "createdAt": "2026-11-16T00:35:28.063Z"
   },
   {
     "id": "v4",
@@ -118,6 +118,8 @@
     "summary": "Texte y0.3, 230px",
     "status": "ready",
     "progress": 1,
+    "file": ".cezane/renders/v4.mp4",
+    "poster": ".cezane/renders/v4.jpg",
     "montageFile": ".cezane/versions/v4.montage.json",
     "durationFrames": 990,
     "fps": 30,
@@ -139,9 +141,73 @@
       "677f92bacb5013d941ea",
       "82bc33e1baa443bd4199"
     ],
-    "createdAt": "2026-11-16T00:36:34.696Z",
-    "file": ".cezane/renders/v4.mp4",
-    "poster": ".cezane/renders/v4.jpg",
-    "renderSeconds": 10.7
+    "renderSeconds": 10.7,
+    "createdAt": "2026-11-16T00:36:34.696Z"
+  },
+  {
+    "id": "v5",
+    "n": 5,
+    "montageId": "m_jmdvsc",
+    "revision": 10,
+    "author": "user",
+    "summary": "Style Studio, hook natif, green screen, curseur Figma",
+    "status": "ready",
+    "progress": 1,
+    "file": ".cezane/renders/v5.mp4",
+    "poster": ".cezane/renders/v5.jpg",
+    "montageFile": ".cezane/versions/v5.montage.json",
+    "durationFrames": 990,
+    "fps": 30,
+    "changed": [
+      {
+        "start": 0,
+        "end": 990
+      }
+    ],
+    "comments": [],
+    "segmentKeys": [
+      "7197c2375716708c018d",
+      "40e080db3553e5edb924",
+      "5c0d2ce0f5a3e76146a0",
+      "33237466911990fbadf0",
+      "8e54ca030e9564b11df3",
+      "ee06e58ca65da577bc2f",
+      "81af7d869bd3e3a27da7"
+    ],
+    "renderSeconds": 81.6,
+    "createdAt": "2026-11-16T10:37:45.907Z"
+  },
+  {
+    "id": "v6",
+    "n": 6,
+    "montageId": "m_jmdvsc",
+    "revision": 11,
+    "author": "user",
+    "summary": "Enregistrements réels, serif, LUT",
+    "status": "ready",
+    "progress": 1,
+    "montageFile": ".cezane/versions/v6.montage.json",
+    "durationFrames": 990,
+    "fps": 30,
+    "changed": [
+      {
+        "start": 0,
+        "end": 990
+      }
+    ],
+    "comments": [],
+    "segmentKeys": [
+      "ee3d07c8954abd6669a8",
+      "3c3923847013a809a481",
+      "629842091770060a6586",
+      "72c06ea172829502f1f5",
+      "a4b375c82770e89b9c7b",
+      "884917bb020de018dec7",
+      "64e2e60836afa22a4528"
+    ],
+    "createdAt": "2026-11-16T11:14:02.061Z",
+    "file": ".cezane/renders/v6.mp4",
+    "poster": ".cezane/renders/v6.jpg",
+    "renderSeconds": 62.9
   }
 ]

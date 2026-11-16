@@ -2,11 +2,15 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync 
 import { join, relative } from "node:path";
 import {
   type Asset,
+  type CaptureEvent,
   type FrameRange,
   type LookItem,
+  type MediaClip,
   type Montage,
   type RenderAsset,
+  type SubjectTrack,
   type TimelineProps,
+  effectiveGrade,
   mergeRanges,
   montageDuration,
   planSegments,
@@ -14,6 +18,7 @@ import {
   stableStringify,
 } from "@cezane/core";
 import { audioKey, mixAudio } from "./audio";
+import { lutHash, lutPath } from "./grade";
 import { CACHE_DIR, ffmpeg, REPO_DIR, sha256 } from "./proc";
 import type { RenderWorker } from "./worker";
 
@@ -33,20 +38,40 @@ export function codeVersions(): { component: (name: string) => string; render: s
     for (const f of readdirSync(d)) {
       const p = join(d, f);
       if (statSync(p).isDirectory()) walk(p);
-      else if (/\.(tsx?|css|json)$/.test(f)) files.push(p);
+      else if (/\.(tsx?|css|json|jpe?g|png|webp|woff2?)$/.test(f)) files.push(p);
     }
   };
   if (existsSync(REMOTION_SRC)) walk(REMOTION_SRC);
+  // Static files (painted plates) change the look too.
+  const publicDir = join(REMOTION_SRC, "..", "public");
+  if (existsSync(publicDir)) walk(publicDir);
   const gfx = new Map<string, string>();
   const rest: string[] = [];
   for (const f of files.sort()) {
     const rel = relative(REMOTION_SRC, f);
-    const text = readFileSync(f, "utf8");
+    const text = readFileSync(f);
     const m = /^graphics\/([^/]+)\.tsx$/.exec(rel);
     if (m) gfx.set(m[1]!, sha256(text));
     else rest.push(`${rel}:${sha256(text)}`);
   }
   return { component: (n) => gfx.get(n) ?? "none", render: sha256(rest.join("|")) };
+}
+
+/** Interaction log of a screen recording. */
+function captureEvents(a: Asset): CaptureEvent[] | undefined {
+  const p = a.derived.events && join(CACHE_DIR, a.hash, a.derived.events);
+  if (!p || !existsSync(p)) return undefined;
+  const doc = JSON.parse(readFileSync(p, "utf8")) as { events: CaptureEvent[] };
+  return doc.events;
+}
+
+/** The subject track of an asset, thinned to ~10 samples per second for the render props. */
+function subjectTrack(a: Asset): SubjectTrack | undefined {
+  const p = a.derived.subject && join(CACHE_DIR, a.hash, a.derived.subject);
+  if (!p || !existsSync(p)) return undefined;
+  const doc = JSON.parse(readFileSync(p, "utf8")) as { fps: number; frames: number[][] };
+  const step = Math.max(1, Math.round(doc.fps / 10));
+  return { fps: doc.fps / step, frames: doc.frames.filter((_, i) => i % step === 0) };
 }
 
 export function fileUrl(env: Pick<RenderEnv, "baseUrl">, a: Asset, file: string | undefined): string | undefined {
@@ -58,7 +83,20 @@ export function timelineProps(m: Montage, env: Pick<RenderEnv, "assets" | "baseU
   for (const a of env.assets.values()) {
     const url = a.kind === "audio" ? fileUrl(env, a, a.derived.audio) : fileUrl(env, a, a.derived.normalized);
     if (!url) continue;
-    assets[a.id] = { kind: a.kind, url, width: a.width, height: a.height, duration: a.duration, cutoutUrl: fileUrl(env, a, a.derived.cutout) };
+    const graded: Record<string, { url: string; cutoutUrl?: string }> = {};
+    for (const [key, g] of Object.entries(a.derived.graded ?? {})) graded[key] = { url: fileUrl(env, a, g.file)!, cutoutUrl: fileUrl(env, a, g.cutout) };
+    assets[a.id] = {
+      kind: a.kind,
+      url,
+      width: a.width,
+      height: a.height,
+      duration: a.duration,
+      cutoutUrl: fileUrl(env, a, a.derived.cutout),
+      subject: subjectTrack(a),
+      footage: a.provenance.type === "import",
+      graded,
+      events: captureEvents(a),
+    };
   }
   return { montage: m, assets };
 }
@@ -85,6 +123,13 @@ export async function renderMontage(
     componentVersion: versions.component,
     renderVersion: versions.render,
     cutoutHash: (id: string) => `${env.assets.get(id)?.hash}:${env.assets.get(id)?.derived.cutout ?? "none"}`,
+    gradeOf: (c: MediaClip) => {
+      const a = env.assets.get(c.assetId);
+      const g = a && effectiveGrade(c, m.settings, a.provenance.type === "import");
+      if (!g) return null;
+      const path = lutPath(g.lut, env.projectDir);
+      return `${path ? lutHash(path) : g.lut}@${g.intensity}:${g.vignette}`;
+    },
   };
   const segs = planSegments(m);
   const keys = segs.map((s) => sha256(stableStringify(segmentDescriptor(m, s, ctx))));

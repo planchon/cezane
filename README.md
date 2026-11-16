@@ -61,9 +61,10 @@ les médias et les caches ne sont pas dans git. Les scripts de `demo/scripts/` r
 montages Rewind et Dax depuis un serveur lancé sur le projet.
 
 - `demo/cezane-demo` : toutes les fonctionnalités (montage par Claude, coupe des silences,
-  sous-titres, texte derrière la personne, b-roll, studio screenshot, musique sous la voix,
-  canvas avec génération Codex et Claude, versions et commentaires corrigés).
-- `demo/rewind` : vidéo d'explication de Rewind à partir de captures web (cadre navigateur),
-  sous-titres seuls, musique tendance.
-- `demo/dax` : vidéo d'explication de Dax à partir de captures du simulateur iOS (cadre iPhone),
-  sous-titres seuls, musique tendance.
+  accroche native, sous-titres, texte derrière la personne, green screen, b-roll, scènes de
+  capture avec curseur, musique sous la voix, canvas avec génération Codex et Claude, versions et
+  commentaires corrigés).
+- `demo/rewind` : vidéo de docs de Rewind en 16:9 (captures web dans une fenêtre, curseur,
+  loupe, poussée de caméra), sans voix, musique tendance.
+- `demo/dax` : vidéo d'onboarding de Dax en vertical (captures du simulateur iOS dans un iPhone,
+  curseur à la Figma, loupe), sans voix, musique tendance.

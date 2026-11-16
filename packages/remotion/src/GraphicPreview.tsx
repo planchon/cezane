@@ -3,7 +3,7 @@ import type { RenderAsset } from "@cezane/core";
 import { catalog, isGraphic, parseGraphicProps } from "./catalog";
 import { AssetsContext } from "./context";
 import { graphics } from "./graphics";
-import { PaintedBackground } from "./ui/PaintedBackground";
+import { Backdrop } from "./ui/Backdrop";
 
 export type GraphicPreviewProps = {
   component: string;
@@ -22,7 +22,7 @@ export const GraphicPreview: React.FC<GraphicPreviewProps> = ({ component, props
   return (
     <AssetsContext.Provider value={assets ?? {}}>
       <AbsoluteFill>
-        <PaintedBackground background={background ?? "dark"} drift={false} />
+        <Backdrop background={background ?? "night"} drift={false} />
         {Comp && parsed ? <Comp {...parsed} duration={duration} /> : null}
       </AbsoluteFill>
     </AssetsContext.Provider>

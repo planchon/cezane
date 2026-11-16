@@ -78,12 +78,11 @@ const montage: Montage = {
       id: "t_gfx", kind: "overlay", name: "Graphics", role: "graphics", muted: false, hidden: false,
       clips: [
         { id: "c_5", type: "graphic", component: "Title", start: 0, duration: 75, props: { text: "3 astuces pour filmer" } },
-        { id: "c_6", type: "graphic", component: "LowerThird", start: 90, duration: 90, props: { name: "Paul", title: "Créateur" } },
       ],
     },
     {
       id: "t_caps", kind: "overlay", name: "Captions", role: "captions", muted: false, hidden: false,
-      clips: [{ id: "c_7", type: "captions", start: 0, duration: 600, style: "bold", position: "bottom", words: words.map((w, i) => ({ text: w, start: i * 12, end: i * 12 + 10 })) }],
+      clips: [{ id: "c_7", type: "captions", start: 0, duration: 600, style: "clean", position: "bottom", words: words.map((w, i) => ({ text: w, start: i * 12, end: i * 12 + 10 })) }],
     },
     {
       id: "t_music", kind: "audio", name: "Music", role: "music", muted: false, hidden: false,
@@ -158,7 +157,6 @@ const models: ModelInfo[] = [
 
 const graphics: GraphicInfo[] = [
   { name: "Title", description: "Titre animé", props: { text: "string" }, defaultDuration: 75 },
-  { name: "LowerThird", description: "Nom + rôle en bas d'écran", props: { name: "string", title: "string" }, defaultDuration: 90 },
 ];
 
 const canvases: CanvasDoc[] = [{ id: "cv_1", name: "Idées", pending: [], updatedAt: ago(20) }];

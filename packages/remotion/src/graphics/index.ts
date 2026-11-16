@@ -1,11 +1,12 @@
 import type { ComponentType } from "react";
 import type { GraphicName } from "../catalog";
-import { Callout } from "./Callout";
+import { BigText } from "./BigText";
 import { Counter } from "./Counter";
+import { Cursor } from "./Cursor";
 import { Emoji } from "./Emoji";
 import { Flash } from "./Flash";
 import { Highlight } from "./Highlight";
-import { LowerThird } from "./LowerThird";
+import { Plate } from "./Plate";
 import { ProgressBar } from "./ProgressBar";
 import { ScreenshotShowcase } from "./ScreenshotShowcase";
 import { TextPop } from "./TextPop";
@@ -20,12 +21,14 @@ const g = (c: unknown) => c as AnyGraphic;
 /** Name → component for `graphic` clips. Captions is drawn by `captions` clips. */
 export const graphics: Partial<Record<GraphicName, AnyGraphic>> = {
   Title: g(Title),
+  BigText: g(BigText),
   TextPop: g(TextPop),
-  LowerThird: g(LowerThird),
-  Callout: g(Callout),
+  Cursor: g(Cursor),
+  Callout: g(Cursor),
   Highlight: g(Highlight),
   Counter: g(Counter),
   Emoji: g(Emoji),
+  Plate: g(Plate),
   ProgressBar: g(ProgressBar),
   Flash: g(Flash),
   Whip: g(Whip),

@@ -1,5 +1,6 @@
-import type { CaptionWord, FrameRange, Montage } from "./schema";
+import type { CaptionWord, FrameRange, MediaClip, Montage } from "./schema";
 import { clipEnd, mainTrack, montageDuration } from "./timeline";
+import { captionRaises, mainClipsIn, screenRanges } from "./subject";
 
 /** Max segment length in frames: long shots are re-cut from their start every MAX frames. */
 export const SEGMENT_MAX = 150;
@@ -35,6 +36,8 @@ export type SegmentContext = {
   renderVersion: string;
   /** Hash of the person cutout for an asset, when the clip uses it. */
   cutoutHash?: (assetId: string) => string;
+  /** Identity of the grade a media clip gets (LUT content, strength, vignette), or null. */
+  gradeOf?: (clip: MediaClip) => string | null;
 };
 
 /** Words of captions animate in ~10 frames: a caption word just before the segment can still show. */
@@ -62,6 +65,9 @@ export function segmentDescriptor(m: Montage, seg: FrameRange, ctx: SegmentConte
           t: "media",
           src: ctx.assetHash(c.assetId),
           cut: c.cutout ? (ctx.cutoutHash?.(c.assetId) ?? "cutout") : null,
+          box: c.box ?? null,
+          outline: c.outline ?? null,
+          grade: ctx.gradeOf?.(c) ?? null,
           fit: c.fit,
           focus: c.focus,
           opacity: c.opacity,
@@ -76,7 +82,20 @@ export function segmentDescriptor(m: Montage, seg: FrameRange, ctx: SegmentConte
               }),
         });
       } else if (c.type === "graphic") {
-        items.push({ ti, t: "graphic", comp: c.component, v: ctx.componentVersion(c.component), rel, dur: c.duration, props: c.props });
+        // Behind the person: the result also depends on the cutout (and placement) of the main track below.
+        const behind = c.behind
+          ? mainClipsIn(m, Math.max(c.start, seg.start), Math.min(ce, seg.end)).map((mc) => ({
+              cut: ctx.cutoutHash?.(mc.assetId) ?? "cutout",
+              rel: mc.start - seg.start,
+              srcIn: mc.srcIn,
+              speed: mc.speed,
+              fit: mc.fit,
+              focus: mc.focus,
+              box: mc.box ?? null,
+              zoom: mc.zoom ?? null,
+            }))
+          : null;
+        items.push({ ti, t: "graphic", comp: c.component, v: ctx.componentVersion(c.component), rel, dur: c.duration, props: c.props, behind });
       } else {
         // Only the pages on screen during the segment matter, never the clip start.
         const pages = captionPages(c.words)
@@ -87,6 +106,13 @@ export function segmentDescriptor(m: Montage, seg: FrameRange, ctx: SegmentConte
           t: "captions",
           style: c.style,
           pos: c.position,
+          y: c.y ?? null,
+          raise: captionRaises(m)
+            .filter((r) => r.start < seg.end && r.end > seg.start)
+            .map((r) => [r.start - seg.start, r.end - seg.start, r.y]),
+          screens: screenRanges(m)
+            .filter((r) => r.start < seg.end && r.end > seg.start)
+            .map((r) => [r.start - seg.start, r.end - seg.start]),
           color: c.color ?? null,
           pages,
           v: ctx.componentVersion("Captions"),

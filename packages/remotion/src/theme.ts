@@ -1,40 +1,64 @@
-/** Cézanne palette and backgrounds shared by every graphic. No React here: the server imports it via the catalog. */
-export const palette = {
-  cream: "#F3EDE0",
-  paper: "#FBF7EE",
-  ink: "#2B2A26",
-  ochre: "#C8963E",
-  gold: "#E8B04A",
-  terracotta: "#B5573A",
-  sage: "#8DA382",
-  viridian: "#4E7A5A",
-  prussian: "#3E6A8A",
-  sky: "#9DB7C9",
-  apple: "#B33A2E",
-  plum: "#6B4E5E",
+/** The "Studio" look shared by every graphic. No React here: the server imports it via the catalog. */
+export const colors = {
+  ink: "#2A2A27", // text on light backgrounds
+  muted: "#8A8880", // second tone, labels
+  paper: "#F1F0EB",
+  white: "#FFFFFF",
+  night: "#161615",
+  accent: "#0A84FF", // cursor, focus rings
+  marker: "rgba(255,176,0,0.5)", // highlighter behind a word
 } as const;
 
-/** Named backgrounds; any other string is used as a CSS background as-is. */
-export const backgrounds: Record<string, string> = {
-  cezanne: [
-    "radial-gradient(ellipse 70% 45% at 18% 12%, rgba(157,183,201,0.95) 0%, rgba(157,183,201,0) 70%)",
-    "radial-gradient(ellipse 60% 40% at 88% 22%, rgba(232,176,74,0.55) 0%, rgba(232,176,74,0) 70%)",
-    "radial-gradient(ellipse 80% 45% at 15% 88%, rgba(78,122,90,0.9) 0%, rgba(78,122,90,0) 70%)",
-    "radial-gradient(ellipse 60% 40% at 90% 85%, rgba(181,87,58,0.85) 0%, rgba(181,87,58,0) 70%)",
-    "linear-gradient(165deg, #EDE3CC 0%, #DCC9A0 45%, #A9B48E 100%)",
-  ].join(","),
-  provence: [
-    "radial-gradient(ellipse 90% 50% at 50% 0%, rgba(157,183,201,1) 0%, rgba(157,183,201,0) 75%)",
-    "radial-gradient(ellipse 70% 40% at 30% 100%, rgba(200,150,62,0.9) 0%, rgba(200,150,62,0) 70%)",
-    "linear-gradient(180deg, #C9D6DC 0%, #E7D9B5 55%, #C8963E 100%)",
-  ].join(","),
-  ochre: "linear-gradient(160deg, #E8B04A 0%, #C8963E 55%, #9C6B2A 100%)",
-  sage: "linear-gradient(160deg, #B9C6A6 0%, #8DA382 50%, #4E7A5A 100%)",
-  prussian: "linear-gradient(160deg, #5C86A3 0%, #3E6A8A 50%, #23415A 100%)",
-  terracotta: "linear-gradient(160deg, #D27A5A 0%, #B5573A 55%, #7E3522 100%)",
-  cream: "linear-gradient(180deg, #FBF7EE 0%, #F3EDE0 100%)",
-  dark: "radial-gradient(ellipse 80% 60% at 50% 30%, #3A3832 0%, #1B1A17 100%)",
+/**
+ * Painted plates: Cézanne-style textures generated with Codex, shown blurred with grain
+ * (files in public/plates). They carry the painter's palette without any gradient pastiche.
+ */
+export const plates = ["sky", "field", "foliage", "wall", "sea", "dusk"] as const;
+export type Plate = (typeof plates)[number];
+
+/** Flat and soft backgrounds; any other string is used as a CSS background as-is. */
+export const flatBackgrounds: Record<string, string> = {
+  paper: colors.paper,
+  white: colors.white,
+  night: colors.night,
+  lavender: "linear-gradient(180deg, #F7F7F5 0%, #F2F0F6 55%, #E9E3F4 100%)",
+  mint: "linear-gradient(180deg, #F6F8F3 0%, #EDF3EA 55%, #DCE9D8 100%)",
+  peach: "linear-gradient(180deg, #FAF6F1 0%, #F7EBE1 55%, #F1D9C8 100%)",
 };
 
-export const painted = (name: string) => name in backgrounds && name !== "cream" && name !== "dark";
-export const resolveBackground = (bg: string) => backgrounds[bg] ?? bg;
+/** Names used before the Studio look, kept so older montages still render. */
+const legacy: Record<string, string> = {
+  cezanne: "field",
+  provence: "sky",
+  ochre: "field",
+  sage: "foliage",
+  prussian: "sea",
+  terracotta: "dusk",
+  cream: "paper",
+  dark: "night",
+};
+
+export type ResolvedBackground = { plate: Plate } | { css: string };
+
+export function resolveBackground(name: string): ResolvedBackground {
+  const n = legacy[name] ?? name;
+  if ((plates as readonly string[]).includes(n)) return { plate: n as Plate };
+  return { css: flatBackgrounds[n] ?? n };
+}
+
+/** True when dark text reads well on this background. */
+export function isLight(name: string): boolean {
+  const n = legacy[name] ?? name;
+  return n !== "night" && n !== "sea" && !/^#(0|1|2|3)/i.test(n);
+}
+
+export const backgroundNames = [...plates, ...Object.keys(flatBackgrounds)];
+
+/** True for light hex colors (#RGB or #RRGGBB); anything else counts as dark. */
+export function isLightColor(c: string): boolean {
+  const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(c.trim());
+  if (!m) return false;
+  const h = m[1]!.length === 3 ? [...m[1]!].map((x) => x + x).join("") : m[1]!;
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16) / 255);
+  return 0.2126 * r! + 0.7152 * g! + 0.0722 * b! > 0.6;
+}

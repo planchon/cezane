@@ -7,11 +7,24 @@ export type Region = z.infer<typeof Region>;
 export const Point = z.object({ x: z.number(), y: z.number() });
 export type Point = z.infer<typeof Point>;
 
+/**
+ * Color grade: a 3D LUT (.cube) by name — built-in (drame, film, provence, nuit, pastel, noir),
+ * a file in the project's luts/ folder or in ~/Cezane/luts — or "none". Applied to footage only,
+ * never to graphics or text.
+ */
+export const Grade = z.object({
+  lut: z.string(),
+  intensity: z.number().min(0).max(1).default(1),
+  vignette: z.number().min(0).max(1).default(0),
+});
+export type Grade = z.infer<typeof Grade>;
+
 export const Settings = z.object({
   width: z.number().int().default(1080),
   height: z.number().int().default(1920),
   fps: z.number().int().default(30),
   background: z.string().default("#000000"),
+  grade: Grade.optional(), // look of every imported footage clip (captures and generated images stay as they are)
 });
 export type Settings = z.infer<typeof Settings>;
 
@@ -49,6 +62,9 @@ export const Derived = z.object({
   poster: z.string().optional(), // poster jpg
   waveform: z.string().optional(), // waveform.json (number[] peaks 0..1)
   cutout: z.string().optional(), // webm vp9 with alpha (person cutout)
+  subject: z.string().optional(), // subject.json: per-frame silhouette box and face (SubjectTrack)
+  graded: z.record(z.string(), z.object({ file: z.string(), cutout: z.string().optional() })).optional(), // gradeFileKey → graded copies
+  events: z.string().optional(), // events.json of a screen recording: clicks, typing, scrolls (CaptureEvent[])
 });
 export type Derived = z.infer<typeof Derived>;
 
@@ -121,6 +137,9 @@ export const MediaClip = z.object({
   focus: Point.default({ x: 0.5, y: 0.5 }), // what stays in frame when cover-cropping
   zoom: Zoom.optional(),
   cutout: z.boolean().default(false), // show the person cutout (transparent background) instead of the full frame
+  box: Region.optional(), // where the clip is drawn (0..1 of the frame); default the whole frame. Green screen: cutout + box at the bottom
+  outline: z.object({ width: z.number().default(10), color: z.string().default("#FFFFFF") }).optional(), // sticker edge around a cutout, px at 1080 wide
+  grade: Grade.optional(), // overrides the montage grade for this clip ({lut:"none"} to keep it raw)
   opacity: z.number().min(0).max(1).default(1),
   transitionIn: Transition.optional(),
   canvasRef: z.object({ canvasId: z.string(), shapeId: z.string() }).optional(),
@@ -132,6 +151,7 @@ export const GraphicClip = z.object({
   type: z.literal("graphic"),
   component: z.string(), // name in the motion-design catalog
   props: z.record(z.string(), z.unknown()).default({}),
+  behind: z.boolean().optional(), // drawn behind the person of the main track (their cutout goes on top)
 });
 export type GraphicClip = z.infer<typeof GraphicClip>;
 
@@ -143,12 +163,24 @@ export const CaptionWord = z.object({
 });
 export type CaptionWord = z.infer<typeof CaptionWord>;
 
+/**
+ * Caption looks. clean = serif, the whole page shown, words go from 40% to white as they are said
+ * (default); native = TikTok Sans
+ * white with a black stroke; pill = active word on a pill; box = page on a box; caps = the
+ * all-caps yellow-word look, opt-in only.
+ */
+export const CAPTION_STYLES = ["clean", "native", "pill", "box", "caps"] as const;
+const legacyCaptionStyle: Record<string, (typeof CAPTION_STYLES)[number]> = { bold: "clean", karaoke: "pill", minimal: "clean" };
+export const CaptionStyle = z.preprocess((v) => (typeof v === "string" && v in legacyCaptionStyle ? legacyCaptionStyle[v] : v), z.enum(CAPTION_STYLES));
+export type CaptionStyle = (typeof CAPTION_STYLES)[number];
+
 export const CaptionsClip = z.object({
   ...ClipBase,
   type: z.literal("captions"),
-  style: z.enum(["bold", "karaoke", "minimal", "box"]).default("bold"),
+  style: CaptionStyle.default("clean"),
   position: z.enum(["top", "center", "bottom"]).default("bottom"),
-  color: z.string().optional(), // highlight color
+  y: z.number().optional(), // vertical center 0..1, overrides position
+  color: z.string().optional(), // pill / box / caps accent
   words: z.array(CaptionWord),
 });
 export type CaptionsClip = z.infer<typeof CaptionsClip>;

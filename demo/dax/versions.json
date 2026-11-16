@@ -8,6 +8,8 @@
     "summary": "Dax V1",
     "status": "ready",
     "progress": 1,
+    "file": ".cezane/renders/v1.mp4",
+    "poster": ".cezane/renders/v1.jpg",
     "montageFile": ".cezane/versions/v1.montage.json",
     "durationFrames": 735,
     "fps": 30,
@@ -20,10 +22,8 @@
       "aecac54e1bafeb817ec9",
       "5f0d35b7dfc7c6f9ee72"
     ],
-    "createdAt": "2026-11-16T00:24:11.683Z",
-    "file": ".cezane/renders/v1.mp4",
-    "poster": ".cezane/renders/v1.jpg",
-    "renderSeconds": 23.5
+    "renderSeconds": 23.5,
+    "createdAt": "2026-11-16T00:24:11.683Z"
   },
   {
     "id": "v2",
@@ -34,6 +34,8 @@
     "summary": "Dax V2: sous-titres en boîte, carte de fin peinte",
     "status": "ready",
     "progress": 1,
+    "file": ".cezane/renders/v2.mp4",
+    "poster": ".cezane/renders/v2.jpg",
     "montageFile": ".cezane/versions/v2.montage.json",
     "durationFrames": 735,
     "fps": 30,
@@ -52,9 +54,72 @@
       "48403cbbb46a903e2d37",
       "b2fc8a265265fe296eae"
     ],
-    "createdAt": "2026-11-16T00:24:59.671Z",
-    "file": ".cezane/renders/v2.mp4",
-    "poster": ".cezane/renders/v2.jpg",
-    "renderSeconds": 21.2
+    "renderSeconds": 21.2,
+    "createdAt": "2026-11-16T00:24:59.671Z"
+  },
+  {
+    "id": "v3",
+    "n": 3,
+    "montageId": "m_4ujdo1",
+    "revision": 3,
+    "author": "user",
+    "summary": "Onboarding Dax, style Studio",
+    "status": "ready",
+    "progress": 1,
+    "file": ".cezane/renders/v3.mp4",
+    "poster": ".cezane/renders/v3.jpg",
+    "montageFile": ".cezane/versions/v3.montage.json",
+    "durationFrames": 765,
+    "fps": 30,
+    "changed": [
+      {
+        "start": 0,
+        "end": 765
+      }
+    ],
+    "comments": [],
+    "segmentKeys": [
+      "9c881641be86c227533c",
+      "671d1255ade901267249",
+      "0db6138a2fb87f38c98f",
+      "56f2d52e23c9867ef4b9",
+      "50d5eaa277d4229d8085",
+      "df3945a3d75c4c09af79"
+    ],
+    "renderSeconds": 28.8,
+    "createdAt": "2026-11-16T10:36:45.825Z"
+  },
+  {
+    "id": "v4",
+    "n": 4,
+    "montageId": "m_4ujdo1",
+    "revision": 4,
+    "author": "user",
+    "summary": "Enregistrements réels, serif, LUT",
+    "status": "ready",
+    "progress": 1,
+    "montageFile": ".cezane/versions/v4.montage.json",
+    "durationFrames": 915,
+    "fps": 30,
+    "changed": [
+      {
+        "start": 0,
+        "end": 915
+      }
+    ],
+    "comments": [],
+    "segmentKeys": [
+      "ee4890dc135670e53ce7",
+      "e8e74887ad67564e32d2",
+      "8a9c71eab304f4145c5c",
+      "0f7dd678ccb7e10943f3",
+      "2d6daeb5819fd4960175",
+      "edad61c327792711a0b5",
+      "5626a0775d338d2a2f2f"
+    ],
+    "createdAt": "2026-11-16T11:12:40.923Z",
+    "file": ".cezane/renders/v4.mp4",
+    "poster": ".cezane/renders/v4.jpg",
+    "renderSeconds": 53.9
   }
 ]

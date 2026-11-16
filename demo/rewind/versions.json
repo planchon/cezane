@@ -8,6 +8,8 @@
     "summary": "Rewind V1",
     "status": "ready",
     "progress": 1,
+    "file": ".cezane/renders/v1.mp4",
+    "poster": ".cezane/renders/v1.jpg",
     "montageFile": ".cezane/versions/v1.montage.json",
     "durationFrames": 780,
     "fps": 30,
@@ -21,10 +23,8 @@
       "213cb04466aa6d022d7d",
       "ca70a1bfb7b9e68de7d1"
     ],
-    "createdAt": "2026-11-16T00:21:10.000Z",
-    "file": ".cezane/renders/v1.mp4",
-    "poster": ".cezane/renders/v1.jpg",
-    "renderSeconds": 28.6
+    "renderSeconds": 28.6,
+    "createdAt": "2026-11-16T00:21:10.000Z"
   },
   {
     "id": "v2",
@@ -35,6 +35,8 @@
     "summary": "Rewind V2: sous-titres équilibrés, carte de fin",
     "status": "ready",
     "progress": 1,
+    "file": ".cezane/renders/v2.mp4",
+    "poster": ".cezane/renders/v2.jpg",
     "montageFile": ".cezane/versions/v2.montage.json",
     "durationFrames": 780,
     "fps": 30,
@@ -53,10 +55,8 @@
       "5965fc55f9a1e9c79c35",
       "8c260443805085f14173"
     ],
-    "createdAt": "2026-11-16T00:22:13.023Z",
-    "file": ".cezane/renders/v2.mp4",
-    "poster": ".cezane/renders/v2.jpg",
-    "renderSeconds": 19.7
+    "renderSeconds": 19.7,
+    "createdAt": "2026-11-16T00:22:13.023Z"
   },
   {
     "id": "v3",
@@ -67,6 +67,8 @@
     "summary": "Rewind V3: carte de fin",
     "status": "ready",
     "progress": 1,
+    "file": ".cezane/renders/v3.mp4",
+    "poster": ".cezane/renders/v3.jpg",
     "montageFile": ".cezane/versions/v3.montage.json",
     "durationFrames": 780,
     "fps": 30,
@@ -85,9 +87,69 @@
       "e1cca4e722c379b8c558",
       "2dc06bee60ad4c36844c"
     ],
-    "createdAt": "2026-11-16T00:22:47.634Z",
-    "file": ".cezane/renders/v3.mp4",
-    "poster": ".cezane/renders/v3.jpg",
-    "renderSeconds": 5.1
+    "renderSeconds": 5.1,
+    "createdAt": "2026-11-16T00:22:47.634Z"
+  },
+  {
+    "id": "v4",
+    "n": 4,
+    "montageId": "m_dfii8t",
+    "revision": 4,
+    "author": "user",
+    "summary": "Docs Rewind 16:9, style Studio",
+    "status": "ready",
+    "progress": 1,
+    "file": ".cezane/renders/v4.mp4",
+    "poster": ".cezane/renders/v4.jpg",
+    "montageFile": ".cezane/versions/v4.montage.json",
+    "durationFrames": 735,
+    "fps": 30,
+    "changed": [
+      {
+        "start": 0,
+        "end": 735
+      }
+    ],
+    "comments": [],
+    "segmentKeys": [
+      "1811df77ed3a6157fdf3",
+      "76b7cd19801a23d68dd5",
+      "787cc3f3985fd83c7064",
+      "8dd6e727ca65e8f4b58e",
+      "54bb0e8a62b00073a7b8"
+    ],
+    "renderSeconds": 25.5,
+    "createdAt": "2026-11-16T10:37:19.512Z"
+  },
+  {
+    "id": "v5",
+    "n": 5,
+    "montageId": "m_dfii8t",
+    "revision": 5,
+    "author": "user",
+    "summary": "Enregistrements réels, serif, LUT",
+    "status": "ready",
+    "progress": 1,
+    "montageFile": ".cezane/versions/v5.montage.json",
+    "durationFrames": 705,
+    "fps": 30,
+    "changed": [
+      {
+        "start": 0,
+        "end": 705
+      }
+    ],
+    "comments": [],
+    "segmentKeys": [
+      "434d17f33332e368de04",
+      "154c9f9b1e2cdc8a2d02",
+      "089bec074aa3647d277a",
+      "f190ab83f07f63c5441c",
+      "00660eefdeebbaabb9b9"
+    ],
+    "createdAt": "2026-11-16T11:13:35.656Z",
+    "file": ".cezane/renders/v5.mp4",
+    "poster": ".cezane/renders/v5.jpg",
+    "renderSeconds": 25.6
   }
 ]

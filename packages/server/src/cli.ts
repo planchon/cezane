@@ -115,9 +115,9 @@ switch (cmd) {
     const app = new Cezane(store, port);
     startHttp(app, port);
     console.log(`cezane: "${store.project.name}" on ${base} (MCP ${base}/mcp)`);
-    const stop = () => {
-      app.worker.stop();
+    const stop = async () => {
       app.claude.stop();
+      await app.worker.stop(); // the worker closes Chrome before leaving
       process.exit(0);
     };
     process.on("SIGINT", stop);

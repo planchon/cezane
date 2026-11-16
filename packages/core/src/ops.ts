@@ -38,7 +38,7 @@ export const Op = z.discriminatedUnion("op", [
   z.object({
     op: z.literal("update_clip"),
     id: z.string(),
-    set: z.record(z.string(), z.unknown()).describe("fields to change; `props` is merged for graphics"),
+    set: z.record(z.string(), z.unknown()).describe("fields to change; `props` is merged for graphics; null removes a field or prop"),
   }),
   z.object({ op: z.literal("move_clip"), id: z.string(), start: z.number().int().optional(), track: z.string().optional() }),
   z.object({
@@ -243,10 +243,12 @@ export function applyOps(input: Montage, ops: Op[], opts: { assetIds?: Set<strin
         const set = { ...op.set };
         delete set.id;
         delete set.type;
-        const merged =
-          hit.clip.type === "graphic" && set.props && typeof set.props === "object"
-            ? { ...hit.clip, ...set, props: { ...hit.clip.props, ...(set.props as Record<string, unknown>) } }
-            : { ...hit.clip, ...set };
+        // Fields (and graphic props) set to null are removed: `{zoom: null}` drops the zoom.
+        const merged: Record<string, unknown> = { ...hit.clip, ...set };
+        if (hit.clip.type === "graphic" && set.props && typeof set.props === "object")
+          merged.props = { ...hit.clip.props, ...(set.props as Record<string, unknown>) };
+        for (const obj of [merged, merged.props as Record<string, unknown> | undefined])
+          if (obj) for (const k of Object.keys(obj)) if (obj[k] === null) delete obj[k];
         const c = Clip.parse(merged);
         if (c.type === "media" && opts.assetIds && !opts.assetIds.has(c.assetId)) fail(`unknown asset ${c.assetId}`);
         hit.track.clips[hit.index] = c;

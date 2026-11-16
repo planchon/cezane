@@ -290,6 +290,8 @@ export const CanvasDoc = z.object({
   id: z.string(),
   name: z.string(),
   snapshot: z.unknown().optional(),
+  /** Shapes added by the server (Claude) as partial tldraw shapes, until the UI materializes them. */
+  pending: z.array(z.record(z.string(), z.unknown())).default([]),
   updatedAt: z.string(),
 });
 export type CanvasDoc = z.infer<typeof CanvasDoc>;

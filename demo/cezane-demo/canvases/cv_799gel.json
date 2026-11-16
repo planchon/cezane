@@ -1,0 +1,264 @@
+{
+  "id": "cv_799gel",
+  "name": "Canvas",
+  "pending": [],
+  "updatedAt": "2026-11-16T00:40:45.230Z",
+  "snapshot": {
+    "document": {
+      "store": {
+        "shape:cl_8c34db": {
+          "x": 760,
+          "y": 0,
+          "rotation": 0,
+          "isLocked": false,
+          "opacity": 1,
+          "meta": {
+            "by": "claude",
+            "assetId": "a_0zz1y3"
+          },
+          "id": "shape:cl_8c34db",
+          "type": "gen-card",
+          "props": {
+            "w": 320,
+            "h": 629,
+            "kind": "image",
+            "prompt": "Cézanne : caméra dans l atelier, Sainte-Victoire (Codex)",
+            "provider": "codex",
+            "model": "imagegen",
+            "status": "done",
+            "jobId": "",
+            "assetId": "a_0zz1y3",
+            "versions": [
+              "a_0zz1y3"
+            ],
+            "chosen": 0,
+            "error": ""
+          },
+          "parentId": "page:page",
+          "index": "a1pAv",
+          "typeName": "shape"
+        },
+        "shape:cl_71exx7": {
+          "x": 300,
+          "y": 0,
+          "rotation": 0,
+          "isLocked": false,
+          "opacity": 1,
+          "meta": {
+            "by": "claude"
+          },
+          "id": "shape:cl_71exx7",
+          "type": "text",
+          "props": {
+            "color": "black",
+            "size": "s",
+            "w": 420,
+            "font": "sans",
+            "textAlign": "start",
+            "autoSize": false,
+            "scale": 1,
+            "richText": {
+              "type": "doc",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Script (Claude Haiku)"
+                    }
+                  ]
+                },
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Marre de passer des heures à monter tes vidéos ?"
+                    }
+                  ]
+                },
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Tu commentes ta vidéo, Claude corrige tout."
+                    }
+                  ]
+                },
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Tout tourne en local, tes rushs restent chez toi."
+                    }
+                  ]
+                },
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Pensé pour le format vertical, prêt pour TikTok."
+                    }
+                  ]
+                },
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Pas de logiciel compliqué à apprendre."
+                    }
+                  ]
+                },
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Lien en bio, teste Cezane aujourd'hui."
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "parentId": "page:page",
+          "index": "a24PI",
+          "typeName": "shape"
+        },
+        "user:TrUy6mURaRzwfJy9lrcVB": {
+          "name": "",
+          "color": "#BD54C6",
+          "imageUrl": "",
+          "meta": {},
+          "id": "user:TrUy6mURaRzwfJy9lrcVB",
+          "typeName": "user"
+        },
+        "shape:cl_2a0qq8": {
+          "x": 0,
+          "y": 0,
+          "rotation": 0,
+          "isLocked": false,
+          "opacity": 1,
+          "meta": {
+            "by": "claude"
+          },
+          "id": "shape:cl_2a0qq8",
+          "type": "note",
+          "props": {
+            "color": "yellow",
+            "richText": {
+              "type": "doc",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Idée : présenter Cezane v0.1 en 30 s."
+                    }
+                  ]
+                },
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Je commente la vidéo, Claude corrige."
+                    }
+                  ]
+                }
+              ]
+            },
+            "size": "s",
+            "font": "sans",
+            "align": "middle",
+            "verticalAlign": "middle",
+            "labelColor": "black",
+            "growY": 0,
+            "fontSizeAdjustment": 1,
+            "url": "",
+            "scale": 1,
+            "textLastEditedBy": null
+          },
+          "parentId": "page:page",
+          "index": "a3VBI",
+          "typeName": "shape"
+        },
+        "page:page": {
+          "meta": {},
+          "id": "page:page",
+          "name": "Page 1",
+          "index": "a1",
+          "typeName": "page"
+        },
+        "document:document": {
+          "gridSize": 10,
+          "name": "",
+          "meta": {},
+          "id": "document:document",
+          "typeName": "document"
+        }
+      },
+      "schema": {
+        "schemaVersion": 2,
+        "sequences": {
+          "com.tldraw.store": 5,
+          "com.tldraw.asset": 1,
+          "com.tldraw.camera": 1,
+          "com.tldraw.document": 2,
+          "com.tldraw.instance": 26,
+          "com.tldraw.instance_page_state": 5,
+          "com.tldraw.page": 1,
+          "com.tldraw.instance_presence": 6,
+          "com.tldraw.pointer": 1,
+          "com.tldraw.shape": 4,
+          "com.tldraw.user": 1,
+          "com.tldraw.asset.image": 6,
+          "com.tldraw.asset.video": 5,
+          "com.tldraw.asset.bookmark": 2,
+          "com.tldraw.shape.group": 0,
+          "com.tldraw.shape.text": 4,
+          "com.tldraw.shape.bookmark": 2,
+          "com.tldraw.shape.draw": 5,
+          "com.tldraw.shape.geo": 12,
+          "com.tldraw.shape.note": 13,
+          "com.tldraw.shape.line": 5,
+          "com.tldraw.shape.frame": 1,
+          "com.tldraw.shape.arrow": 8,
+          "com.tldraw.shape.highlight": 4,
+          "com.tldraw.shape.embed": 4,
+          "com.tldraw.shape.image": 5,
+          "com.tldraw.shape.video": 4,
+          "com.tldraw.shape.gen-card": 0,
+          "com.tldraw.binding.arrow": 1
+        }
+      }
+    },
+    "session": {
+      "version": 0,
+      "currentPageId": "page:page",
+      "exportBackground": true,
+      "isFocusMode": false,
+      "isDebugMode": false,
+      "isToolLocked": false,
+      "isGridMode": false,
+      "pageStates": [
+        {
+          "pageId": "page:page",
+          "camera": {
+            "x": 104.41087613293053,
+            "y": 352.7507552870091,
+            "z": 0.6129629629629629
+          },
+          "selectedShapeIds": [],
+          "focusedGroupId": null
+        }
+      ]
+    }
+  }
+}

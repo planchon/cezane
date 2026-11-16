@@ -216,8 +216,10 @@ export function startHttp(app: Cezane, port: number) {
       async (req, m) => {
         const doc = s.canvas(m[1]!);
         if (!doc) return bad("unknown canvas", 404);
-        const b = (await req.json()) as { snapshot: unknown };
-        s.saveCanvas({ ...doc, snapshot: b.snapshot });
+        const b = (await req.json()) as { snapshot: { document?: { store?: Record<string, unknown> } } };
+        // Pending shapes the UI has materialized are now part of the snapshot.
+        const saved = b.snapshot?.document?.store ?? {};
+        s.saveCanvas({ ...doc, snapshot: b.snapshot, pending: doc.pending.filter((r) => !(String(r.id) in saved)) });
         return json({ ok: true });
       },
     ],

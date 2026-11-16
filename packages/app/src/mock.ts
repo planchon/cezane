@@ -161,7 +161,7 @@ const graphics: GraphicInfo[] = [
   { name: "LowerThird", description: "Nom + rôle en bas d'écran", props: { name: "string", title: "string" }, defaultDuration: 90 },
 ];
 
-const canvases: CanvasDoc[] = [{ id: "cv_1", name: "Idées", updatedAt: ago(20) }];
+const canvases: CanvasDoc[] = [{ id: "cv_1", name: "Idées", pending: [], updatedAt: ago(20) }];
 const workflows: Workflow[] = [];
 
 const listeners = new Set<(e: ServerEvent) => void>();
@@ -211,7 +211,7 @@ export async function mockFetch(method: string, path: string, body: any): Promis
     return { ok: true };
   }
   if (method === "POST" && path === "/api/canvases") {
-    const c: CanvasDoc = { id: id("cv"), name: body.name ?? "Canvas", updatedAt: now() };
+    const c: CanvasDoc = { id: id("cv"), name: body.name ?? "Canvas", pending: [], updatedAt: now() };
     canvases.push(c);
     return c;
   }

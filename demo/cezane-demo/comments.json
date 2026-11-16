@@ -1,0 +1,171 @@
+[
+  {
+    "id": "k_od6shu",
+    "n": 1,
+    "status": "in_progress",
+    "anchor": {
+      "kind": "montage",
+      "montageId": "m",
+      "versionId": "v1",
+      "frame": 260,
+      "region": {
+        "x": 0,
+        "y": 0.38,
+        "w": 0.55,
+        "h": 0.2
+      },
+      "content": {
+        "clipId": "c_yqcwcn",
+        "assetId": "a_vk1uar",
+        "srcTime": 8.666633333333333
+      }
+    },
+    "thread": [
+      {
+        "author": "user",
+        "text": "Le texte derrière elle est presque entièrement caché par sa tête : remonte-le au-dessus de sa tête et grossis-le pour qu'on le lise.",
+        "at": "2026-11-16T00:33:18.043Z"
+      },
+      {
+        "author": "claude",
+        "text": "Texte remonté (haut de l'écran) et grossi (150px). Sa tête occupe tout le haut du cadre, donc j'ai retiré le détourage : le texte passe maintenant devant elle et se lit en entier.",
+        "at": "2026-11-16T00:33:46.062Z"
+      },
+      {
+        "author": "user",
+        "text": "Lisible maintenant, mais je veux garder l'effet texte DERRIÈRE elle (détourage) : c'est le but du plan. Le mot peut passer derrière ses cheveux, tant qu'on le lit.",
+        "at": "2026-11-16T00:35:02.692Z"
+      },
+      {
+        "author": "claude",
+        "text": "Détourage rétabli : le texte « VLOG WEEK » (en haut, 150px) passe maintenant derrière elle et ses cheveux, et reste lisible.",
+        "at": "2026-11-16T00:35:24.885Z"
+      },
+      {
+        "author": "user",
+        "text": "À f230 on ne lit plus que « V » et « W » : sa tête cache tout le mot. Descends le texte vers y≈0.3 et grossis-le beaucoup (≈230 px) pour que les lettres dépassent de chaque côté de sa tête. Vérifie sur f200, f230 et f260.",
+        "at": "2026-11-16T00:36:16.610Z"
+      },
+      {
+        "author": "claude",
+        "text": "J'ai descendu le texte à y=0.3 et grossi à 230px, avec le détourage conservé. À f200 on lit « VLO / WE ». À f230 et f260 la tête remplit presque tout le cadre et ne laisse que « V » et « W » à gauche, donc ce n'est pas réglé sur ces frames. Les lettres ne peuvent pas dépasser de chaque côté d'une tête aussi large. Pistes : raccourcir le texte à f190–215, où la tête est plus petite, ou le faire passer devant elle sur la fin du plan. Dis-moi laquelle tu préfères.",
+        "at": "2026-11-16T00:36:32.787Z"
+      }
+    ],
+    "snapshot": ".cezane/comments/k_od6shu.jpg",
+    "fixedIn": "v2",
+    "createdAt": "2026-11-16T00:33:18.043Z"
+  },
+  {
+    "id": "k_f0ynua",
+    "n": 2,
+    "status": "validated",
+    "anchor": {
+      "kind": "montage",
+      "montageId": "m",
+      "versionId": "v1",
+      "frame": 620,
+      "pin": {
+        "x": 0.5,
+        "y": 0.35
+      },
+      "content": {
+        "clipId": "c_j8zz7d",
+        "assetId": "a_vk1uar",
+        "srcTime": 20.666666666666668
+      }
+    },
+    "thread": [
+      {
+        "author": "user",
+        "text": "On ne voit pas l'iPhone en entier : dézoome pour montrer tout le téléphone, avec le fond peint autour.",
+        "at": "2026-11-16T00:33:18.045Z"
+      },
+      {
+        "author": "claude",
+        "text": "J'ai retiré le zoom du plan iPhone (690-765) : le téléphone s'affiche en entier avec le fond peint autour. Si tu parlais du plan navigateur à 620f, dis-le-moi.",
+        "at": "2026-11-16T00:33:47.091Z"
+      },
+      {
+        "author": "user",
+        "text": "L'iPhone est toujours zoomé dans la V2 : il faut retirer le zoom (props zoom à null).",
+        "at": "2026-11-16T00:35:02.693Z"
+      },
+      {
+        "author": "claude",
+        "text": "Zoom de l'iPhone retiré (zoom et zoomAt à null) : le téléphone s'affiche en entier avec le fond peint autour.",
+        "at": "2026-11-16T00:35:25.492Z"
+      }
+    ],
+    "snapshot": ".cezane/comments/k_f0ynua.jpg",
+    "fixedIn": "v2",
+    "createdAt": "2026-11-16T00:33:18.045Z"
+  },
+  {
+    "id": "k_mejpcc",
+    "n": 3,
+    "status": "validated",
+    "anchor": {
+      "kind": "montage",
+      "montageId": "m",
+      "versionId": "v1",
+      "frame": 380,
+      "frameEnd": 470,
+      "content": {
+        "clipId": "c_2o1wv7",
+        "assetId": "a_13uigk",
+        "srcTime": 2.6666666666666665
+      }
+    },
+    "thread": [
+      {
+        "author": "user",
+        "text": "Sur ce passage, ajoute un emoji ☕ qui pop pendant le plan du café.",
+        "at": "2026-11-16T00:33:18.046Z"
+      },
+      {
+        "author": "claude",
+        "text": "Emoji ☕ ajouté en pop à 485-525f, pendant le plan du café.",
+        "at": "2026-11-16T00:33:47.606Z"
+      }
+    ],
+    "snapshot": ".cezane/comments/k_mejpcc.jpg",
+    "fixedIn": "v2",
+    "createdAt": "2026-11-16T00:33:18.046Z"
+  },
+  {
+    "id": "k_a4edxq",
+    "n": 4,
+    "status": "validated",
+    "anchor": {
+      "kind": "montage",
+      "montageId": "m",
+      "versionId": "v2",
+      "frame": 630,
+      "pin": {
+        "x": 0.5,
+        "y": 0.34
+      },
+      "content": {
+        "clipId": "c_j8zz7d",
+        "assetId": "a_vk1uar",
+        "srcTime": 21
+      }
+    },
+    "thread": [
+      {
+        "author": "user",
+        "text": "L'URL de Rewind est rewind.codes, pas rewind.app.",
+        "at": "2026-11-16T00:35:02.696Z"
+      },
+      {
+        "author": "claude",
+        "text": "URL corrigée : rewind.codes dans le plan navigateur.",
+        "at": "2026-11-16T00:35:25.848Z"
+      }
+    ],
+    "snapshot": ".cezane/comments/k_a4edxq.jpg",
+    "createdAt": "2026-11-16T00:35:02.696Z",
+    "fixedIn": "v3"
+  }
+]

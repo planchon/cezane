@@ -1,0 +1,280 @@
+{
+  "name": "Cezane — démo v0.1",
+  "createdAt": "2026-11-16T00:26:03.794Z",
+  "settings": {
+    "claudeModel": "sonnet",
+    "budgetEur": 5,
+    "spentEur": 0
+  },
+  "assets": [
+    {
+      "id": "a_vk1uar",
+      "kind": "video",
+      "name": "rush-fr-andie-ella-vlog",
+      "hash": "1f39f403ef846e4a6a2e",
+      "file": "media/1f39f403ef846e4a6a2e.mp4",
+      "duration": 80.014,
+      "width": 1920,
+      "height": 1080,
+      "fps": 25,
+      "hasAudio": true,
+      "provenance": {
+        "type": "import",
+        "path": "/Users/paul/Cezane/test-media/rushes/rush-fr-andie-ella-vlog.mp4"
+      },
+      "derived": {
+        "normalized": "normalized.mp4",
+        "audio": "audio.wav",
+        "transcript": "transcript.v2.json",
+        "analysis": "analysis.json",
+        "thumbs": "thumbs.jpg",
+        "poster": "poster.jpg",
+        "waveform": "waveform.json",
+        "cutout": "cutout-balanced.webm"
+      },
+      "status": "ready",
+      "tags": [],
+      "createdAt": "2026-11-16T00:26:05.861Z"
+    },
+    {
+      "id": "a_stuya2",
+      "kind": "video",
+      "name": "iphone-hevc-test",
+      "hash": "249ef9e42c7b02a91e29",
+      "file": "media/249ef9e42c7b02a91e29.mov",
+      "duration": 20.02,
+      "width": 1920,
+      "height": 1080,
+      "fps": 23.976023976023978,
+      "hasAudio": true,
+      "provenance": {
+        "type": "import",
+        "path": "/Users/paul/Cezane/test-media/rushes/iphone-hevc-test.mov"
+      },
+      "derived": {
+        "normalized": "normalized.mp4",
+        "audio": "audio.wav",
+        "transcript": "transcript.v2.json",
+        "analysis": "analysis.json",
+        "thumbs": "thumbs.jpg",
+        "poster": "poster.jpg",
+        "waveform": "waveform.json"
+      },
+      "status": "ready",
+      "tags": [],
+      "createdAt": "2026-11-16T00:26:05.899Z"
+    },
+    {
+      "id": "a_13uigk",
+      "kind": "video",
+      "name": "provence-lavender",
+      "hash": "b93f60016ceed9755d76",
+      "file": "media/b93f60016ceed9755d76.mp4",
+      "duration": 15.014,
+      "width": 1920,
+      "height": 1080,
+      "fps": 50,
+      "hasAudio": true,
+      "provenance": {
+        "type": "import",
+        "path": "/Users/paul/Cezane/test-media/broll/provence-lavender.mp4"
+      },
+      "derived": {
+        "normalized": "normalized.mp4",
+        "audio": "audio.wav",
+        "transcript": "transcript.v2.json",
+        "analysis": "analysis.json",
+        "thumbs": "thumbs.jpg",
+        "poster": "poster.jpg",
+        "waveform": "waveform.json"
+      },
+      "status": "ready",
+      "tags": [],
+      "createdAt": "2026-11-16T00:26:05.944Z"
+    },
+    {
+      "id": "a_a2alro",
+      "kind": "video",
+      "name": "coffee-pour",
+      "hash": "56e5a7a6771c7a26c042",
+      "file": "media/56e5a7a6771c7a26c042.mp4",
+      "duration": 15.048367,
+      "width": 1920,
+      "height": 1080,
+      "fps": 29.97002997002997,
+      "hasAudio": true,
+      "provenance": {
+        "type": "import",
+        "path": "/Users/paul/Cezane/test-media/broll/coffee-pour.mp4"
+      },
+      "derived": {
+        "normalized": "normalized.mp4",
+        "audio": "audio.wav",
+        "transcript": "transcript.v2.json",
+        "analysis": "analysis.json",
+        "thumbs": "thumbs.jpg",
+        "poster": "poster.jpg",
+        "waveform": "waveform.json"
+      },
+      "status": "ready",
+      "tags": [],
+      "createdAt": "2026-11-16T00:26:05.983Z"
+    },
+    {
+      "id": "a_4vyz4e",
+      "kind": "video",
+      "name": "typing-laptop",
+      "hash": "b2cc072aa671a26a6438",
+      "file": "media/b2cc072aa671a26a6438.mp4",
+      "duration": 10.934,
+      "width": 1920,
+      "height": 1080,
+      "fps": 25,
+      "hasAudio": true,
+      "provenance": {
+        "type": "import",
+        "path": "/Users/paul/Cezane/test-media/broll/typing-laptop.mp4"
+      },
+      "derived": {
+        "normalized": "normalized.mp4",
+        "audio": "audio.wav",
+        "transcript": "transcript.v2.json",
+        "analysis": "analysis.json",
+        "thumbs": "thumbs.jpg",
+        "poster": "poster.jpg",
+        "waveform": "waveform.json"
+      },
+      "status": "ready",
+      "tags": [],
+      "createdAt": "2026-11-16T00:26:06.015Z"
+    },
+    {
+      "id": "a_z56738",
+      "kind": "image",
+      "name": "photo-cereste-provence",
+      "hash": "0fd70192aaa44693f2fb",
+      "file": "media/0fd70192aaa44693f2fb.jpg",
+      "width": 1920,
+      "height": 1440,
+      "fps": 25,
+      "hasAudio": false,
+      "provenance": {
+        "type": "import",
+        "path": "/Users/paul/Cezane/test-media/broll/photo-cereste-provence.jpg"
+      },
+      "derived": {
+        "normalized": "image.png",
+        "poster": "poster.jpg"
+      },
+      "status": "ready",
+      "tags": [],
+      "createdAt": "2026-11-16T00:26:06.043Z"
+    },
+    {
+      "id": "a_lotaog",
+      "kind": "audio",
+      "name": "trend-jade-angel-of-my-dreams",
+      "hash": "324e914b82e4b29809f6",
+      "file": "media/324e914b82e4b29809f6.m4a",
+      "duration": 74.993,
+      "hasAudio": true,
+      "provenance": {
+        "type": "import",
+        "path": "/Users/paul/Cezane/test-media/music/trend-jade-angel-of-my-dreams.m4a"
+      },
+      "derived": {
+        "audio": "audio.wav",
+        "analysis": "analysis.json",
+        "waveform": "waveform.json"
+      },
+      "status": "ready",
+      "tags": [],
+      "createdAt": "2026-11-16T00:26:06.075Z"
+    },
+    {
+      "id": "a_zxo39t",
+      "kind": "image",
+      "name": "fac8b30fbe0873f351a7",
+      "hash": "fac8b30fbe0873f351a7",
+      "file": "media/fac8b30fbe0873f351a7.png",
+      "width": 2880,
+      "height": 1800,
+      "fps": 25,
+      "hasAudio": false,
+      "provenance": {
+        "type": "capture",
+        "source": "web",
+        "target": "https://rewind.codes"
+      },
+      "derived": {
+        "normalized": "image.png",
+        "poster": "poster.jpg"
+      },
+      "status": "ready",
+      "tags": [],
+      "createdAt": "2026-11-16T00:26:50.495Z"
+    },
+    {
+      "id": "a_khi6zw",
+      "kind": "image",
+      "name": "01-today",
+      "hash": "40ca832fd948538e7159",
+      "file": "media/40ca832fd948538e7159.png",
+      "width": 1206,
+      "height": 2622,
+      "fps": 25,
+      "hasAudio": false,
+      "provenance": {
+        "type": "capture",
+        "source": "ios",
+        "target": "Dax (dev.p6n.dax.dev)"
+      },
+      "derived": {
+        "normalized": "image.png",
+        "poster": "poster.jpg"
+      },
+      "status": "ready",
+      "tags": [],
+      "createdAt": "2026-11-16T00:26:50.661Z"
+    },
+    {
+      "id": "a_0zz1y3",
+      "kind": "image",
+      "name": "A vertical 9:16 painting in the style of",
+      "hash": "f1cbf1eab9d0bbbf2382",
+      "file": "media/f1cbf1eab9d0bbbf2382.png",
+      "width": 941,
+      "height": 1672,
+      "fps": 25,
+      "hasAudio": false,
+      "provenance": {
+        "type": "generated",
+        "provider": "codex",
+        "model": "imagegen",
+        "prompt": "A vertical 9:16 painting in the style of Paul Cézanne: a film camera on a wooden table in a sunlit Provence studio, Mont Sainte-Victoire through the window, constructive brushstrokes, ochre, viridian and Prussian blue. No text.",
+        "inputs": [],
+        "settings": {},
+        "cost": 0
+      },
+      "derived": {
+        "normalized": "image.png",
+        "poster": "poster.jpg"
+      },
+      "status": "ready",
+      "tags": [],
+      "createdAt": "2026-11-16T00:29:15.493Z"
+    }
+  ],
+  "montages": [
+    {
+      "id": "m_jmdvsc",
+      "name": "Montage"
+    }
+  ],
+  "canvases": [
+    {
+      "id": "cv_799gel",
+      "name": "Canvas"
+    }
+  ]
+}

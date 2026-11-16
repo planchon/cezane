@@ -75,10 +75,8 @@ export function CanvasView() {
     }, { scope: "document", source: "user" });
     const offRemote = onCanvasEvent((e) => {
       if (e.canvasId !== doc.id) return;
-      editor.store.mergeRemoteChanges(() => {
-        if (e.put.length) editor.store.put(e.put as never[]);
-        if (e.remove.length) editor.store.remove(e.remove as never[]);
-      });
+      if (e.put.length) materialize(editor, e.put as PartialRecord[]);
+      if (e.remove.length) editor.store.mergeRemoteChanges(() => editor.store.remove(e.remove as never[]));
     });
     const flush = () => {
       if (t) {
@@ -111,6 +109,12 @@ export function CanvasView() {
 
   if (!doc) return <div className="canvas-wrap panel" />;
 
+  // A canvas only touched by the server (Claude's `canvas` tool) has records but no tldraw schema:
+  // start from an empty editor and insert its shapes instead of loading it as a snapshot.
+  const snap = doc.snapshot as { document?: { schema?: { schemaVersion?: number }; store?: Record<string, PartialRecord> } } | undefined;
+  const loadable = Boolean(snap?.document?.schema?.schemaVersion);
+  const toCreate = [...(loadable ? [] : Object.values(snap?.document?.store ?? {}).filter((r) => r.typeName === "shape")), ...((doc.pending ?? []) as PartialRecord[])];
+
   return (
     <div
       className="canvas-wrap"
@@ -121,13 +125,19 @@ export function CanvasView() {
       onDropCapture={onDropAsset}
     >
       <Tldraw
-        snapshot={doc.snapshot as never}
+        snapshot={loadable ? (doc.snapshot as never) : undefined}
         shapeUtils={shapeUtils}
         assets={assetStore}
         components={hiddenUi}
         onMount={(ed) => {
           ed.user.updateUserPreferences({ colorScheme: "light" });
           if (isMock) (window as unknown as { __editor: Editor }).__editor = ed;
+          if (toCreate.length) {
+            materialize(ed, toCreate);
+            ed.selectNone();
+            ed.zoomToFit({ animation: { duration: 0 } });
+            void api("PUT", `/api/canvas/${doc.id}`, { snapshot: getSnapshot(ed.store) }).catch(() => {});
+          }
           setEditor(ed);
         }}
       />
@@ -407,4 +417,26 @@ function CanvasComments({ editor, canvasId, commenting, setCommenting, wrap }: {
       )}
     </>
   );
+}
+
+type PartialRecord = { id: string; typeName?: string; type?: string; x?: number; y?: number; props?: Record<string, unknown>; meta?: Record<string, unknown> };
+
+/**
+ * Shapes written by the server (Claude's `canvas` tool) are partial: create or update them
+ * through the editor so tldraw fills the default props and validates them.
+ */
+function materialize(editor: Editor, records: PartialRecord[]) {
+  for (const r of records) {
+    if (r.typeName && r.typeName !== "shape") {
+      editor.store.mergeRemoteChanges(() => editor.store.put([r as never]));
+      continue;
+    }
+    try {
+      const partial = { id: r.id, type: r.type, x: r.x ?? 0, y: r.y ?? 0, props: r.props ?? {}, meta: r.meta ?? {} };
+      if (editor.getShape(r.id as never)) editor.updateShape(partial as never);
+      else editor.createShape(partial as never);
+    } catch (e) {
+      console.error("canvas: cannot create shape", r.id, e);
+    }
+  }
 }

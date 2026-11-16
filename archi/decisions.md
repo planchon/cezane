@@ -99,3 +99,21 @@ quel provider pour la voix et la musique.
 
 **D26 — Capture d'apps en composant des MCP existants.** Cezane ajoute l'enregistrement et la
 mise en valeur, pas l'automatisation.
+
+## v0.1 (16 novembre 2026)
+
+**D27 — Codex comme fournisseur d'images gratuit.** `codex exec` génère des images sur
+l'abonnement ChatGPT ; c'est le modèle par défaut de la barre de prompt. FAL reste pour la vidéo
+et les modèles spécialisés, payants.
+
+**D28 — `look` est une composition Remotion.** La grille d'images étiquetées (et l'avant/après)
+est rendue par Remotion en une seule image, réduite à 720 px de large avant d'être envoyée à
+Claude.
+
+**D29 — MCP en Streamable HTTP sans session.** Un serveur MCP est créé par requête sur `/mcp` ;
+le même point d'accès sert Claude headless et un Claude Code ouvert dans un terminal.
+
+**D30 — Recherche d'outils désactivée pour Claude headless.** Avec la recherche d'outils, Claude
+perd des tours à charger les outils Cezane ; ils sont chargés d'emblée (`ENABLE_TOOL_SEARCH=false`).
+
+**D31 — Les projets de démo versionnent leurs documents, pas leurs médias.**

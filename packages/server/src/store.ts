@@ -51,7 +51,7 @@ export class ProjectStore {
       mkdirSync(join(dir, d), { recursive: true });
     if (!existsSync(join(dir, "cezane.json"))) {
       const m = emptyMontage("Montage");
-      const canvas: CanvasDoc = { id: newId("cv"), name: "Canvas", updatedAt: now() };
+      const canvas: CanvasDoc = { id: newId("cv"), name: "Canvas", pending: [], updatedAt: now() };
       const p = ProjectSchema.parse({ name, createdAt: now(), montages: [{ id: m.id, name: m.name }], canvases: [{ id: canvas.id, name: canvas.name }] });
       writeJson(join(dir, "cezane.json"), p);
       writeJson(join(dir, "montages", `${m.id}.json`), m);

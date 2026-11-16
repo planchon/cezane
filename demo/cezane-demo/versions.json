@@ -1,0 +1,147 @@
+[
+  {
+    "id": "v1",
+    "n": 1,
+    "montageId": "m_jmdvsc",
+    "revision": 3,
+    "author": "claude",
+    "summary": "added media c_j8zz7d on Main 0–1200f · Montage démo v0.1 · sous-titres karaoke",
+    "status": "ready",
+    "progress": 1,
+    "file": ".cezane/renders/v1.mp4",
+    "poster": ".cezane/renders/v1.jpg",
+    "montageFile": ".cezane/versions/v1.montage.json",
+    "durationFrames": 990,
+    "fps": 30,
+    "changed": [],
+    "comments": [],
+    "segmentKeys": [
+      "87f8f081c67d7f9678aa",
+      "c090e2acb092244dcd99",
+      "9c125fc909d3c44d0986",
+      "c20b57624ada98c21aee",
+      "6b13b947db6cb2b5ec49",
+      "21727ed3f4f250900cde",
+      "82bc33e1baa443bd4199"
+    ],
+    "renderSeconds": 58.2,
+    "createdAt": "2026-11-16T00:30:34.558Z"
+  },
+  {
+    "id": "v2",
+    "n": 2,
+    "montageId": "m_jmdvsc",
+    "revision": 5,
+    "author": "claude",
+    "summary": "Texte remonté/agrandi, iPhone dézoomé, emoji café · Texte devant le sujet pour lisibilité",
+    "status": "ready",
+    "progress": 1,
+    "file": ".cezane/renders/v2.mp4",
+    "poster": ".cezane/renders/v2.jpg",
+    "montageFile": ".cezane/versions/v2.montage.json",
+    "durationFrames": 990,
+    "fps": 30,
+    "changed": [
+      {
+        "start": 150,
+        "end": 300
+      },
+      {
+        "start": 450,
+        "end": 600
+      }
+    ],
+    "comments": [
+      "k_od6shu",
+      "k_f0ynua",
+      "k_mejpcc"
+    ],
+    "segmentKeys": [
+      "87f8f081c67d7f9678aa",
+      "2c98ab8b8225aaacd4f2",
+      "9c125fc909d3c44d0986",
+      "52cff9f4e0f4bf11a8f6",
+      "6b13b947db6cb2b5ec49",
+      "21727ed3f4f250900cde",
+      "82bc33e1baa443bd4199"
+    ],
+    "renderSeconds": 16.5,
+    "createdAt": "2026-11-16T00:33:50.792Z"
+  },
+  {
+    "id": "v3",
+    "n": 3,
+    "montageId": "m_jmdvsc",
+    "revision": 6,
+    "author": "claude",
+    "summary": "Retire zoom iPhone, URL rewind.codes, détourage texte",
+    "status": "ready",
+    "progress": 1,
+    "montageFile": ".cezane/versions/v3.montage.json",
+    "durationFrames": 990,
+    "fps": 30,
+    "changed": [
+      {
+        "start": 150,
+        "end": 300
+      },
+      {
+        "start": 600,
+        "end": 900
+      }
+    ],
+    "comments": [
+      "k_od6shu",
+      "k_f0ynua",
+      "k_a4edxq"
+    ],
+    "segmentKeys": [
+      "87f8f081c67d7f9678aa",
+      "3ca3dd169f98127b7367",
+      "9c125fc909d3c44d0986",
+      "52cff9f4e0f4bf11a8f6",
+      "97b41bd8f495e8e54a46",
+      "677f92bacb5013d941ea",
+      "82bc33e1baa443bd4199"
+    ],
+    "createdAt": "2026-11-16T00:35:28.063Z",
+    "file": ".cezane/renders/v3.mp4",
+    "poster": ".cezane/renders/v3.jpg",
+    "renderSeconds": 25.7
+  },
+  {
+    "id": "v4",
+    "n": 4,
+    "montageId": "m_jmdvsc",
+    "revision": 7,
+    "author": "claude",
+    "summary": "Texte y0.3, 230px",
+    "status": "ready",
+    "progress": 1,
+    "montageFile": ".cezane/versions/v4.montage.json",
+    "durationFrames": 990,
+    "fps": 30,
+    "changed": [
+      {
+        "start": 150,
+        "end": 300
+      }
+    ],
+    "comments": [
+      "k_od6shu"
+    ],
+    "segmentKeys": [
+      "87f8f081c67d7f9678aa",
+      "295c57f7cb5cf9ba7d60",
+      "9c125fc909d3c44d0986",
+      "52cff9f4e0f4bf11a8f6",
+      "97b41bd8f495e8e54a46",
+      "677f92bacb5013d941ea",
+      "82bc33e1baa443bd4199"
+    ],
+    "createdAt": "2026-11-16T00:36:34.696Z",
+    "file": ".cezane/renders/v4.mp4",
+    "poster": ".cezane/renders/v4.jpg",
+    "renderSeconds": 10.7
+  }
+]

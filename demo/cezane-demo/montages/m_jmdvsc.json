@@ -1,0 +1,1116 @@
+{
+  "id": "m_jmdvsc",
+  "name": "Montage",
+  "settings": {
+    "width": 1080,
+    "height": 1920,
+    "fps": 30,
+    "background": "#000000"
+  },
+  "tracks": [
+    {
+      "id": "t_main",
+      "kind": "video",
+      "name": "Main",
+      "role": "main",
+      "muted": false,
+      "hidden": false,
+      "clips": [
+        {
+          "id": "c_j8zz7d",
+          "start": 0,
+          "duration": 900,
+          "type": "media",
+          "assetId": "a_vk1uar",
+          "srcIn": 0,
+          "speed": 1,
+          "volume": 1,
+          "muted": false,
+          "fadeIn": 0,
+          "fadeOut": 0,
+          "fit": "cover",
+          "focus": {
+            "x": 0.5,
+            "y": 0.5
+          },
+          "cutout": false,
+          "opacity": 1
+        },
+        {
+          "id": "c_hzt1j5",
+          "start": 900,
+          "duration": 90,
+          "type": "media",
+          "assetId": "a_0zz1y3",
+          "srcIn": 0,
+          "speed": 1,
+          "volume": 1,
+          "muted": false,
+          "fadeIn": 0,
+          "fadeOut": 0,
+          "fit": "cover",
+          "focus": {
+            "x": 0.5,
+            "y": 0.5
+          },
+          "cutout": false,
+          "opacity": 1
+        }
+      ]
+    },
+    {
+      "id": "t_broll",
+      "kind": "overlay",
+      "name": "B-roll",
+      "role": "broll",
+      "muted": false,
+      "hidden": false,
+      "clips": [
+        {
+          "id": "c_2o1wv7",
+          "start": 300,
+          "duration": 90,
+          "type": "media",
+          "assetId": "a_13uigk",
+          "srcIn": 0,
+          "speed": 1,
+          "volume": 1,
+          "muted": true,
+          "fadeIn": 0,
+          "fadeOut": 0,
+          "fit": "cover",
+          "focus": {
+            "x": 0.5,
+            "y": 0.5
+          },
+          "zoom": {
+            "from": 1,
+            "to": 1.25,
+            "x": 0.5,
+            "y": 0.5,
+            "easing": "ease"
+          },
+          "cutout": false,
+          "opacity": 1,
+          "transitionIn": {
+            "type": "whip",
+            "frames": 10
+          }
+        },
+        {
+          "id": "c_rnbc47",
+          "start": 480,
+          "duration": 90,
+          "type": "media",
+          "assetId": "a_a2alro",
+          "srcIn": 0,
+          "speed": 1,
+          "volume": 1,
+          "muted": true,
+          "fadeIn": 0,
+          "fadeOut": 0,
+          "fit": "cover",
+          "focus": {
+            "x": 0.5,
+            "y": 0.5
+          },
+          "zoom": {
+            "from": 1.25,
+            "to": 1,
+            "x": 0.5,
+            "y": 0.5,
+            "easing": "ease"
+          },
+          "cutout": false,
+          "opacity": 1,
+          "transitionIn": {
+            "type": "zoom",
+            "frames": 10
+          }
+        }
+      ]
+    },
+    {
+      "id": "t_gfx",
+      "kind": "overlay",
+      "name": "Graphics",
+      "role": "graphics",
+      "muted": false,
+      "hidden": false,
+      "clips": [
+        {
+          "id": "c_olxwo6",
+          "start": 0,
+          "duration": 75,
+          "type": "graphic",
+          "component": "Title",
+          "props": {
+            "text": "Cezane v0.1",
+            "subtitle": "Montage piloté par Claude",
+            "style": "bold",
+            "position": "center"
+          }
+        },
+        {
+          "id": "c_f3d6k7",
+          "start": 80,
+          "duration": 90,
+          "type": "graphic",
+          "component": "LowerThird",
+          "props": {
+            "name": "Rush de test",
+            "title": "vlog CC-BY",
+            "y": 0.6
+          }
+        },
+        {
+          "id": "c_wou0gz",
+          "start": 190,
+          "duration": 90,
+          "type": "graphic",
+          "component": "TextPop",
+          "props": {
+            "text": "Vlog week",
+            "highlight": "week",
+            "position": "top",
+            "y": 0.3,
+            "size": 230
+          }
+        },
+        {
+          "id": "c_2szdjn",
+          "start": 400,
+          "duration": 30,
+          "type": "graphic",
+          "component": "Emoji",
+          "props": {
+            "emoji": "🔥",
+            "x": 0.5,
+            "y": 0.3
+          }
+        },
+        {
+          "id": "c_ymz9ij",
+          "start": 485,
+          "duration": 40,
+          "type": "graphic",
+          "component": "Emoji",
+          "props": {
+            "emoji": "☕",
+            "x": 0.5,
+            "y": 0.3
+          }
+        },
+        {
+          "id": "c_pm27mf",
+          "start": 600,
+          "duration": 75,
+          "type": "graphic",
+          "component": "ScreenshotShowcase",
+          "props": {
+            "assetId": "a_zxo39t",
+            "device": "browser",
+            "background": "cezanne",
+            "url": "rewind.codes",
+            "highlight": {
+              "x": 0.1,
+              "y": 0.15,
+              "w": 0.5,
+              "h": 0.4
+            },
+            "highlightAt": 25
+          }
+        },
+        {
+          "id": "c_52iozx",
+          "start": 690,
+          "duration": 75,
+          "type": "graphic",
+          "component": "ScreenshotShowcase",
+          "props": {
+            "assetId": "a_khi6zw",
+            "device": "iphone",
+            "background": "provence"
+          }
+        },
+        {
+          "id": "c_c0kdbs",
+          "start": 790,
+          "duration": 60,
+          "type": "graphic",
+          "component": "Counter",
+          "props": {
+            "from": 0,
+            "to": 30,
+            "suffix": " s",
+            "label": "de montage",
+            "position": "top"
+          }
+        },
+        {
+          "id": "c_ybhswx",
+          "start": 900,
+          "duration": 90,
+          "type": "graphic",
+          "component": "Title",
+          "props": {
+            "text": "Cezane v0.1",
+            "kicker": "Montage piloté par Claude",
+            "style": "elegant",
+            "position": "bottom"
+          }
+        }
+      ]
+    },
+    {
+      "id": "t_j3cfwt",
+      "kind": "overlay",
+      "name": "Progress",
+      "role": "graphics",
+      "muted": false,
+      "hidden": false,
+      "clips": [
+        {
+          "id": "c_cbqd8y",
+          "start": 0,
+          "duration": 990,
+          "type": "graphic",
+          "component": "ProgressBar",
+          "props": {
+            "position": "top"
+          }
+        }
+      ]
+    },
+    {
+      "id": "t_caps",
+      "kind": "overlay",
+      "name": "Captions",
+      "role": "captions",
+      "muted": false,
+      "hidden": false,
+      "clips": [
+        {
+          "id": "c_sj34qu",
+          "start": 0,
+          "duration": 990,
+          "type": "captions",
+          "style": "karaoke",
+          "position": "bottom",
+          "words": [
+            {
+              "text": "n'ont",
+              "start": 0,
+              "end": 8,
+              "br": true
+            },
+            {
+              "text": "pas",
+              "start": 8,
+              "end": 13,
+              "br": false
+            },
+            {
+              "text": "suivi",
+              "start": 13,
+              "end": 22,
+              "br": false
+            },
+            {
+              "text": "je",
+              "start": 22,
+              "end": 27,
+              "br": true
+            },
+            {
+              "text": "sors",
+              "start": 27,
+              "end": 36,
+              "br": false
+            },
+            {
+              "text": "une",
+              "start": 36,
+              "end": 44,
+              "br": false
+            },
+            {
+              "text": "nouvelle",
+              "start": 44,
+              "end": 62,
+              "br": true
+            },
+            {
+              "text": "série",
+              "start": 62,
+              "end": 68,
+              "br": false
+            },
+            {
+              "text": "de",
+              "start": 68,
+              "end": 71,
+              "br": false
+            },
+            {
+              "text": "vidéos",
+              "start": 71,
+              "end": 78,
+              "br": true
+            },
+            {
+              "text": "sur",
+              "start": 78,
+              "end": 82,
+              "br": false
+            },
+            {
+              "text": "ma",
+              "start": 82,
+              "end": 84,
+              "br": false
+            },
+            {
+              "text": "chaîne",
+              "start": 84,
+              "end": 92,
+              "br": true
+            },
+            {
+              "text": "qui",
+              "start": 92,
+              "end": 96,
+              "br": false
+            },
+            {
+              "text": "s'appellera",
+              "start": 96,
+              "end": 111,
+              "br": false
+            },
+            {
+              "text": "vlog",
+              "start": 111,
+              "end": 120,
+              "br": true
+            },
+            {
+              "text": "week",
+              "start": 120,
+              "end": 130,
+              "br": false
+            },
+            {
+              "text": "où",
+              "start": 130,
+              "end": 137,
+              "br": false
+            },
+            {
+              "text": "je",
+              "start": 137,
+              "end": 139,
+              "br": true
+            },
+            {
+              "text": "ferai",
+              "start": 139,
+              "end": 150,
+              "br": false
+            },
+            {
+              "text": "une",
+              "start": 150,
+              "end": 157,
+              "br": false
+            },
+            {
+              "text": "vidéo",
+              "start": 157,
+              "end": 168,
+              "br": true
+            },
+            {
+              "text": "par",
+              "start": 168,
+              "end": 179,
+              "br": false
+            },
+            {
+              "text": "jour",
+              "start": 179,
+              "end": 182,
+              "br": false
+            },
+            {
+              "text": "pendant",
+              "start": 182,
+              "end": 195,
+              "br": true
+            },
+            {
+              "text": "une",
+              "start": 195,
+              "end": 201,
+              "br": false
+            },
+            {
+              "text": "semaine",
+              "start": 201,
+              "end": 217,
+              "br": false
+            },
+            {
+              "text": "et",
+              "start": 217,
+              "end": 219,
+              "br": true
+            },
+            {
+              "text": "je",
+              "start": 218,
+              "end": 226,
+              "br": false
+            },
+            {
+              "text": "ferai",
+              "start": 226,
+              "end": 232,
+              "br": false
+            },
+            {
+              "text": "ça",
+              "start": 232,
+              "end": 236,
+              "br": true
+            },
+            {
+              "text": "deux",
+              "start": 236,
+              "end": 244,
+              "br": false
+            },
+            {
+              "text": "à",
+              "start": 244,
+              "end": 246,
+              "br": false
+            },
+            {
+              "text": "trois",
+              "start": 246,
+              "end": 255,
+              "br": true
+            },
+            {
+              "text": "fois",
+              "start": 255,
+              "end": 263,
+              "br": false
+            },
+            {
+              "text": "par",
+              "start": 263,
+              "end": 267,
+              "br": false
+            },
+            {
+              "text": "an",
+              "start": 267,
+              "end": 272,
+              "br": true
+            },
+            {
+              "text": "dans",
+              "start": 272,
+              "end": 281,
+              "br": false
+            },
+            {
+              "text": "une",
+              "start": 281,
+              "end": 284,
+              "br": false
+            },
+            {
+              "text": "nouvelle",
+              "start": 284,
+              "end": 300,
+              "br": true
+            },
+            {
+              "text": "destination",
+              "start": 300,
+              "end": 311,
+              "br": false
+            },
+            {
+              "text": "à",
+              "start": 311,
+              "end": 313,
+              "br": false
+            },
+            {
+              "text": "chaque",
+              "start": 313,
+              "end": 317,
+              "br": true
+            },
+            {
+              "text": "fois",
+              "start": 317,
+              "end": 321,
+              "br": false
+            },
+            {
+              "text": "pour",
+              "start": 321,
+              "end": 326,
+              "br": false
+            },
+            {
+              "text": "qu'on",
+              "start": 326,
+              "end": 329,
+              "br": true
+            },
+            {
+              "text": "puisse",
+              "start": 329,
+              "end": 335,
+              "br": false
+            },
+            {
+              "text": "découvrir",
+              "start": 335,
+              "end": 344,
+              "br": false
+            },
+            {
+              "text": "les",
+              "start": 344,
+              "end": 346,
+              "br": true
+            },
+            {
+              "text": "choses",
+              "start": 346,
+              "end": 353,
+              "br": false
+            },
+            {
+              "text": "ensemble",
+              "start": 353,
+              "end": 365,
+              "br": false
+            },
+            {
+              "text": "et",
+              "start": 365,
+              "end": 371,
+              "br": true
+            },
+            {
+              "text": "là",
+              "start": 371,
+              "end": 378,
+              "br": false
+            },
+            {
+              "text": "on",
+              "start": 378,
+              "end": 381,
+              "br": false
+            },
+            {
+              "text": "commence",
+              "start": 381,
+              "end": 401,
+              "br": true
+            },
+            {
+              "text": "par",
+              "start": 401,
+              "end": 409,
+              "br": false
+            },
+            {
+              "text": "Séoul",
+              "start": 409,
+              "end": 422,
+              "br": false
+            },
+            {
+              "text": "on",
+              "start": 422,
+              "end": 424,
+              "br": true
+            },
+            {
+              "text": "va",
+              "start": 424,
+              "end": 428,
+              "br": false
+            },
+            {
+              "text": "commencer",
+              "start": 428,
+              "end": 446,
+              "br": false
+            },
+            {
+              "text": "cette",
+              "start": 446,
+              "end": 457,
+              "br": true
+            },
+            {
+              "text": "vidéo",
+              "start": 457,
+              "end": 468,
+              "br": false
+            },
+            {
+              "text": "j'ai",
+              "start": 468,
+              "end": 476,
+              "br": false
+            },
+            {
+              "text": "super",
+              "start": 476,
+              "end": 487,
+              "br": true
+            },
+            {
+              "text": "hâte",
+              "start": 487,
+              "end": 496,
+              "br": false
+            },
+            {
+              "text": "et",
+              "start": 496,
+              "end": 503,
+              "br": false
+            },
+            {
+              "text": "si",
+              "start": 503,
+              "end": 505,
+              "br": true
+            },
+            {
+              "text": "jamais",
+              "start": 504,
+              "end": 518,
+              "br": false
+            },
+            {
+              "text": "ça",
+              "start": 518,
+              "end": 522,
+              "br": false
+            },
+            {
+              "text": "vous",
+              "start": 522,
+              "end": 533,
+              "br": true
+            },
+            {
+              "text": "plaît",
+              "start": 533,
+              "end": 539,
+              "br": false
+            },
+            {
+              "text": "et",
+              "start": 539,
+              "end": 541,
+              "br": false
+            },
+            {
+              "text": "que",
+              "start": 541,
+              "end": 545,
+              "br": true
+            },
+            {
+              "text": "vous",
+              "start": 545,
+              "end": 551,
+              "br": false
+            },
+            {
+              "text": "n'êtes",
+              "start": 551,
+              "end": 557,
+              "br": false
+            },
+            {
+              "text": "pas",
+              "start": 557,
+              "end": 560,
+              "br": true
+            },
+            {
+              "text": "encore",
+              "start": 560,
+              "end": 568,
+              "br": false
+            },
+            {
+              "text": "abonné",
+              "start": 568,
+              "end": 575,
+              "br": false
+            },
+            {
+              "text": "à",
+              "start": 575,
+              "end": 577,
+              "br": true
+            },
+            {
+              "text": "ma",
+              "start": 576,
+              "end": 579,
+              "br": false
+            },
+            {
+              "text": "chaîne",
+              "start": 579,
+              "end": 588,
+              "br": false
+            },
+            {
+              "text": "n'hésitez",
+              "start": 588,
+              "end": 605,
+              "br": true
+            },
+            {
+              "text": "pas",
+              "start": 605,
+              "end": 610,
+              "br": false
+            },
+            {
+              "text": "à",
+              "start": 610,
+              "end": 614,
+              "br": false
+            },
+            {
+              "text": "passer",
+              "start": 614,
+              "end": 623,
+              "br": true
+            },
+            {
+              "text": "le",
+              "start": 623,
+              "end": 626,
+              "br": false
+            },
+            {
+              "text": "pas",
+              "start": 626,
+              "end": 632,
+              "br": false
+            },
+            {
+              "text": "moi",
+              "start": 632,
+              "end": 637,
+              "br": true
+            },
+            {
+              "text": "ça",
+              "start": 637,
+              "end": 640,
+              "br": false
+            },
+            {
+              "text": "m'aide",
+              "start": 640,
+              "end": 650,
+              "br": false
+            },
+            {
+              "text": "énormément",
+              "start": 650,
+              "end": 664,
+              "br": true
+            },
+            {
+              "text": "ça",
+              "start": 664,
+              "end": 667,
+              "br": false
+            },
+            {
+              "text": "me",
+              "start": 667,
+              "end": 670,
+              "br": false
+            },
+            {
+              "text": "ferait",
+              "start": 670,
+              "end": 677,
+              "br": true
+            },
+            {
+              "text": "trop",
+              "start": 677,
+              "end": 682,
+              "br": false
+            },
+            {
+              "text": "plaisir",
+              "start": 682,
+              "end": 692,
+              "br": false
+            },
+            {
+              "text": "et",
+              "start": 692,
+              "end": 699,
+              "br": true
+            },
+            {
+              "text": "activez",
+              "start": 699,
+              "end": 710,
+              "br": false
+            },
+            {
+              "text": "les",
+              "start": 710,
+              "end": 713,
+              "br": false
+            },
+            {
+              "text": "notifs",
+              "start": 713,
+              "end": 720,
+              "br": true
+            },
+            {
+              "text": "parce",
+              "start": 720,
+              "end": 726,
+              "br": false
+            },
+            {
+              "text": "que",
+              "start": 726,
+              "end": 733,
+              "br": false
+            },
+            {
+              "text": "sinon",
+              "start": 733,
+              "end": 737,
+              "br": true
+            },
+            {
+              "text": "vous",
+              "start": 737,
+              "end": 742,
+              "br": false
+            },
+            {
+              "text": "allez",
+              "start": 742,
+              "end": 748,
+              "br": false
+            },
+            {
+              "text": "louper",
+              "start": 748,
+              "end": 756,
+              "br": true
+            },
+            {
+              "text": "les",
+              "start": 756,
+              "end": 760,
+              "br": false
+            },
+            {
+              "text": "prochaines",
+              "start": 760,
+              "end": 774,
+              "br": false
+            },
+            {
+              "text": "vidéos",
+              "start": 774,
+              "end": 783,
+              "br": true
+            },
+            {
+              "text": "du",
+              "start": 783,
+              "end": 785,
+              "br": false
+            },
+            {
+              "text": "coup",
+              "start": 785,
+              "end": 791,
+              "br": false
+            },
+            {
+              "text": "cette",
+              "start": 791,
+              "end": 796,
+              "br": true
+            },
+            {
+              "text": "semaine",
+              "start": 796,
+              "end": 806,
+              "br": false
+            },
+            {
+              "text": "une",
+              "start": 806,
+              "end": 809,
+              "br": false
+            },
+            {
+              "text": "vidéo",
+              "start": 809,
+              "end": 818,
+              "br": true
+            },
+            {
+              "text": "tous",
+              "start": 818,
+              "end": 821,
+              "br": false
+            },
+            {
+              "text": "les",
+              "start": 821,
+              "end": 827,
+              "br": false
+            },
+            {
+              "text": "jours",
+              "start": 827,
+              "end": 832,
+              "br": true
+            },
+            {
+              "text": "et",
+              "start": 832,
+              "end": 838,
+              "br": false
+            },
+            {
+              "text": "ça",
+              "start": 838,
+              "end": 844,
+              "br": false
+            },
+            {
+              "text": "sortira",
+              "start": 844,
+              "end": 867,
+              "br": true
+            },
+            {
+              "text": "à",
+              "start": 867,
+              "end": 869,
+              "br": false
+            },
+            {
+              "text": "18h",
+              "start": 868,
+              "end": 890,
+              "br": false
+            },
+            {
+              "text": "Donc",
+              "start": 890,
+              "end": 897,
+              "br": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "t_music",
+      "kind": "audio",
+      "name": "Music",
+      "role": "music",
+      "muted": false,
+      "hidden": false,
+      "clips": [
+        {
+          "id": "c_nm88v8",
+          "start": 0,
+          "duration": 990,
+          "type": "media",
+          "assetId": "a_lotaog",
+          "srcIn": 0,
+          "speed": 1,
+          "volume": 0.6,
+          "muted": false,
+          "fadeIn": 0,
+          "fadeOut": 0,
+          "fit": "cover",
+          "focus": {
+            "x": 0.5,
+            "y": 0.5
+          },
+          "cutout": false,
+          "opacity": 1
+        }
+      ]
+    },
+    {
+      "id": "t_tcxisv",
+      "kind": "overlay",
+      "name": "Cutout",
+      "role": "graphics",
+      "muted": false,
+      "hidden": false,
+      "clips": [
+        {
+          "id": "c_7dd132",
+          "start": 190,
+          "duration": 90,
+          "type": "media",
+          "assetId": "a_vk1uar",
+          "srcIn": 6.3333,
+          "speed": 1,
+          "volume": 1,
+          "muted": true,
+          "fadeIn": 0,
+          "fadeOut": 0,
+          "fit": "cover",
+          "focus": {
+            "x": 0.5,
+            "y": 0.5
+          },
+          "cutout": true,
+          "opacity": 1
+        }
+      ]
+    }
+  ],
+  "audio": {
+    "targetLufs": -14,
+    "voice": "clean",
+    "duck": true,
+    "duckDb": -12
+  }
+}

@@ -17,7 +17,7 @@ async function imageContent(path: string): Promise<Content> {
 
 const EDIT_DOC = `Apply a batch of edit ops to the montage (one revision). Frames at montage fps; srcIn in seconds. Ops:
 add_clip {track, clip}: clip = {type:"media", assetId, start, duration, srcIn?, speed?, volume?, muted?, fit?:"cover"|"contain", focus?:{x,y}, zoom?:{from,to,x,y,easing:"linear"|"ease"|"punch"}, cutout?:bool (person cut out, for text behind), opacity?, transitionIn?:{type:"fade"|"whip"|"zoom"|"slide",frames}} | {type:"graphic", component, props, start, duration} (see graphics tool)
-update_clip {id, set} · move_clip {id, start?, track?} · trim_clip {id, start?, end?} · split_clip {id, at}
+update_clip {id, set} (graphic props are merged; null removes a field/prop, e.g. {props:{zoom:null}}) · move_clip {id, start?, track?} · trim_clip {id, start?, end?} · split_clip {id, at}
 remove_clip {id, ripple?} · cut_range {start, end} (every track, closes the gap) · insert_gap {at, frames}
 add_track {kind:"video"|"overlay"|"audio", role?:"broll"|"graphics"|"captions"|"music"|"voice"|"sfx", name?, index?} · update_track {track, set:{name,muted,hidden}} · remove_track {track}
 set_settings {set:{width,height,fps,background}} · set_audio {set:{targetLufs, voice:"none"|"clean"|"podcast", duck, duckDb}}
@@ -267,29 +267,37 @@ function buildServer(app: Cezane): McpServer {
       if (!doc) return fail("no canvas");
       const store = ((doc.snapshot as { document?: { store?: Record<string, Record<string, unknown>> } } | undefined)?.document?.store ?? {}) as Record<string, Record<string, unknown>>;
       if (o.action === "read") {
-        const shapes = Object.values(store).filter((r) => r.typeName === "shape");
+        const shapes = [...Object.values(store).filter((r) => r.typeName === "shape"), ...doc.pending];
         const lines = shapes.map((r) => {
           const p = (r.props ?? {}) as Record<string, unknown>;
           const meta = (r.meta ?? {}) as Record<string, unknown>;
-          const t = typeof p.text === "string" ? p.text : typeof p.prompt === "string" ? p.prompt : "";
+          const rich = JSON.stringify(p.richText ?? "").match(/"text":"([^"]*)"/g)?.map((x) => x.slice(8, -1)).join(" ") ?? "";
+          const t = typeof p.text === "string" ? p.text : typeof p.prompt === "string" ? p.prompt : rich;
           return `${r.id} ${r.type} @${Math.round(Number(r.x))},${Math.round(Number(r.y))}${meta.assetId ? ` asset=${meta.assetId}` : ""}${p.assetId ? ` asset=${p.assetId}` : ""} ${t.slice(0, 80)}`;
         });
         return text(lines.join("\n") || "(empty canvas)");
       }
+      // Partial tldraw shapes: the UI creates them with the editor (which fills every default prop).
       const shapeId = `shape:${newId("cl")}`;
-      const base = { id: shapeId, typeName: "shape", parentId: "page:page", index: `a${Date.now().toString(36)}`, rotation: 0, isLocked: false, opacity: 1, x: o.x ?? 0, y: o.y ?? 0, meta: { by: "claude" } };
+      const base = { id: shapeId, typeName: "shape", x: o.x ?? 0, y: o.y ?? 0, meta: { by: "claude" } };
       const rich = (t: string) => ({ type: "doc", content: t.split("\n").map((l) => ({ type: "paragraph", content: l ? [{ type: "text", text: l }] : [] })) });
       let record: Record<string, unknown>;
-      if (o.action === "add_note") record = { ...base, type: "note", props: { color: "yellow", labelColor: "black", size: "m", font: "draw", fontSizeAdjustment: 0, align: "middle", verticalAlign: "middle", growY: 0, url: "", richText: rich(o.text ?? ""), scale: 1 } };
-      else if (o.action === "add_text") record = { ...base, type: "text", props: { color: "black", size: "m", font: "sans", textAlign: "start", w: 400, richText: rich(o.text ?? ""), scale: 1, autoSize: true } };
+      if (o.action === "add_note") record = { ...base, type: "note", props: { color: "yellow", font: "sans", size: "s", richText: rich(o.text ?? "") } };
+      else if (o.action === "add_text") record = { ...base, type: "text", props: { richText: rich(o.text ?? ""), font: "sans", size: "s", autoSize: false, w: 420 } };
       else {
         const a = o.assetId ? s.asset(o.assetId) : undefined;
         if (!a) return fail("assetId required");
-        record = { ...base, type: "gen-card", props: { w: 320, h: 400, kind: a.kind, prompt: o.text ?? a.name, provider: "", model: "", status: "done", assetId: a.id, text: "", versions: [a.id] }, meta: { by: "claude", assetId: a.id } };
+        const gen = a.provenance.type === "generated" ? a.provenance : undefined;
+        const kind = a.kind === "audio" ? "audio" : a.kind;
+        const h = a.width && a.height ? Math.round((300 * a.height) / a.width) + 96 : 380;
+        record = {
+          ...base,
+          type: "gen-card",
+          props: { w: 300, h, kind, prompt: o.text ?? gen?.prompt ?? a.name, provider: gen?.provider ?? "", model: gen?.model ?? "", status: "done", assetId: a.id, versions: [a.id], chosen: 0 },
+          meta: { by: "claude", assetId: a.id },
+        };
       }
-      const snap = (doc.snapshot ?? { document: { store: {}, schema: {} } }) as { document: { store: Record<string, unknown> } };
-      snap.document.store[shapeId] = record;
-      s.saveCanvas({ ...doc, snapshot: snap });
+      s.saveCanvas({ ...doc, pending: [...doc.pending, record] });
       app.broadcast({ type: "canvas", canvasId: doc.id, put: [record], remove: [] });
       return text(`added ${shapeId}`);
     },

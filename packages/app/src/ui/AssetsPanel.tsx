@@ -1,29 +1,25 @@
 import type { Asset } from "@cezane/core";
-import { AlertTriangle, Image as ImageIcon, Loader2, Music, Plus, Video } from "lucide-react";
+import { Film, Image as ImageIcon, Loader2, Music2, Plus, Smartphone, Sparkles } from "lucide-react";
 import { useRef, useState } from "react";
-import { assetThumb, uploadFiles } from "../api";
+import { assetThumb } from "../api";
 import { useApp } from "../store";
-import { attempt } from "./toast";
-
-const provenance: Record<Asset["provenance"]["type"], [string, string]> = {
-  import: ["import", "prussian"],
-  generated: ["généré", "terracotta"],
-  capture: ["capture", "sage"],
-};
+import { importFiles } from "./actions";
+import { clockShort } from "./format";
 
 export const ASSET_MIME = "application/x-cezane-asset";
 
-export function AssetsPanel() {
-  const { state, ui, setUi } = useApp();
+/** Left panel, "Rushes" tab: the project's media. Drag a row onto the canvas, drop files here to import. */
+export function AssetsList() {
+  const { state } = useApp();
   const input = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
   const assets = state?.project.assets ?? [];
-
-  const upload = (files: File[]) => files.length && attempt(() => uploadFiles(files), `${files.length} fichier(s) importé(s)`);
+  const imported = assets.filter((a) => a.provenance.type === "import");
+  const byClaude = assets.filter((a) => a.provenance.type !== "import");
 
   return (
-    <aside
-      className={`panel side ${over ? "drop-over" : ""}`}
+    <div
+      className={`scroll fill ${over ? "drop-over" : ""}`}
       onDragOver={(e) => {
         if (e.dataTransfer.types.includes("Files")) {
           e.preventDefault();
@@ -36,40 +32,47 @@ export function AssetsPanel() {
         if (!e.dataTransfer.files.length) return;
         e.preventDefault();
         e.stopPropagation();
-        upload(Array.from(e.dataTransfer.files));
+        importFiles(Array.from(e.dataTransfer.files));
       }}
     >
-      <div className="side-head">
-        <h3>Assets</h3>
-        <span className="chip">{assets.length}</span>
-        <div className="spacer" />
-        <button className="icon-btn" title="Importer des fichiers" onClick={() => input.current?.click()}>
-          <Plus size={17} />
-        </button>
-        <input ref={input} type="file" multiple hidden accept="video/*,image/*,audio/*" onChange={(e) => upload(Array.from(e.target.files ?? []))} />
+      <div className="sec">
+        <div className="sh">
+          Importés
+          <span className="r">
+            <button className="ib" title="Importer des fichiers" onClick={() => input.current?.click()}>
+              <Plus size={16} />
+            </button>
+          </span>
+        </div>
+        <input ref={input} type="file" multiple hidden accept="video/*,image/*,audio/*" onChange={(e) => importFiles(Array.from(e.target.files ?? []))} />
+        {imported.map((a) => (
+          <AssetRow key={a.id} a={a} />
+        ))}
+        {!imported.length && <div className="drop-hint">Glisse des vidéos, images ou sons ici</div>}
       </div>
-      <div className="scroll" style={{ flex: 1 }}>
-        <div className="asset-grid">
-          {assets.map((a) => (
-            <AssetTile key={a.id} a={a} selected={ui.selection?.kind === "asset" && ui.selection.id === a.id} onClick={() => setUi({ selection: { kind: "asset", id: a.id }, panel: "props" })} />
+      {byClaude.length > 0 && (
+        <div className="sec last">
+          <div className="sh">Générés et captures</div>
+          {byClaude.map((a) => (
+            <AssetRow key={a.id} a={a} />
           ))}
         </div>
-        {!assets.length && <div className="drop-hint">Glisse des vidéos, images ou sons ici</div>}
-      </div>
-    </aside>
+      )}
+    </div>
   );
 }
 
-function AssetTile({ a, selected, onClick }: { a: Asset; selected: boolean; onClick: () => void }) {
+function AssetRow({ a }: { a: Asset }) {
+  const { ui, setUi } = useApp();
   const thumb = assetThumb(a);
   const [broken, setBroken] = useState(false);
-  const [label, tone] = provenance[a.provenance.type];
-  const Icon = a.kind === "video" ? Video : a.kind === "audio" ? Music : ImageIcon;
+  const selected = ui.selection?.kind === "asset" && ui.selection.id === a.id;
+  const Icon = a.kind === "audio" ? Music2 : a.provenance.type === "capture" ? Smartphone : a.provenance.type === "generated" ? Sparkles : a.kind === "image" ? ImageIcon : Film;
   return (
     <div
-      className={`asset ${selected ? "sel" : ""} ${a.status === "error" ? "err" : ""}`}
+      className={`row ${selected ? "sel" : ""} ${a.status === "error" ? "off" : ""}`}
       title={a.error ?? a.name}
-      onClick={onClick}
+      onClick={() => setUi({ selection: { kind: "asset", id: a.id }, panel: "props" })}
       draggable
       onDragStart={(e) => {
         e.dataTransfer.setData(ASSET_MIME, JSON.stringify({ id: a.id }));
@@ -77,27 +80,22 @@ function AssetTile({ a, selected, onClick }: { a: Asset; selected: boolean; onCl
       }}
     >
       {thumb && !broken ? (
-        <img src={thumb} alt="" loading="lazy" draggable={false} onError={() => setBroken(true)} />
+        <img className="th" src={thumb} alt="" loading="lazy" draggable={false} onError={() => setBroken(true)} />
       ) : (
-        <div className={`ph ${a.kind}`}>
-          <Icon size={22} strokeWidth={1.6} />
-        </div>
+        <span className="th-ph">
+          <Icon size={16} />
+        </span>
       )}
-      <div className="badges">
-        <span className={`chip ${tone}`}>{label}</span>
-        {a.status === "ingesting" ? (
-          <span className="chip ochre">
-            <Loader2 size={10} className="spin" />
-          </span>
-        ) : a.status === "error" ? (
-          <span className="chip apple">
-            <AlertTriangle size={10} />
-          </span>
-        ) : a.duration ? (
-          <span className="chip">{a.duration.toFixed(0)} s</span>
-        ) : null}
-      </div>
-      <div className="meta">{a.name}</div>
+      <span className="nm">{a.name}</span>
+      {a.status === "ingesting" ? (
+        <span className="bd">
+          <Loader2 size={10} className="spin" /> import
+        </span>
+      ) : a.status === "error" ? (
+        <span className="bd r">erreur</span>
+      ) : a.duration ? (
+        <span className="r">{clockShort(a.duration, 1)}</span>
+      ) : null}
     </div>
   );
 }

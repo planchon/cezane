@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-import { uploadFiles } from "./api";
+import { brandUrl } from "./api";
 import { CanvasView } from "./canvas/CanvasView";
 import { MontageView } from "./montage/MontageView";
 import { RightPanel } from "./panels/RightPanel";
 import { useApp } from "./store";
-import { AssetsPanel } from "./ui/AssetsPanel";
-import { attempt, Toaster } from "./ui/toast";
-import { TopBar } from "./ui/TopBar";
+import { importFiles } from "./ui/actions";
+import { LeftPanel } from "./ui/LeftPanel";
+import { Toaster } from "./ui/toast";
 
 export function App() {
   const { state, error, connected, ui, setUi } = useApp();
@@ -49,8 +49,7 @@ export function App() {
       setDragging(false);
       if (!hasFiles(e) || ui.tab !== "montage") return;
       e.preventDefault();
-      const files = Array.from(e.dataTransfer?.files ?? []);
-      if (files.length) attempt(() => uploadFiles(files), `${files.length} fichier(s) importé(s)`);
+      importFiles(Array.from(e.dataTransfer?.files ?? []));
     };
     window.addEventListener("dragenter", enter);
     window.addEventListener("dragleave", leave);
@@ -66,25 +65,20 @@ export function App() {
 
   if (!state)
     return (
-      <div className="app">
-        <TopBar />
-        <div className="no-version" style={{ height: "100%" }}>
-          <img src="/brand/loading.gif" alt="" style={{ width: 96, boxShadow: "none", mixBlendMode: "multiply" }} onError={(e) => (e.currentTarget.style.display = "none")} />
-          <div>{error ? `Serveur Cezane injoignable (${error}). Lance \`cezane serve <projet>\`.` : "Chargement du projet…"}</div>
-        </div>
+      <div className="boot">
+        <img src={brandUrl("loading.gif")} alt="" onError={(e) => (e.currentTarget.style.display = "none")} />
+        <div>{error ? `Serveur Cezane injoignable (${error}). Lance \`cezane serve <projet>\`.` : "Chargement du projet…"}</div>
         <Toaster />
       </div>
     );
 
+  // Figma UI3 layout: left panel, canvas with its docked timeline, right panel. No top bar.
   return (
     <div className="app">
-      <TopBar />
-      <div className="body">
-        <AssetsPanel />
-        <div className="main">{ui.tab === "montage" ? <MontageView /> : <CanvasView />}</div>
-        <RightPanel />
-      </div>
-      {!connected && <div className="offline chip apple">Connexion au serveur perdue — reconnexion…</div>}
+      <LeftPanel />
+      <div className="mid">{ui.tab === "montage" ? <MontageView /> : <CanvasView />}</div>
+      <RightPanel />
+      {!connected && <div className="offline">Connexion au serveur perdue — reconnexion…</div>}
       {dragging && <div className="global-drop">Déposer pour importer dans le projet</div>}
       <Toaster />
     </div>

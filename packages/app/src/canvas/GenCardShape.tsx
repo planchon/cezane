@@ -72,13 +72,13 @@ export class GenCardUtil extends BaseBoxShapeUtil<GenCardShape> {
 
   getIndicatorPath(shape: GenCardShape) {
     const p = new Path2D();
-    p.roundRect(0, 0, shape.props.w, shape.props.h, 14);
+    p.roundRect(0, 0, shape.props.w, shape.props.h, 5);
     return p;
   }
 }
 
 const KindIcon = ({ kind }: { kind: string }) =>
-  kind === "video" ? <Clapperboard size={13} /> : kind === "text" ? <Type size={13} /> : kind === "audio" ? <AudioLines size={13} /> : <ImageIcon size={13} />;
+  kind === "video" ? <Clapperboard size={16} /> : kind === "text" ? <Type size={16} /> : kind === "audio" ? <AudioLines size={16} /> : <ImageIcon size={16} />;
 
 const kindLabel: Record<string, string> = { image: "Image", video: "Vidéo", text: "Texte", audio: "Audio" };
 
@@ -103,7 +103,7 @@ function GenCard({ shape }: { shape: GenCardShape }) {
       <div className="wait">
         <img src={brandUrl("loading.gif")} alt="" onError={(e) => (e.currentTarget.style.display = "none")} />
         <span>
-          <Loader2 size={11} className="spin" style={{ verticalAlign: -1 }} /> Génération…
+          <Loader2 size={12} className="spin" style={{ verticalAlign: -2 }} /> Génération…
         </span>
       </div>
     );
@@ -130,8 +130,8 @@ function GenCard({ shape }: { shape: GenCardShape }) {
         <KindIcon kind={p.kind} />
         {kindLabel[p.kind] ?? p.kind}
         <span className="model">· {p.provider}/{p.model}</span>
-        {p.status === "stale" && <span className="chip ochre">à régénérer</span>}
-        {p.status === "error" && <span className="chip apple">erreur</span>}
+        {p.status === "stale" && <span className="bd y">à régénérer</span>}
+        {p.status === "error" && <span className="bd r">erreur</span>}
       </div>
       <div className="gb">{body}</div>
       <div className="gf">
@@ -154,7 +154,7 @@ function GenCard({ shape }: { shape: GenCardShape }) {
             }}
           />
         ) : (
-          <div className="prompt" title="Double-clic pour modifier le prompt">{p.prompt || <span className="muted">Double-clic pour écrire un prompt</span>}</div>
+          <div className="prompt" title="Double-clic pour modifier le prompt">{p.prompt || <span className="c3">Double-clic pour écrire un prompt</span>}</div>
         )}
         <div className="gactions">
           <div className="vers">
@@ -165,7 +165,7 @@ function GenCard({ shape }: { shape: GenCardShape }) {
             ))}
           </div>
           <button
-            className="btn sm"
+            className="btn"
             disabled={p.status === "running" || !p.prompt.trim()}
             onPointerDown={stop}
             onClick={() => runCard(editor, shape.id)}

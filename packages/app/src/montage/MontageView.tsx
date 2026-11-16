@@ -1,10 +1,11 @@
 import { type Anchor, type Comment, type Montage, type Point, type Region, resolveAnchor, type Version } from "@cezane/core";
-import { Hand, MessageCirclePlus, MousePointer2, Pause, Play, Plus, SkipBack, SkipForward } from "lucide-react";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { brandUrl, fileUrl, post, uploadFiles } from "../api";
-import { playhead, usePlaying, useApp, useFrame, useVersionMontage } from "../store";
-import { pendingForClaude, timecode } from "../ui/format";
+import { ArrowUp, Columns2, Hand, MessageCircle, MousePointer2 } from "lucide-react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { brandUrl, fileUrl, post } from "../api";
+import { playhead, useApp, useFrame, useVersionMontage } from "../store";
+import { clock } from "../ui/format";
 import { attempt } from "../ui/toast";
+import { commentAvatar, shotsOf } from "./clips";
 import { Timeline } from "./Timeline";
 
 type Draft =
@@ -30,7 +31,8 @@ export function MontageView() {
   useLayoutEffect(() => {
     const el = stage.current;
     if (!el) return;
-    const ro = new ResizeObserver(() => setBox({ w: el.clientWidth - 16, h: el.clientHeight - 72 }));
+    // Room for the frame: 36 px above (label), the floating toolbar below.
+    const ro = new ResizeObserver(() => setBox({ w: el.clientWidth - 64, h: el.clientHeight - 36 - 20 - 96 }));
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
@@ -147,7 +149,7 @@ export function MontageView() {
   // Screen size: fit the montage aspect ratio, two screens side by side in A/B mode.
   const count = compareVersion ? 2 : 1;
   const aspect = dims.width / dims.height;
-  const maxW = (box.w - (count - 1) * 18) / count;
+  const maxW = (box.w - (count - 1) * 32) / count;
   const screenH = Math.max(120, Math.min(box.h, maxW / aspect));
   const screenW = screenH * aspect;
 
@@ -178,17 +180,17 @@ export function MontageView() {
 
   return (
     <>
-      <div className="stage" ref={stage}>
+      <div className="cv" ref={stage}>
         {noVersion ? (
           <div className="no-version">
             <img src={brandUrl("mood-montage.png")} alt="" onError={(e) => (e.currentTarget.style.display = "none")} />
-            <div style={{ fontFamily: "var(--serif)", fontSize: 20, color: "var(--ink)" }}>
+            <div className="t13 s">
               {version?.status === "rendering" ? `Rendu de V${version.n} en cours… ${Math.round(version.progress * 100)} %` : "Pas encore de version rendue"}
             </div>
             <div>Importe des rushes, demande un montage à Claude, puis clique sur « Rendre ».</div>
           </div>
         ) : (
-          <>
+          <div className="stage">
             {compareVersion && (
               <Screen
                 label={`B · V${compareVersion.n}`}
@@ -213,9 +215,9 @@ export function MontageView() {
               onDraft={openComposer}
               draft={draft}
             />
-          </>
+          </div>
         )}
-        {draft && <Composer draft={draft} fps={fps} onCancel={() => setDraft(undefined)} onSubmit={submit} />}
+        {draft && <Composer draft={draft} fps={fps} versionN={version?.n} onCancel={() => setDraft(undefined)} onSubmit={submit} />}
         <Toolbar />
       </div>
       <Timeline
@@ -223,7 +225,7 @@ export function MontageView() {
         version={version}
         onRangeComment={(a, b) => {
           const r = stage.current?.getBoundingClientRect();
-          openComposer(b > a ? { kind: "range", frame: a, frameEnd: b } : { kind: "range", frame: a }, { x: (r?.width ?? 600) / 2 - 140, y: (r?.height ?? 600) - 230 });
+          openComposer(b > a ? { kind: "range", frame: a, frameEnd: b } : { kind: "range", frame: a }, { x: (r?.width ?? 600) / 2 - 132, y: (r?.height ?? 600) - 240 });
           playhead.seek(a);
         }}
       />
@@ -311,7 +313,7 @@ function Screen({ label, version, montage, w, h, videoRef, muted, interactive, s
       setRect(undefined);
       const b = norm(ev);
       const s = stageRef?.current?.getBoundingClientRect();
-      const at = s ? { x: Math.min(s.width - 290, ev.clientX - s.left + 14), y: Math.min(s.height - 200, Math.max(8, ev.clientY - s.top - 20)) } : { x: 20, y: 20 };
+      const at = s ? { x: Math.min(s.width - 276, ev.clientX - s.left + 24), y: Math.min(s.height - 150, Math.max(8, ev.clientY - s.top - 40)) } : { x: 20, y: 20 };
       const dist = Math.hypot((b.x - a.x) * w, (b.y - a.y) * h);
       if (dist < 6) onDraft?.({ kind: "pin", pin: a, frame: f }, at);
       else onDraft?.({ kind: "region", region: { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.abs(b.x - a.x), h: Math.abs(b.y - a.y) }, frame: f }, at);
@@ -331,54 +333,68 @@ function Screen({ label, version, montage, w, h, videoRef, muted, interactive, s
       })
     : [];
 
+  // Label above the frame: the version, then what is said at the playhead (or the version summary).
+  const shots = useMemo(() => shotsOf(montage), [montage]);
+  const shot = shots.find((s) => frame >= s.clip.start && frame < s.clip.start + s.clip.duration);
+  const caption = shot?.phrase ?? version.summary;
+
   return (
-    <div className="screen" style={{ width: w, height: h }} onWheel={(e) => {
+    <div className="fw">
+      <div className="fl" style={{ maxWidth: w }}>
+        <b>{label ?? `V${version.n}`}</b>
+        <span className="ell">{caption}</span>
+      </div>
+    <div className="fr" style={{ width: w, height: h, overflow: view.s > 1 ? "hidden" : "visible" }} onWheel={(e) => {
       if (ui.tool !== "hand") return;
       setView((v) => ({ ...v, s: Math.min(6, Math.max(1, v.s * (e.deltaY < 0 ? 1.1 : 1 / 1.1))) }));
     }}>
-      {label && <span className="label chip">{label}</span>}
+      <div style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
+        <video ref={videoRef} src={fileUrl(version.file!)} muted={muted} playsInline preload="auto" style={{ width: "100%", height: "100%", transform: `translate(${view.x}px, ${view.y}px) scale(${view.s})`, transformOrigin: "center" }} />
+      </div>
       <div style={{ position: "absolute", inset: 0, transform: `translate(${view.x}px, ${view.y}px) scale(${view.s})`, transformOrigin: "center" }}>
-        <video ref={videoRef} src={fileUrl(version.file!)} muted={muted} playsInline preload="auto" style={{ width: "100%", height: "100%" }} />
         <div ref={overlay} className={`overlay ${interactive ? ui.tool : ""}`} onPointerDown={onDown}>
           {visible.map((c) => <Mark key={c.id} c={c} active={ui.commentId === c.id} onClick={() => setUi({ commentId: c.id, panel: "comments" })} />)}
           {rect && <div className="zone draft-rect" style={pct(rect)} />}
           {draft?.kind === "region" && <div className="zone draft-rect" style={pct(draft.region)} />}
           {draft?.kind === "pin" && (
-            <div className="pin" style={{ left: `${draft.pin.x * 100}%`, top: `${draft.pin.y * 100}%` }}>
-              <span>+</span>
+            <div className="pin on" style={{ left: `${draft.pin.x * 100}%`, top: `${draft.pin.y * 100}%` }}>
+              <span className="av me">P</span>
             </div>
           )}
         </div>
       </div>
       {view.s > 1 && (
-        <button className="btn sm" style={{ position: "absolute", right: 8, top: 8, zIndex: 4 }} onClick={() => setView({ s: 1, x: 0, y: 0 })}>
+        <button className="btn zoom-reset" onClick={() => setView({ s: 1, x: 0, y: 0 })}>
           {Math.round(view.s * 100)} % · réinitialiser
         </button>
       )}
+    </div>
     </div>
   );
 }
 
 const pct = (r: Region) => ({ left: `${r.x * 100}%`, top: `${r.y * 100}%`, width: `${r.w * 100}%`, height: `${r.h * 100}%` });
 
+/** A comment on the frame: Figma's pin (round, sharp bottom-left corner), plus its zone if it has one. */
 function Mark({ c, active, onClick }: { c: Comment; active: boolean; onClick: () => void }) {
   if (c.anchor.kind !== "montage") return null;
-  const cls = c.status === "in_progress" ? "sent" : c.status;
+  const av = commentAvatar(c);
   const stop = (e: React.PointerEvent) => e.stopPropagation();
-  if (c.anchor.region)
-    return (
-      <div className={`zone ${cls}`} style={{ ...pct(c.anchor.region), outline: active ? "2px solid #fff" : undefined }} onPointerDown={stop} onClick={onClick} title={c.thread[0]?.text}>
-        <div className="num">{c.n}</div>
-      </div>
-    );
-  return (
-    <div className={`pin ${cls}`} style={{ left: `${c.anchor.pin!.x * 100}%`, top: `${c.anchor.pin!.y * 100}%`, outline: active ? "2px solid var(--ink)" : undefined }} onPointerDown={stop} onClick={onClick} title={c.thread[0]?.text}>
-      <span>{c.n}</span>
+  const pin = (style?: React.CSSProperties) => (
+    <div className={`pin ${active ? "on" : ""}`} style={style} onPointerDown={stop} onClick={onClick} title={c.thread[0]?.text}>
+      <span className={`av ${av.cls}`}>{av.letter}</span>
     </div>
   );
+  if (c.anchor.region)
+    return (
+      <div className={`zone ${c.status === "validated" ? "done" : ""} ${active ? "on" : ""}`} style={pct(c.anchor.region)} onPointerDown={stop} onClick={onClick} title={c.thread[0]?.text}>
+        {pin()}
+      </div>
+    );
+  return pin({ left: `${c.anchor.pin!.x * 100}%`, top: `${c.anchor.pin!.y * 100}%` });
 }
 
-function Composer({ draft, fps, onCancel, onSubmit }: { draft: Draft & { at: { x: number; y: number } }; fps: number; onCancel: () => void; onSubmit: (text: string) => Promise<void> }) {
+function Composer({ draft, fps, versionN, onCancel, onSubmit }: { draft: Draft & { at: { x: number; y: number } }; fps: number; versionN?: number; onCancel: () => void; onSubmit: (text: string) => Promise<void> }) {
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const send = async () => {
@@ -387,20 +403,20 @@ function Composer({ draft, fps, onCancel, onSubmit }: { draft: Draft & { at: { x
     await onSubmit(text.trim());
     setBusy(false);
   };
-  const where =
-    draft.kind === "range"
-      ? draft.frameEnd !== undefined
-        ? `${timecode(draft.frame, fps)} → ${timecode(draft.frameEnd, fps)}`
-        : `à ${timecode(draft.frame, fps)}`
-      : `${draft.kind === "pin" ? "Épingle" : "Zone"} · frame ${draft.frame} · ${timecode(draft.frame, fps)}`;
+  const where = [
+    versionN ? `V${versionN}` : undefined,
+    draft.kind === "range" && draft.frameEnd !== undefined ? `${clock(draft.frame, fps)} → ${clock(draft.frameEnd, fps)}` : clock(draft.frame, fps),
+    draft.kind === "pin" ? "épingle" : draft.kind === "region" ? "zone" : undefined,
+  ]
+    .filter(Boolean)
+    .join(" · ");
   return (
-    <div className="composer" style={{ left: Math.max(8, draft.at.x), top: Math.max(8, draft.at.y) }} onPointerDown={(e) => e.stopPropagation()}>
-      <div className="where">
-        <span className="chip apple">Nouveau</span>
-        {where}
-      </div>
+    <div className="pop composer" style={{ left: Math.max(8, draft.at.x), top: Math.max(8, draft.at.y) }} onPointerDown={(e) => e.stopPropagation()}>
+      <div className="body">
+        <span className="av me">P</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="c2" title={`frame ${draft.frame}`}>{where}</div>
       <textarea
-        className="field"
         rows={3}
         autoFocus
         placeholder="Ton commentaire pour Claude…"
@@ -415,67 +431,41 @@ function Composer({ draft, fps, onCancel, onSubmit }: { draft: Draft & { at: { x
           e.stopPropagation();
         }}
       />
-      <div className="row">
-        <span className="muted" style={{ fontSize: 11, marginRight: "auto" }}>⏎ pour ajouter</span>
-        <button className="btn sm ghost" onClick={onCancel}>Annuler</button>
-        <button className="btn sm accent" disabled={!text.trim() || busy} onClick={send}>Ajouter</button>
+        </div>
+      </div>
+      <div className="foot">
+        <span className="c3">⏎ pour ajouter</span>
+        <div className="sp" />
+        <button className="btn ghost" onClick={onCancel}>
+          Annuler
+        </button>
+        <button className="send" disabled={!text.trim() || busy} onClick={send} title="Ajouter">
+          <ArrowUp size={14} />
+        </button>
       </div>
     </div>
   );
 }
 
+/** Floating toolbar (Figma UI3): tools, then the A/B comparison. Transport lives in the timeline header. */
 function Toolbar() {
   const { ui, setUi, state } = useApp();
-  const playing = usePlaying();
-  const input = useRef<HTMLInputElement>(null);
-  const pending = pendingForClaude(state?.comments ?? []).length;
+  const canCompare = (state?.versions.filter((v) => v.status === "ready" && v.file).length ?? 0) >= 2;
   return (
-    <div className="toolbar">
-      <button className={`icon-btn ${ui.tool === "select" ? "active" : ""}`} title="Sélection (V)" onClick={() => setUi({ tool: "select" })}>
-        <MousePointer2 size={18} />
-        <kbd>V</kbd>
+    <div className="tb">
+      <button className={`t ${ui.tool === "select" ? "on" : ""}`} title="Sélection (V)" onClick={() => setUi({ tool: "select" })}>
+        <MousePointer2 size={16} />
       </button>
-      <button className={`icon-btn ${ui.tool === "hand" ? "active" : ""}`} title="Main : zoomer/déplacer l'image (H)" onClick={() => setUi({ tool: "hand" })}>
-        <Hand size={18} />
-        <kbd>H</kbd>
+      <button className={`t ${ui.tool === "hand" ? "on" : ""}`} title="Main : zoomer/déplacer l'image (H)" onClick={() => setUi({ tool: "hand" })}>
+        <Hand size={16} />
       </button>
-      <button className={`icon-btn comment ${ui.tool === "comment" ? "active" : ""}`} title="Commentaire (C) : clic = épingle, glisser = zone, glisser sur la règle = plage" onClick={() => setUi({ tool: "comment" })}>
-        <MessageCirclePlus size={18} />
-        <kbd>C</kbd>
+      <button className={`t ${ui.tool === "comment" ? "on" : ""}`} title="Commentaire (C) : clic = épingle, glisser = zone, glisser sur la règle = plage" onClick={() => setUi({ tool: "comment" })}>
+        <MessageCircle size={16} />
       </button>
-      <button className="icon-btn" title="Importer" onClick={() => input.current?.click()}>
-        <Plus size={18} />
+      <span className="dv" />
+      <button className={`t ${ui.compare ? "on" : ""}`} disabled={!canCompare} title="Comparer deux versions côte à côte (A/B)" onClick={() => setUi((u) => ({ compare: !u.compare }))}>
+        <Columns2 size={16} />
       </button>
-      <input
-        ref={input}
-        type="file"
-        multiple
-        hidden
-        accept="video/*,image/*,audio/*"
-        onChange={(e) => {
-          const files = Array.from(e.target.files ?? []);
-          if (files.length) attempt(() => uploadFiles(files), `${files.length} fichier(s) importé(s)`);
-        }}
-      />
-      <div className="sep" />
-      <button className="icon-btn" title="Frame précédente (←)" onClick={() => playhead.seek(playhead.get() - 1)}>
-        <SkipBack size={16} />
-      </button>
-      <button className="icon-btn" title="Lecture / pause (Espace)" onClick={() => playhead.toggle()}>
-        {playing ? <Pause size={18} /> : <Play size={18} />}
-      </button>
-      <button className="icon-btn" title="Frame suivante (→)" onClick={() => playhead.seek(playhead.get() + 1)}>
-        <SkipForward size={16} />
-      </button>
-      {pending > 0 && (
-        <>
-          <div className="sep" />
-          <button className="btn sm accent" style={{ alignSelf: "center" }} onClick={() => attempt(() => post("/api/claude/send", { commentIds: pendingForClaude(state!.comments).map((c) => c.id) }), "Envoyé à Claude")}>
-            Envoyer à Claude ({pending})
-          </button>
-        </>
-      )}
     </div>
   );
 }
-

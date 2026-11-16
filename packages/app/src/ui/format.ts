@@ -10,6 +10,19 @@ export const timecode = (frame: number, fps: number) => {
 
 export const seconds = (frame: number, fps: number) => `${(frame / fps).toFixed(1)} s`;
 
+/** "0:13.9": minutes, seconds and tenths, the way the UI shows times. */
+export const clock = (frame: number, fps: number) => {
+  const tenths = Math.floor((Math.max(0, frame) / fps) * 10 + 1e-6);
+  const m = Math.floor(tenths / 600);
+  return `${m}:${((tenths - m * 600) / 10).toFixed(1).padStart(4, "0")}`;
+};
+
+/** "0:13": minutes and seconds. */
+export const clockShort = (frame: number, fps: number) => {
+  const t = Math.floor(Math.max(0, frame) / fps + 1e-6);
+  return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`;
+};
+
 export const statusLabel: Record<CommentStatus, string> = {
   draft: "Brouillon",
   sent: "Envoyé",
@@ -19,13 +32,14 @@ export const statusLabel: Record<CommentStatus, string> = {
   reopened: "Rouvert",
 };
 
+/** Badge tone (.bd modifier) of each comment status. */
 export const statusChip: Record<CommentStatus, string> = {
-  draft: "apple",
-  sent: "ochre",
-  in_progress: "ochre",
-  fixed: "sage",
+  draft: "",
+  sent: "c",
+  in_progress: "c",
+  fixed: "g",
   validated: "",
-  reopened: "terracotta",
+  reopened: "o",
 };
 
 /** Comments that the next "Envoyer à Claude" sends. */

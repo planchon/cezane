@@ -1,30 +1,71 @@
 import { type ClaudeEvent, type Comment, findClip, resolveAnchor } from "@cezane/core";
-import { Bot, Check, ChevronDown, ChevronRight, CircleStop, MessageSquare, RotateCcw, Send, SlidersHorizontal, Trash2 } from "lucide-react";
+import { ArrowUp, Check, ChevronDown, ChevronRight, Loader2, RotateCcw, Trash2 } from "lucide-react";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { api, assetMedia, assetThumb, fileUrl, post } from "../api";
+import { claudeMade, clipIcon, clipLabel } from "../montage/clips";
 import { playhead, useApp, useVersionMontage } from "../store";
-import { pendingForClaude, relTime, shortTool, statusChip, statusLabel, timecode } from "../ui/format";
+import { renderVersion } from "../ui/actions";
+import { clock, pendingForClaude, relTime, shortTool, statusChip, statusLabel, timecode } from "../ui/format";
 import { attempt } from "../ui/toast";
 
 export function RightPanel() {
-  const { ui, setUi, state, log } = useApp();
-  const pending = pendingForClaude(state?.comments ?? []).length;
+  const { ui, setUi, log } = useApp();
   const waitingPermission = useMemo(() => openPermissions(log).length, [log]);
   return (
-    <aside className="panel rp">
-      <div className="rp-tabs">
-        <button className={ui.panel === "comments" ? "on" : ""} onClick={() => setUi({ panel: "comments" })}>
-          <MessageSquare size={14} /> Commentaires {pending > 0 && <span className="count">{pending}</span>}
+    <aside className="R">
+      <PanelHead />
+      <div className="tabs">
+        <button className={`tab ${ui.panel === "props" ? "on" : ""}`} onClick={() => setUi({ panel: "props" })}>
+          Propriétés
         </button>
-        <button className={ui.panel === "claude" ? "on" : ""} onClick={() => setUi({ panel: "claude" })}>
-          <Bot size={14} /> Claude {waitingPermission > 0 && <span className="count" style={{ background: "var(--ochre)" }}>!</span>}
+        <button className={`tab ${ui.panel === "comments" ? "on" : ""}`} onClick={() => setUi({ panel: "comments" })}>
+          Commentaires
         </button>
-        <button className={ui.panel === "props" ? "on" : ""} onClick={() => setUi({ panel: "props" })}>
-          <SlidersHorizontal size={14} /> Propriétés
+        <button className={`tab ${ui.panel === "claude" ? "on" : ""}`} onClick={() => setUi({ panel: "claude" })} title={waitingPermission ? "Claude attend une autorisation" : undefined}>
+          Claude {waitingPermission > 0 && <span className="alert" />}
         </button>
       </div>
       {ui.panel === "comments" ? <CommentsPanel /> : ui.panel === "claude" ? <ClaudePanel /> : <PropertiesPanel />}
     </aside>
+  );
+}
+
+/** Avatars (you, Claude with its activity), running jobs, and the primary action. */
+function PanelHead() {
+  const { state, setUi, connected } = useApp();
+  const running = state?.jobs.filter((j) => j.status === "running" || j.status === "queued") ?? [];
+  const job = running[0];
+  const claude = state?.claude;
+  const rendering = state?.versions.some((v) => v.status === "rendering");
+  return (
+    <div className="rh">
+      <div className="avs">
+        <span className="av me" title="Toi">
+          P
+        </span>
+        <button
+          className={`av cl ${claude?.running ? "busy" : ""}`}
+          style={!connected ? { background: "var(--text-3)" } : undefined}
+          onClick={() => setUi({ panel: "claude" })}
+          title={!connected ? "Serveur injoignable" : claude?.running ? `Claude travaille · ${claude.task ?? ""}` : "Claude est disponible"}
+        >
+          C
+        </button>
+      </div>
+      <div className="sp" />
+      {job && (
+        <span className="jobs" title={running.map((j) => `${j.label} ${Math.round(j.progress * 100)} %`).join("\n")}>
+          <span className="ring" style={{ "--p": job.progress } as React.CSSProperties} />
+          <span className="ell">
+            {Math.round(job.progress * 100)} %{running.length > 1 ? ` (+${running.length - 1})` : ""}
+          </span>
+        </span>
+      )}
+      <button className="btn pri" disabled={!state || rendering} onClick={() => void renderVersion()} title="Rendre une nouvelle version du montage">
+        {rendering && <Loader2 size={12} className="spin" />}
+        Rendre
+      </button>
+    </div>
   );
 }
 
@@ -35,30 +76,33 @@ function CommentsPanel() {
   const comments = state?.comments ?? [];
   const pending = pendingForClaude(comments);
   const groups: { title: string; items: Comment[]; collapsed?: boolean }[] = [
-    { title: "À envoyer", items: pending },
+    { title: "À envoyer à Claude", items: pending },
     { title: "Chez Claude", items: comments.filter((c) => c.status === "sent" || c.status === "in_progress") },
-    { title: "Corrigés — à valider", items: comments.filter((c) => c.status === "fixed") },
+    { title: "Corrigé par Claude", items: comments.filter((c) => c.status === "fixed") },
     { title: "Validés", items: comments.filter((c) => c.status === "validated"), collapsed: true },
   ];
+  const n = pending.length;
   return (
     <>
       <div className="rp-body scroll">
         {!comments.length && (
-          <div className="empty">
-            Aucun commentaire.
-            <br />
-            Choisis l'outil Commentaire (C) : clic sur l'image pour une épingle, glisser pour une zone, glisser sur la règle pour une plage.
+          <div className="empty" style={{ paddingTop: 12 }}>
+            Aucun commentaire. Choisis l'outil Commentaire (C) : clic sur l'image pour une épingle, glisser pour une zone, glisser sur la règle pour une plage.
           </div>
         )}
         {groups.map((g) => (g.items.length ? <Group key={g.title} {...g} /> : null))}
       </div>
       <div className="rp-foot">
         <button
-          className="btn big accent"
-          disabled={!pending.length || state?.claude.running}
+          className="btn pri lg block"
+          disabled={!n || state?.claude.running}
           onClick={() => attempt(() => post("/api/claude/send", { commentIds: pending.map((c) => c.id) }), "Envoyé à Claude")}
         >
-          <Send size={15} /> {state?.claude.running ? `Claude travaille… (${pending.length} en attente)` : `Envoyer à Claude (${pending.length})`}
+          {state?.claude.running
+            ? `Claude travaille… (${n} en attente)`
+            : n
+              ? `Envoyer ${n} commentaire${n > 1 ? "s" : ""} à Claude`
+              : "Envoyer à Claude"}
         </button>
       </div>
     </>
@@ -68,17 +112,17 @@ function CommentsPanel() {
 function Group({ title, items, collapsed }: { title: string; items: Comment[]; collapsed?: boolean }) {
   const [open, setOpen] = useState(!collapsed);
   return (
-    <div className="group">
-      <div className="group-title" onClick={() => setOpen((o) => !o)} style={{ cursor: "pointer" }}>
-        {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
-        {title} <span className="chip">{items.length}</span>
+    <div>
+      <div className={`sh light ${collapsed ? "click" : ""}`} onClick={collapsed ? () => setOpen((o) => !o) : undefined}>
+        {title} · {items.length}
+        {collapsed && <span className="r">{open ? <ChevronDown size={12} /> : <ChevronRight size={12} />}</span>}
       </div>
-      {open && items.map((c) => <CommentCard key={c.id} c={c} />)}
+      {open && items.map((c, i) => <CommentItem key={c.id} c={c} first={i === 0} />)}
     </div>
   );
 }
 
-function CommentCard({ c }: { c: Comment }) {
+function CommentItem({ c, first }: { c: Comment; first: boolean }) {
   const { ui, setUi, state, version } = useApp();
   const montage = useVersionMontage(version, state?.montage);
   const [reply, setReply] = useState("");
@@ -98,11 +142,16 @@ function CommentCard({ c }: { c: Comment }) {
     removed = r.status === "removed";
     target = r.frame;
     const v = state?.versions.find((x) => x.id === a.versionId);
-    where = `${v ? `V${v.n}` : a.versionId} · ${timecode(r.frame, fps)}${r.frameEnd !== undefined ? ` → ${timecode(r.frameEnd, fps)}` : ""}${a.region ? " · zone" : a.pin ? " · épingle" : ""}`;
-  } else where = "Canvas · élément";
+    where = `${v ? `V${v.n}` : a.versionId} · ${clock(r.frame, fps)}${r.frameEnd !== undefined ? ` → ${clock(r.frameEnd, fps)}` : ""}${a.region ? " · zone" : a.pin ? " · épingle" : ""}`;
+  } else where = "Rushes · élément";
   const fixedIn = c.fixedIn ? state?.versions.find((v) => v.id === c.fixedIn) : undefined;
+  const vName = (id?: string) => {
+    const v = id ? state?.versions.find((x) => x.id === id) : undefined;
+    return v ? `V${v.n}` : id;
+  };
 
-  const focus = () => {
+  const focus = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest("button, input, textarea, a")) return;
     setUi(a.kind === "canvas" ? { commentId: c.id, tab: "canvas" } : { commentId: c.id, tab: "montage" });
     if (target !== undefined && !removed) playhead.seek(target);
   };
@@ -114,81 +163,80 @@ function CommentCard({ c }: { c: Comment }) {
   };
 
   return (
-    <div ref={ref} className={`ccard ${active ? "on" : ""}`}>
-      <div className="ccard-head" onClick={focus}>
-        <span className={`cnum ${c.status}`}>{c.n}</span>
-        <span className={`chip ${statusChip[c.status]}`}>{statusLabel[c.status]}</span>
-        <span className="where" style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {where}
-          {removed && " · passage supprimé"}
-        </span>
-        <span className="muted" style={{ fontSize: 10.5 }}>{relTime(c.createdAt)}</span>
-      </div>
-      <div className="msgs">
-        {c.thread.map((m, i) => (
-          <div key={i} className="msg">
-            <span className={`av ${m.author}`}>{m.author === "user" ? "P" : "C"}</span>
-            <div>
-              {m.text}
-              {m.versionId && <small>{state?.versions.find((v) => v.id === m.versionId) ? `V${state.versions.find((v) => v.id === m.versionId)!.n}` : m.versionId}</small>}
+    <div ref={ref} className={`cmt ${active ? "on" : ""} ${first ? "cmt-group-first" : ""}`} onClick={focus} style={first && active ? { paddingTop: 12 } : undefined}>
+      {c.thread.map((m, i) => (
+        <div key={i} className="msg">
+          <span className={`av ${m.author === "user" ? "me" : "cl"}`}>{m.author === "user" ? "P" : "C"}</span>
+          <div className="body">
+            <div className="who">
+              <span className="s">{m.author === "user" ? "Moi" : "Claude"}</span>
+              <span className="c2 ell">{i === 0 ? relTime(c.createdAt) : m.versionId ? vName(m.versionId) : relTime(m.at)}</span>
             </div>
+            {i === 0 && (
+              <div className="c2">
+                {where}
+                {removed && " · passage supprimé"}
+              </div>
+            )}
+            <div className="txt">{m.text}</div>
           </div>
-        ))}
+        </div>
+      ))}
+      <div className="extra">
+        {c.snapshot && (
+          <div className="snap">
+            <img src={fileUrl(c.snapshot)} alt="Image commentée" onError={(e) => (e.currentTarget.style.display = "none")} />
+          </div>
+        )}
+        <div className="acts">
+          <span className={`bd ${statusChip[c.status]}`}>{statusLabel[c.status]}</span>
+        </div>
+        {(fixedIn || c.status === "fixed" || c.status === "draft") && (
+          <div className="acts">
+            {fixedIn && a.kind === "montage" && (
+              <button
+                className="btn"
+                onClick={() => {
+                  setUi({ versionId: fixedIn.id, compare: true, compareId: a.versionId, commentId: c.id, tab: "montage" });
+                  if (target !== undefined) setTimeout(() => playhead.seek(target!), 300);
+                }}
+              >
+                Avant / après
+              </button>
+            )}
+            {c.status === "fixed" && (
+              <>
+                <button className="btn" onClick={() => attempt(() => post(`/api/comments/${c.id}/status`, { status: "validated" }))}>
+                  <Check size={12} /> Valider
+                </button>
+                <button className="btn" onClick={() => attempt(() => post(`/api/comments/${c.id}/status`, { status: "reopened" }))}>
+                  <RotateCcw size={12} /> Rouvrir
+                </button>
+              </>
+            )}
+            {c.status === "draft" && (
+              <button className="btn ghost" onClick={() => attempt(() => api("DELETE", `/api/comments/${c.id}`))}>
+                <Trash2 size={12} /> Supprimer
+              </button>
+            )}
+          </div>
+        )}
+        {active && c.status !== "validated" && (
+          <div className="reply">
+            <input
+              className="field"
+              placeholder="Répondre…"
+              title={c.status === "fixed" ? "Répondre rouvre le commentaire" : undefined}
+              value={reply}
+              onChange={(e) => setReply(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && sendReply()}
+            />
+            <button className="send" onClick={sendReply} disabled={!reply.trim()} title="Envoyer">
+              <ArrowUp size={14} />
+            </button>
+          </div>
+        )}
       </div>
-      {(c.snapshot || fixedIn) && (
-        <div className="snap">
-          {c.snapshot && (
-            <div>
-              <div className="muted" style={{ fontSize: 10, marginBottom: 2 }}>Avant</div>
-              <img src={fileUrl(c.snapshot)} alt="" onError={(e) => (e.currentTarget.style.display = "none")} />
-            </div>
-          )}
-          {fixedIn && a.kind === "montage" && (
-            <button
-              className="btn sm"
-              onClick={() => {
-                setUi({ versionId: fixedIn.id, compare: true, compareId: a.versionId, commentId: c.id, tab: "montage" });
-                if (target !== undefined) setTimeout(() => playhead.seek(target!), 300);
-              }}
-            >
-              Avant / après · V{fixedIn.n}
-            </button>
-          )}
-        </div>
-      )}
-      {(c.status === "fixed" || c.status === "draft") && (
-        <div className="ccard-actions">
-          {c.status === "fixed" && (
-            <>
-              <button className="btn sm" style={{ borderColor: "var(--sage)", color: "#435a3d" }} onClick={() => attempt(() => post(`/api/comments/${c.id}/status`, { status: "validated" }))}>
-                <Check size={13} /> Valider
-              </button>
-              <button className="btn sm" onClick={() => attempt(() => post(`/api/comments/${c.id}/status`, { status: "reopened" }))}>
-                <RotateCcw size={13} /> Rouvrir
-              </button>
-            </>
-          )}
-          {c.status === "draft" && (
-            <button className="btn sm ghost" onClick={() => attempt(() => api("DELETE", `/api/comments/${c.id}`))}>
-              <Trash2 size={13} /> Supprimer
-            </button>
-          )}
-        </div>
-      )}
-      {active && c.status !== "validated" && (
-        <div className="reply">
-          <input
-            className="field"
-            placeholder={c.status === "fixed" ? "Répondre (rouvre le commentaire)…" : "Répondre…"}
-            value={reply}
-            onChange={(e) => setReply(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && sendReply()}
-          />
-          <button className="icon-btn" onClick={sendReply} disabled={!reply.trim()}>
-            <Send size={15} />
-          </button>
-        </div>
-      )}
     </div>
   );
 }
@@ -260,24 +308,24 @@ function ClaudePanel() {
 
   return (
     <>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderBottom: "1px solid var(--line)" }}>
-        <span className={`claude-dot ${running ? "on" : ""}`} style={{ padding: 0, height: "auto" }}>
-          <i />
-        </span>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 650, fontSize: 12.5 }}>{running ? "Claude travaille" : "Claude attend"}</div>
-          <div className="muted" style={{ fontSize: 11.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{state?.claude.task ?? "Commente la vidéo ou écris une consigne."}</div>
+      <div className="sec">
+        <div className="sh">
+          <span className={`av cl xs ${running ? "busy" : ""}`}>C</span>
+          {running ? "Claude travaille" : "Claude attend"}
+          <span className="r">
+            {state?.claude.model}
+            {running && (
+              <button className="btn" style={{ marginLeft: 4 }} onClick={() => attempt(() => post("/api/claude/stop"))}>
+                Arrêter
+              </button>
+            )}
+          </span>
         </div>
-        <span className="chip terracotta">{state?.claude.model}</span>
-        {running && (
-          <button className="btn sm" onClick={() => attempt(() => post("/api/claude/stop"))}>
-            <CircleStop size={13} /> Stop
-          </button>
-        )}
+        <div className="pad c2">{state?.claude.task ?? "Commente la vidéo ou écris une consigne."}</div>
       </div>
       <div className="rp-body scroll">
         <div className="feed">
-          {!items.length && <div className="empty">Aucune activité pour l'instant.</div>}
+          {!items.length && <div className="c2" style={{ paddingTop: 12 }}>Aucune activité pour l'instant.</div>}
           {items.map(({ e, res, done }) => (
             <Fragment key={e.id}>
               <Event e={e} res={res} done={done} />
@@ -286,12 +334,11 @@ function ClaudePanel() {
           <div ref={bottom} />
         </div>
       </div>
-      <div className="rp-foot">
-        <div style={{ display: "flex", gap: 6, alignItems: "flex-end" }}>
+      <div style={{ padding: 8, borderTop: "1px solid var(--border)" }}>
+        <div className="ask">
           <textarea
-            className="field"
             rows={2}
-            placeholder="Une consigne pour Claude (ex. « coupe les silences et ajoute des sous-titres »)"
+            placeholder="Demander une modification à Claude…"
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => {
@@ -301,8 +348,8 @@ function ClaudePanel() {
               }
             }}
           />
-          <button className="btn primary" style={{ height: 38 }} disabled={!text.trim()} onClick={ask}>
-            <Send size={14} />
+          <button className="send" disabled={!text.trim()} onClick={ask} title="Envoyer à Claude">
+            <ArrowUp size={14} />
           </button>
         </div>
       </div>
@@ -312,24 +359,30 @@ function ClaudePanel() {
 
 function Event({ e, res, done }: { e: ClaudeEvent; res?: ClaudeEvent; done?: boolean }) {
   const time = new Date(e.at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
-  if (e.kind === "start") return <div className="ev sep">{time} · {e.text ?? "Nouvelle session"}</div>;
-  if (e.kind === "end") return <div className="ev sep">Terminé{e.costUsd !== undefined ? ` · ${e.costUsd.toFixed(2)} $ (abonnement)` : ""}</div>;
-  if (e.kind === "error") return <div className="ev err">⚠ {e.text}</div>;
-  if (e.kind === "text") return <div className="ev text">{e.text}</div>;
+  if (e.kind === "start")
+    return (
+      <div className="ev-sep">
+        <span className="s" style={{ color: "var(--text)" }}>{e.text ?? "Nouvelle session"}</span>
+        <span>{time}</span>
+      </div>
+    );
+  if (e.kind === "end") return <div className="c2">Terminé{e.costUsd !== undefined ? ` · ${e.costUsd.toFixed(2)} $ (abonnement)` : ""}</div>;
+  if (e.kind === "error") return <div className="ev-err">{e.text}</div>;
+  if (e.kind === "text") return <div className="ev-text">{e.text}</div>;
   if (e.kind === "permission")
     return (
-      <div className="ev perm">
-        <div style={{ fontWeight: 650 }}>Autorisation demandée · {shortTool(e.tool)}</div>
-        {e.text && <div style={{ marginTop: 4 }}>{e.text}</div>}
+      <div className="ev-perm">
+        <div className="s">Autorisation demandée · {shortTool(e.tool)}</div>
+        {e.text && <div>{e.text}</div>}
         <pre>{summarize(e.tool, e.input) || JSON.stringify(e.input, null, 1)}</pre>
         {done ? (
-          <span className="chip">répondu</span>
+          <span className="c2">Répondu</span>
         ) : (
-          <div style={{ display: "flex", gap: 6 }}>
-            <button className="btn sm primary" onClick={() => attempt(() => post(`/api/claude/permission/${e.permissionId}`, { allow: true }))}>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button className="btn pri" onClick={() => attempt(() => post(`/api/claude/permission/${e.permissionId}`, { allow: true }))}>
               Autoriser
             </button>
-            <button className="btn sm" onClick={() => attempt(() => post(`/api/claude/permission/${e.permissionId}`, { allow: false, message: "Refusé par l'utilisateur" }))}>
+            <button className="btn" onClick={() => attempt(() => post(`/api/claude/permission/${e.permissionId}`, { allow: false, message: "Refusé par l'utilisateur" }))}>
               Refuser
             </button>
           </div>
@@ -337,8 +390,8 @@ function Event({ e, res, done }: { e: ClaudeEvent; res?: ClaudeEvent; done?: boo
       </div>
     );
   return (
-    <div className="ev tool" title={res?.text ?? JSON.stringify(e.input, null, 1)}>
-      <span className={`ok-dot ${!res ? "wait" : res.ok === false ? "no" : ""}`} />
+    <div className="ev-tool" title={res?.text ?? JSON.stringify(e.input, null, 1)}>
+      <span className={`dot ${!res ? "wait" : res.ok === false ? "no" : ""}`} />
       <span className="name">{shortTool(e.tool)}</span>
       <span className="sum">{res?.ok === false && res.text ? res.text : summarize(e.tool, e.input)}</span>
     </div>
@@ -351,47 +404,50 @@ function PropertiesPanel() {
   const { ui, state, version } = useApp();
   const montage = useVersionMontage(version, state?.montage);
   const sel = ui.selection;
-  if (!sel || !state) return <div className="empty">Sélectionne un clip dans la timeline ou un asset.</div>;
+  if (!sel || !state)
+    return (
+      <div className="empty" style={{ paddingTop: 12 }}>
+        Sélectionne un plan, un clip de la timeline ou un rush.
+      </div>
+    );
   const fps = montage?.settings.fps ?? 30;
 
   if (sel.kind === "asset") {
     const a = state.project.assets.find((x) => x.id === sel.id);
-    if (!a) return <div className="empty">Asset introuvable.</div>;
+    if (!a) return <div className="empty" style={{ paddingTop: 12 }}>Rush introuvable.</div>;
     const thumb = assetThumb(a);
     const p = a.provenance;
+    const sub = [a.kind === "video" ? "vidéo" : a.kind === "audio" ? "son" : "image", a.width && `${a.width}×${a.height}`, a.fps && `${a.fps} i/s`, a.duration !== undefined && `${a.duration.toFixed(1)} s`]
+      .filter(Boolean)
+      .join(" · ");
     return (
       <div className="rp-body scroll">
-        <div className="props">
-          {a.kind === "video" && a.status === "ready" ? (
-            <video src={assetMedia(a)} poster={thumb} controls muted style={{ width: "100%", borderRadius: 10, marginBottom: 10, maxHeight: 260, background: "#191419" }} />
-          ) : a.kind === "audio" ? (
-            <audio src={assetMedia(a)} controls style={{ width: "100%", marginBottom: 10 }} />
-          ) : thumb ? (
-            <img src={thumb} alt="" style={{ width: "100%", borderRadius: 10, marginBottom: 10, maxHeight: 260, objectFit: "contain", background: "var(--paper-2)" }} />
-          ) : null}
-          <h4>{a.name}</h4>
-          <dl className="kv">
-            <dt>Id</dt>
-            <dd className="mono">{a.id}</dd>
-            <dt>Type</dt>
-            <dd>{a.kind}</dd>
-            {a.duration !== undefined && (
-              <>
-                <dt>Durée</dt>
-                <dd>{a.duration.toFixed(2)} s</dd>
-              </>
-            )}
-            {a.width && (
-              <>
-                <dt>Taille</dt>
-                <dd>
-                  {a.width}×{a.height}
-                  {a.fps ? ` · ${a.fps} i/s` : ""}
-                </dd>
-              </>
-            )}
+        <div className="sec">
+          <div className="sh">
+            <span className="ell" style={claudeMade(a) ? { color: "var(--c-600)" } : undefined}>
+              {a.name}
+            </span>
+          </div>
+          <div className="pad c2" style={{ marginTop: -8 }}>
+            {sub}
+          </div>
+          {(a.kind === "audio" || (a.kind === "video" && a.status === "ready") || thumb) && (
+            <div className="pad" style={{ marginTop: 12 }}>
+              {a.kind === "video" && a.status === "ready" ? (
+                <video className="preview" src={assetMedia(a)} poster={thumb} controls muted />
+              ) : a.kind === "audio" ? (
+                <audio src={assetMedia(a)} controls style={{ width: "100%" }} />
+              ) : (
+                <img className="preview" src={thumb} alt="" />
+              )}
+            </div>
+          )}
+        </div>
+        <div className="sec last">
+          <div className="sh">Infos</div>
+          <dl className="kv pad" style={{ margin: 0 }}>
             <dt>État</dt>
-            <dd>{a.status === "error" ? <span style={{ color: "var(--apple)" }}>{a.error}</span> : a.status}</dd>
+            <dd>{a.status === "error" ? <span style={{ color: "var(--red-600)" }}>{a.error}</span> : a.status === "ingesting" ? "import en cours" : "prêt"}</dd>
             <dt>Provenance</dt>
             <dd>{p.type === "import" ? `import · ${p.path}` : p.type === "capture" ? `capture ${p.source} · ${p.target}` : `${p.provider} · ${p.model}`}</dd>
             {p.type === "generated" && (
@@ -408,6 +464,8 @@ function PropertiesPanel() {
             )}
             <dt>Dérivés</dt>
             <dd>{Object.keys(a.derived).join(", ") || "—"}</dd>
+            <dt>Id</dt>
+            <dd>{a.id}</dd>
           </dl>
         </div>
       </div>
@@ -415,34 +473,46 @@ function PropertiesPanel() {
   }
 
   const hit = montage ? findClip(montage, sel.id) : undefined;
-  if (!hit) return <div className="empty">Clip introuvable dans cette version.</div>;
+  if (!hit) return <div className="empty" style={{ paddingTop: 12 }}>Clip introuvable dans cette version.</div>;
   const c = hit.clip;
   const asset = c.type === "media" ? state.project.assets.find((a) => a.id === c.assetId) : undefined;
+  const Icon = clipIcon(c, hit.track, asset);
+  const tone = c.type === "graphic" ? "var(--p-600)" : claudeMade(asset) ? "var(--c-600)" : undefined;
   const { id: _id, type: _t, start: _s, duration: _d, ...rest } = c as Record<string, unknown>;
   return (
     <div className="rp-body scroll">
-      <div className="props">
-        <h4>{c.type === "graphic" ? c.component : c.type === "captions" ? "Sous-titres" : (asset?.name ?? "Média")}</h4>
-        <dl className="kv">
-          <dt>Id</dt>
-          <dd className="mono">{c.id}</dd>
-          <dt>Piste</dt>
-          <dd>{hit.track.name}</dd>
+      <div className="sec">
+        <div className="sh">
+          <Icon size={16} style={tone ? { color: tone } : undefined} />
+          <span className="ell" style={tone ? { color: tone } : undefined}>
+            {clipLabel(c, asset)}
+          </span>
+        </div>
+        <div className="pad c2" style={{ marginTop: -8 }}>
+          Piste {hit.track.name} · {c.id}
+        </div>
+      </div>
+      <div className="sec">
+        <div className="sh">
+          Temps
+          <span className="r">
+            <button className="btn ghost" onClick={() => playhead.seek(c.start)}>
+              Aller au début
+            </button>
+          </span>
+        </div>
+        <dl className="kv pad" style={{ margin: 0 }}>
           <dt>Début</dt>
-          <dd>
-            {timecode(c.start, fps)} <span className="muted">· f{c.start}</span>
-          </dd>
+          <dd title={`frame ${c.start}`}>{timecode(c.start, fps)}</dd>
           <dt>Fin</dt>
-          <dd>
-            {timecode(c.start + c.duration, fps)} <span className="muted">· f{c.start + c.duration}</span>
-          </dd>
+          <dd title={`frame ${c.start + c.duration}`}>{timecode(c.start + c.duration, fps)}</dd>
           <dt>Durée</dt>
           <dd>{(c.duration / fps).toFixed(2)} s</dd>
           {c.type === "media" && (
             <>
               <dt>Source</dt>
               <dd>
-                {asset?.name ?? c.assetId} @ {c.srcIn.toFixed(2)} s
+                {asset?.name ?? c.assetId} à {c.srcIn.toFixed(2)} s
               </dd>
             </>
           )}
@@ -453,8 +523,12 @@ function PropertiesPanel() {
             </>
           )}
         </dl>
-        <pre>{JSON.stringify(c.type === "captions" ? { ...rest, words: `${c.words.length} mots` } : rest, null, 2)}</pre>
-        <button className="btn sm" onClick={() => playhead.seek(c.start)}>Aller au début du clip</button>
+      </div>
+      <div className="sec last">
+        <div className="sh">Réglages</div>
+        <div className="pad">
+          <pre className="code">{JSON.stringify(c.type === "captions" ? { ...rest, words: `${c.words.length} mots` } : rest, null, 2)}</pre>
+        </div>
       </div>
     </div>
   );

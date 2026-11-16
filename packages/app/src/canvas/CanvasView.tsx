@@ -1,5 +1,5 @@
 import type { Asset, CanvasDoc, Comment, ModelInfo, Workflow } from "@cezane/core";
-import { BookMarked, MessageCirclePlus, Play, Save, Sparkles } from "lucide-react";
+import { ArrowUp, BookMarked, MessageCircle, Play, Save, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AssetRecordType,
@@ -13,6 +13,7 @@ import {
   useValue,
 } from "tldraw";
 import { api, assetMedia, get, isMock, post, uploadFiles } from "../api";
+import { commentAvatar } from "../montage/clips";
 import { useApp } from "../store";
 import { ASSET_MIME } from "../ui/AssetsPanel";
 import { attempt, toast } from "../ui/toast";
@@ -107,7 +108,7 @@ export function CanvasView() {
     if (a) placeAsset(editor, a, editor.screenToPage({ x: e.clientX, y: e.clientY }));
   };
 
-  if (!doc) return <div className="canvas-wrap panel" />;
+  if (!doc) return <div className="cv canvas-wrap" />;
 
   // A canvas only touched by the server (Claude's `canvas` tool) has records but no tldraw schema:
   // start from an empty editor and insert its shapes instead of loading it as a snapshot.
@@ -117,7 +118,7 @@ export function CanvasView() {
 
   return (
     <div
-      className="canvas-wrap"
+      className="cv canvas-wrap"
       ref={wrap}
       onDragOverCapture={(e) => {
         if (e.dataTransfer.types.includes(ASSET_MIME)) e.preventDefault();
@@ -209,44 +210,44 @@ function CanvasTop({ editor, commenting, setCommenting, libOpen, setLibOpen }: {
 
   return (
     <>
-      <div className="canvas-top">
+      <div className="cbar">
         {selectedCards.length > 0 && (
-          <button className="btn sm" onClick={() => runInOrder(editor, selectedCards)}>
-            <Play size={13} /> Lancer ({selectedCards.length})
+          <button className="btn ghost" onClick={() => runInOrder(editor, selectedCards)}>
+            <Play size={12} /> Lancer ({selectedCards.length})
           </button>
         )}
         {stale.length > 0 && (
-          <button className="btn sm" style={{ borderColor: "var(--ochre)" }} onClick={() => runInOrder(editor, stale)}>
-            <Sparkles size={13} /> Tout relancer ({stale.length})
+          <button className="btn ghost" onClick={() => runInOrder(editor, stale)}>
+            <Sparkles size={12} /> Tout relancer ({stale.length})
           </button>
         )}
         {selected.length > 1 && (
-          <button className="btn sm" onClick={saveWorkflow}>
-            <Save size={13} /> Enregistrer comme workflow
+          <button className="btn ghost" onClick={saveWorkflow}>
+            <Save size={12} /> Enregistrer comme workflow
           </button>
         )}
         <button
-          className={`btn sm ${libOpen ? "primary" : ""}`}
+          className={`btn ${libOpen ? "on" : "ghost"}`}
           onClick={() => {
             if (!libOpen) get<Workflow[]>("/api/workflows").then(setWorkflows).catch(() => setWorkflows([]));
             setLibOpen(!libOpen);
           }}
         >
-          <BookMarked size={13} /> Bibliothèque
+          <BookMarked size={12} /> Bibliothèque
         </button>
-        <button className={`btn sm ${commenting ? "accent" : ""}`} onClick={() => setCommenting(!commenting)} title="Commenter un élément : une demande pour Claude">
-          <MessageCirclePlus size={13} /> Commenter
+        <button className={`btn ${commenting ? "pri" : "ghost"}`} onClick={() => setCommenting(!commenting)} title="Commenter un élément : une demande pour Claude">
+          <MessageCircle size={12} /> Commenter
         </button>
       </div>
       {libOpen && (
-        <div className="menu lib scroll">
+        <div className="pop menu lib scroll">
           {!workflows.length && <div className="empty">Aucun workflow. Sélectionne des cartes reliées puis « Enregistrer comme workflow ».</div>}
           {workflows.map((w) => (
-            <button key={w.id} className="menu-item" onClick={() => insert(w as Workflow & Partial<TLContent>)}>
-              <BookMarked size={15} />
+            <button key={w.id} className="menu-item tall" onClick={() => insert(w as Workflow & Partial<TLContent>)}>
+              <BookMarked size={16} />
               <div>
-                <div style={{ fontWeight: 600 }}>{w.name}</div>
-                <small>{(w.shapes as TLShape[]).filter((s) => s.type === "gen-card").length} carte(s) · {new Date(w.createdAt).toLocaleDateString("fr-FR")}</small>
+                <div className="s">{w.name}</div>
+                <div className="c2">{(w.shapes as TLShape[]).filter((s) => s.type === "gen-card").length} carte(s) · {new Date(w.createdAt).toLocaleDateString("fr-FR")}</div>
               </div>
             </button>
           ))}
@@ -293,15 +294,15 @@ function PromptBar({ editor, models }: { editor: Editor; models: ModelInfo[] }) 
     <div className="promptbar" onPointerDown={(e) => e.stopPropagation()}>
       {usable.length > 0 && (
         <div className="ctx">
-          <Sparkles size={12} />
+          <Sparkles size={12} style={{ color: "currentColor" }} />
           Entrées :{assetIds.length ? ` ${assetIds.length} média${assetIds.length > 1 ? "s" : ""}` : ""}
           {texts.length ? ` ${texts.length} texte${texts.length > 1 ? "s" : ""}` : ""}
           {!assetIds.length && !texts.length ? " aucune (sélection sans contenu)" : ""}
         </div>
       )}
-      <div className="row">
+      <div className="row2">
         <input
-          className="field"
+          className="prompt"
           placeholder={usable.length ? "Décris la modification ou le résultat…" : "Décris l'image, la vidéo ou le texte à générer…"}
           value={text}
           onChange={(e) => setText(e.target.value)}
@@ -310,14 +311,14 @@ function PromptBar({ editor, models }: { editor: Editor; models: ModelInfo[] }) 
             if (e.key === "Enter") submit();
           }}
         />
-        <select value={kind} onChange={(e) => setKind(e.target.value as GenKind)}>
+        <select className="field" value={kind} onChange={(e) => setKind(e.target.value as GenKind)}>
           {kinds.map((k) => (
             <option key={k.id} value={k.id}>
               {k.label}
             </option>
           ))}
         </select>
-        <select value={model ? `${model.provider}/${model.id}` : ""} onChange={(e) => setModelKey(e.target.value)} style={{ maxWidth: 270 }}>
+        <select className="field" value={model ? `${model.provider}/${model.id}` : ""} onChange={(e) => setModelKey(e.target.value)} style={{ maxWidth: 200 }}>
           {!forKind.length && <option value="">Aucun modèle</option>}
           {forKind.map((m) => (
             <option key={`${m.provider}/${m.id}`} value={`${m.provider}/${m.id}`} disabled={!m.available}>
@@ -326,8 +327,8 @@ function PromptBar({ editor, models }: { editor: Editor; models: ModelInfo[] }) 
             </option>
           ))}
         </select>
-        <button className="btn accent" disabled={!text.trim() || !model?.available} onClick={submit}>
-          Générer ⏎
+        <button className="btn pri" disabled={!text.trim() || !model?.available} onClick={submit}>
+          Générer
         </button>
       </div>
     </div>
@@ -369,28 +370,27 @@ function CanvasComments({ editor, canvasId, commenting, setCommenting, wrap }: {
             const page = editor.screenToPage({ x: e.clientX, y: e.clientY });
             const shape = editor.getShapeAtPoint(page, { hitInside: true, margin: 4 });
             const r = wrap.current!.getBoundingClientRect();
-            setDraft({ page: { x: page.x, y: page.y }, shapeId: shape?.id, at: { x: Math.min(r.width - 290, e.clientX - r.left + 12), y: Math.min(r.height - 180, e.clientY - r.top) } });
+            setDraft({ page: { x: page.x, y: page.y }, shapeId: shape?.id, at: { x: Math.min(r.width - 276, e.clientX - r.left + 12), y: Math.min(r.height - 160, e.clientY - r.top) } });
           }}
         />
       )}
       {comments.map((c) => {
         if (!c.anchor.pin) return null;
         const p = toLocal(c.anchor.pin);
-        const cls = c.status === "in_progress" ? "sent" : c.status;
+        const av = commentAvatar(c);
         return (
-          <div key={c.id} className={`cpin ${cls}`} style={{ left: p.x, top: p.y, outline: ui.commentId === c.id ? "2px solid var(--ink)" : undefined }} onClick={() => setUi({ commentId: c.id, panel: "comments" })} title={c.thread[0]?.text}>
-            <span>{c.n}</span>
+          <div key={c.id} className={`pin cpin ${ui.commentId === c.id ? "on" : ""}`} style={{ left: p.x, top: p.y }} onClick={() => setUi({ commentId: c.id, panel: "comments" })} title={c.thread[0]?.text}>
+            <span className={`av ${av.cls}`}>{av.letter}</span>
           </div>
         );
       })}
       {draft && (
-        <div className="composer" style={{ left: draft.at.x, top: draft.at.y, zIndex: 400 }} onPointerDown={(e) => e.stopPropagation()}>
-          <div className="where">
-            <span className="chip apple">Nouveau</span>
-            {draft.shapeId ? `Sur ${editor.getShape(draft.shapeId as TLShapeId)?.type ?? "l'élément"}` : "Sur le canvas"}
-          </div>
+        <div className="pop composer" style={{ left: draft.at.x, top: draft.at.y, zIndex: 400 }} onPointerDown={(e) => e.stopPropagation()}>
+          <div className="body">
+            <span className="av me">P</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="c2">{draft.shapeId ? `Sur ${editor.getShape(draft.shapeId as TLShapeId)?.type ?? "l'élément"}` : "Sur le canvas"}</div>
           <textarea
-            className="field"
             rows={3}
             autoFocus
             placeholder="Une demande pour Claude (ex. « rends sa veste rouge, même visage »)"
@@ -405,12 +405,15 @@ function CanvasComments({ editor, canvasId, commenting, setCommenting, wrap }: {
               if (e.key === "Escape") setDraft(undefined);
             }}
           />
-          <div className="row">
-            <button className="btn sm ghost" onClick={() => setDraft(undefined)}>
+            </div>
+          </div>
+          <div className="foot">
+            <div className="sp" />
+            <button className="btn ghost" onClick={() => setDraft(undefined)}>
               Annuler
             </button>
-            <button className="btn sm accent" disabled={!text.trim()} onClick={submit}>
-              Ajouter
+            <button className="send" disabled={!text.trim()} onClick={submit} title="Ajouter">
+              <ArrowUp size={14} />
             </button>
           </div>
         </div>

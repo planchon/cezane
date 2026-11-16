@@ -165,8 +165,9 @@ export function startHttp(app: Cezane, port: number) {
       "POST",
       /^\/api\/import$/,
       async (req) => {
-        const b = (await req.json()) as { paths: string[] };
-        return json(await app.importFiles(b.paths));
+        const b = (await req.json()) as { paths: string[]; capture?: "web" | "ios"; target?: string };
+        const provenance = b.capture ? { type: "capture" as const, source: b.capture, target: b.target ?? b.capture } : undefined;
+        return json(await app.importFiles(b.paths, provenance));
       },
     ],
     [
@@ -245,9 +246,10 @@ export function startHttp(app: Cezane, port: number) {
       "POST",
       /^\/api\/workflows$/,
       async (req) => {
-        const b = (await req.json()) as { name: string; shapes: unknown[]; bindings: unknown[] };
+        // Stored as sent by the UI (shapes, bindings, assets, root ids, tldraw schema).
+        const b = (await req.json()) as Record<string, unknown> & { name: string };
         mkdirSync(WORKFLOWS_DIR, { recursive: true });
-        const wf = { id: newId("wf"), name: b.name, createdAt: new Date().toISOString(), shapes: b.shapes, bindings: b.bindings ?? [] };
+        const wf = { ...b, id: newId("wf"), createdAt: new Date().toISOString() };
         writeFileSync(join(WORKFLOWS_DIR, `${wf.id}.json`), JSON.stringify(wf, null, 2));
         return json(wf);
       },

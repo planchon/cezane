@@ -1,0 +1,699 @@
+{
+  "id": "m_4ujdo1",
+  "name": "Montage",
+  "settings": {
+    "width": 1080,
+    "height": 1920,
+    "fps": 30,
+    "background": "#000000"
+  },
+  "tracks": [
+    {
+      "id": "t_main",
+      "kind": "video",
+      "name": "Main",
+      "role": "main",
+      "muted": false,
+      "hidden": false,
+      "clips": [
+        {
+          "id": "c_6nxqvc",
+          "start": 633,
+          "duration": 102,
+          "type": "media",
+          "assetId": "a_c74oid",
+          "srcIn": 0,
+          "speed": 1,
+          "volume": 1,
+          "muted": false,
+          "fadeIn": 0,
+          "fadeOut": 0,
+          "fit": "cover",
+          "focus": {
+            "x": 0.5,
+            "y": 0.5
+          },
+          "zoom": {
+            "from": 1.08,
+            "to": 1,
+            "x": 0.5,
+            "y": 0.5,
+            "easing": "ease"
+          },
+          "cutout": false,
+          "opacity": 1
+        }
+      ]
+    },
+    {
+      "id": "t_broll",
+      "kind": "overlay",
+      "name": "B-roll",
+      "role": "broll",
+      "muted": false,
+      "hidden": false,
+      "clips": [
+        {
+          "id": "c_5tu8jz",
+          "start": 0,
+          "duration": 105,
+          "type": "graphic",
+          "component": "ScreenshotShowcase",
+          "props": {
+            "assetId": "a_9112yw",
+            "device": "iphone",
+            "background": "cezanne"
+          }
+        },
+        {
+          "id": "c_qr46qk",
+          "start": 105,
+          "duration": 102,
+          "type": "graphic",
+          "component": "ScreenshotShowcase",
+          "props": {
+            "assetId": "a_9112yw",
+            "device": "iphone",
+            "background": "provence",
+            "zoom": {
+              "x": 0.08,
+              "y": 0,
+              "w": 0.84,
+              "h": 0.4
+            },
+            "zoomAt": 6
+          }
+        },
+        {
+          "id": "c_d7dzmc",
+          "start": 207,
+          "duration": 108,
+          "type": "graphic",
+          "component": "ScreenshotShowcase",
+          "props": {
+            "assetId": "a_9112yw",
+            "device": "iphone",
+            "background": "ochre",
+            "highlight": {
+              "x": 0.02,
+              "y": 0.61,
+              "w": 0.96,
+              "h": 0.25
+            },
+            "highlightAt": 10
+          }
+        },
+        {
+          "id": "c_6pei72",
+          "start": 315,
+          "duration": 108,
+          "type": "graphic",
+          "component": "ScreenshotShowcase",
+          "props": {
+            "assetId": "a_07bjfi",
+            "device": "iphone",
+            "background": "sage",
+            "zoom": {
+              "x": 0.02,
+              "y": 0.08,
+              "w": 0.96,
+              "h": 0.34
+            },
+            "zoomAt": 14
+          }
+        },
+        {
+          "id": "c_s4wxkk",
+          "start": 423,
+          "duration": 108,
+          "type": "graphic",
+          "component": "ScreenshotShowcase",
+          "props": {
+            "assetId": "a_nfjr5i",
+            "device": "iphone",
+            "background": "prussian"
+          }
+        },
+        {
+          "id": "c_50mqvx",
+          "start": 531,
+          "duration": 102,
+          "type": "graphic",
+          "component": "ScreenshotShowcase",
+          "props": {
+            "assetId": "a_p556ud",
+            "device": "iphone",
+            "background": "terracotta",
+            "highlight": {
+              "x": 0.02,
+              "y": 0.5,
+              "w": 0.96,
+              "h": 0.29
+            },
+            "highlightAt": 10
+          }
+        }
+      ]
+    },
+    {
+      "id": "t_gfx",
+      "kind": "overlay",
+      "name": "Graphics",
+      "role": "graphics",
+      "muted": false,
+      "hidden": false,
+      "clips": [
+        {
+          "id": "c_bok72a",
+          "start": 0,
+          "duration": 735,
+          "type": "graphic",
+          "component": "ProgressBar",
+          "props": {
+            "position": "top",
+            "color": "#FF9500",
+            "height": 10
+          }
+        },
+        {
+          "id": "c_65m7ym",
+          "start": 18,
+          "duration": 81,
+          "type": "graphic",
+          "component": "Emoji",
+          "props": {
+            "emoji": "😩",
+            "x": 0.83,
+            "y": 0.16,
+            "size": 190
+          }
+        },
+        {
+          "id": "c_tp2wjb",
+          "start": 101,
+          "duration": 10,
+          "type": "graphic",
+          "component": "Whip",
+          "props": {
+            "direction": "left"
+          }
+        },
+        {
+          "id": "c_704fos",
+          "start": 126,
+          "duration": 75,
+          "type": "graphic",
+          "component": "Emoji",
+          "props": {
+            "emoji": "🐶",
+            "x": 0.17,
+            "y": 0.15,
+            "size": 180
+          }
+        },
+        {
+          "id": "c_cwwyiz",
+          "start": 203,
+          "duration": 10,
+          "type": "graphic",
+          "component": "Whip",
+          "props": {
+            "direction": "up"
+          }
+        },
+        {
+          "id": "c_2r70vd",
+          "start": 222,
+          "duration": 87,
+          "type": "graphic",
+          "component": "Callout",
+          "props": {
+            "label": "Ta séance du jour",
+            "x": 0.62,
+            "y": 0.6,
+            "labelX": 0.5,
+            "labelY": 0.12,
+            "color": "#FF9500"
+          }
+        },
+        {
+          "id": "c_apunyf",
+          "start": 311,
+          "duration": 10,
+          "type": "graphic",
+          "component": "Whip",
+          "props": {
+            "direction": "left"
+          }
+        },
+        {
+          "id": "c_79k2ln",
+          "start": 419,
+          "duration": 10,
+          "type": "graphic",
+          "component": "Whip",
+          "props": {
+            "direction": "right"
+          }
+        },
+        {
+          "id": "c_49qmn9",
+          "start": 527,
+          "duration": 10,
+          "type": "graphic",
+          "component": "Whip",
+          "props": {
+            "direction": "left"
+          }
+        },
+        {
+          "id": "c_24zzn0",
+          "start": 540,
+          "duration": 87,
+          "type": "graphic",
+          "component": "Counter",
+          "props": {
+            "from": 0,
+            "to": 12,
+            "suffix": " jours",
+            "label": "de série 🔥",
+            "position": "top",
+            "accent": "#FF9500"
+          }
+        },
+        {
+          "id": "c_wlsb11",
+          "start": 630,
+          "duration": 8,
+          "type": "graphic",
+          "component": "Flash",
+          "props": {
+            "color": "#FFF4E0"
+          }
+        },
+        {
+          "id": "c_mwcs5p",
+          "start": 639,
+          "duration": 96,
+          "type": "graphic",
+          "component": "Title",
+          "props": {
+            "kicker": "TON COACH D'OBJECTIFS",
+            "text": "Dax",
+            "subtitle": "Commence aujourd'hui.",
+            "style": "elegant",
+            "accent": "#FF9500",
+            "size": 170
+          }
+        }
+      ]
+    },
+    {
+      "id": "t_caps",
+      "kind": "overlay",
+      "name": "Captions",
+      "role": "captions",
+      "muted": false,
+      "hidden": false,
+      "clips": [
+        {
+          "id": "c_ospohm",
+          "start": 0,
+          "duration": 630,
+          "type": "captions",
+          "style": "box",
+          "position": "bottom",
+          "color": "#FF9500",
+          "words": [
+            {
+              "text": "Tu",
+              "start": 9,
+              "end": 14,
+              "br": true
+            },
+            {
+              "text": "te",
+              "start": 14,
+              "end": 19,
+              "br": false
+            },
+            {
+              "text": "fixes",
+              "start": 19,
+              "end": 27,
+              "br": false
+            },
+            {
+              "text": "des",
+              "start": 27,
+              "end": 33,
+              "br": false
+            },
+            {
+              "text": "objectifs…",
+              "start": 33,
+              "end": 46,
+              "br": true
+            },
+            {
+              "text": "et",
+              "start": 46,
+              "end": 51,
+              "br": false
+            },
+            {
+              "text": "tu",
+              "start": 51,
+              "end": 56,
+              "br": false
+            },
+            {
+              "text": "lâches",
+              "start": 56,
+              "end": 65,
+              "br": false
+            },
+            {
+              "text": "au",
+              "start": 65,
+              "end": 70,
+              "br": true
+            },
+            {
+              "text": "bout",
+              "start": 70,
+              "end": 77,
+              "br": false
+            },
+            {
+              "text": "d'une",
+              "start": 77,
+              "end": 85,
+              "br": false
+            },
+            {
+              "text": "semaine",
+              "start": 85,
+              "end": 95,
+              "br": false
+            },
+            {
+              "text": "?",
+              "start": 95,
+              "end": 99,
+              "br": true
+            },
+            {
+              "text": "Voici",
+              "start": 105,
+              "end": 114,
+              "br": true
+            },
+            {
+              "text": "Dax,",
+              "start": 114,
+              "end": 123,
+              "br": false
+            },
+            {
+              "text": "ton",
+              "start": 123,
+              "end": 130,
+              "br": false
+            },
+            {
+              "text": "coach",
+              "start": 130,
+              "end": 139,
+              "br": false
+            },
+            {
+              "text": "pour",
+              "start": 139,
+              "end": 147,
+              "br": true
+            },
+            {
+              "text": "les",
+              "start": 147,
+              "end": 155,
+              "br": false
+            },
+            {
+              "text": "objectifs",
+              "start": 155,
+              "end": 168,
+              "br": false
+            },
+            {
+              "text": "qui",
+              "start": 168,
+              "end": 175,
+              "br": false
+            },
+            {
+              "text": "comptent",
+              "start": 175,
+              "end": 188,
+              "br": true
+            },
+            {
+              "text": "vraiment.",
+              "start": 188,
+              "end": 201,
+              "br": false
+            },
+            {
+              "text": "Chaque",
+              "start": 207,
+              "end": 218,
+              "br": true
+            },
+            {
+              "text": "jour,",
+              "start": 218,
+              "end": 228,
+              "br": false
+            },
+            {
+              "text": "il",
+              "start": 228,
+              "end": 235,
+              "br": false
+            },
+            {
+              "text": "te",
+              "start": 235,
+              "end": 242,
+              "br": false
+            },
+            {
+              "text": "dit",
+              "start": 242,
+              "end": 250,
+              "br": true
+            },
+            {
+              "text": "quoi",
+              "start": 250,
+              "end": 259,
+              "br": false
+            },
+            {
+              "text": "faire",
+              "start": 259,
+              "end": 269,
+              "br": false
+            },
+            {
+              "text": ":",
+              "start": 269,
+              "end": 274,
+              "br": false
+            },
+            {
+              "text": "séance,",
+              "start": 274,
+              "end": 287,
+              "br": true
+            },
+            {
+              "text": "eau,",
+              "start": 287,
+              "end": 296,
+              "br": false
+            },
+            {
+              "text": "lecture.",
+              "start": 296,
+              "end": 309,
+              "br": false
+            },
+            {
+              "text": "Tes",
+              "start": 315,
+              "end": 325,
+              "br": true
+            },
+            {
+              "text": "objectifs",
+              "start": 325,
+              "end": 343,
+              "br": false
+            },
+            {
+              "text": "deviennent",
+              "start": 343,
+              "end": 363,
+              "br": false
+            },
+            {
+              "text": "des",
+              "start": 363,
+              "end": 372,
+              "br": false
+            },
+            {
+              "text": "programmes",
+              "start": 372,
+              "end": 392,
+              "br": true
+            },
+            {
+              "text": "sur",
+              "start": 392,
+              "end": 402,
+              "br": false
+            },
+            {
+              "text": "mesure.",
+              "start": 402,
+              "end": 417,
+              "br": false
+            },
+            {
+              "text": "Ta",
+              "start": 423,
+              "end": 434,
+              "br": true
+            },
+            {
+              "text": "roadmap",
+              "start": 434,
+              "end": 455,
+              "br": false
+            },
+            {
+              "text": "avance",
+              "start": 455,
+              "end": 473,
+              "br": false
+            },
+            {
+              "text": "jour",
+              "start": 473,
+              "end": 488,
+              "br": true
+            },
+            {
+              "text": "après",
+              "start": 488,
+              "end": 505,
+              "br": false
+            },
+            {
+              "text": "jour.",
+              "start": 505,
+              "end": 522,
+              "br": false
+            },
+            {
+              "text": "Séries,",
+              "start": 531,
+              "end": 546,
+              "br": true
+            },
+            {
+              "text": "trophées,",
+              "start": 546,
+              "end": 563,
+              "br": false
+            },
+            {
+              "text": "badges",
+              "start": 563,
+              "end": 576,
+              "br": false
+            },
+            {
+              "text": ":",
+              "start": 576,
+              "end": 583,
+              "br": false
+            },
+            {
+              "text": "tu",
+              "start": 583,
+              "end": 591,
+              "br": true
+            },
+            {
+              "text": "vois",
+              "start": 591,
+              "end": 602,
+              "br": false
+            },
+            {
+              "text": "tes",
+              "start": 602,
+              "end": 611,
+              "br": false
+            },
+            {
+              "text": "progrès.",
+              "start": 611,
+              "end": 627,
+              "br": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "t_music",
+      "kind": "audio",
+      "name": "Music",
+      "role": "music",
+      "muted": false,
+      "hidden": false,
+      "clips": [
+        {
+          "id": "c_7dqte0",
+          "start": 0,
+          "duration": 735,
+          "type": "media",
+          "assetId": "a_14urln",
+          "srcIn": 0,
+          "speed": 1,
+          "volume": 0.9,
+          "muted": false,
+          "fadeIn": 8,
+          "fadeOut": 40,
+          "fit": "cover",
+          "focus": {
+            "x": 0.5,
+            "y": 0.5
+          },
+          "cutout": false,
+          "opacity": 1
+        }
+      ]
+    }
+  ],
+  "audio": {
+    "targetLufs": -14,
+    "voice": "none",
+    "duck": true,
+    "duckDb": -12
+  }
+}

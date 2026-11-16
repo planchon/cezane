@@ -1,0 +1,252 @@
+{
+  "name": "Rewind — explication",
+  "createdAt": "2026-11-16T00:17:58.665Z",
+  "settings": {
+    "claudeModel": "sonnet",
+    "budgetEur": 5,
+    "spentEur": 0
+  },
+  "assets": [
+    {
+      "id": "a_nepkcb",
+      "kind": "image",
+      "name": "capture-c_676rrb",
+      "hash": "84ef883927761b5ddc62",
+      "file": "media/84ef883927761b5ddc62.png",
+      "width": 2880,
+      "height": 1800,
+      "fps": 25,
+      "hasAudio": false,
+      "provenance": {
+        "type": "capture",
+        "source": "web",
+        "target": "https://rewind.codes"
+      },
+      "derived": {
+        "normalized": "image.png",
+        "poster": "poster.jpg"
+      },
+      "status": "ready",
+      "tags": [],
+      "createdAt": "2026-11-16T00:18:05.333Z"
+    },
+    {
+      "id": "a_aamouo",
+      "kind": "image",
+      "name": "capture-c_0cf5g9",
+      "hash": "5e0cc868eccde266d13d",
+      "file": "media/5e0cc868eccde266d13d.png",
+      "width": 2880,
+      "height": 1800,
+      "fps": 25,
+      "hasAudio": false,
+      "provenance": {
+        "type": "capture",
+        "source": "web",
+        "target": "https://rewind.codes"
+      },
+      "derived": {
+        "normalized": "image.png",
+        "poster": "poster.jpg"
+      },
+      "status": "ready",
+      "tags": [],
+      "createdAt": "2026-11-16T00:18:11.074Z"
+    },
+    {
+      "id": "a_e9jd72",
+      "kind": "image",
+      "name": "capture-c_gtu02h",
+      "hash": "b6766577ca1c58450074",
+      "file": "media/b6766577ca1c58450074.png",
+      "width": 2880,
+      "height": 1800,
+      "fps": 25,
+      "hasAudio": false,
+      "provenance": {
+        "type": "capture",
+        "source": "web",
+        "target": "https://docs.rewind.codes"
+      },
+      "derived": {
+        "normalized": "image.png",
+        "poster": "poster.jpg"
+      },
+      "status": "ready",
+      "tags": [],
+      "createdAt": "2026-11-16T00:18:15.841Z"
+    },
+    {
+      "id": "a_c74bk2",
+      "kind": "image",
+      "name": "capture-c_gmakq0",
+      "hash": "123569320ffeb77af0dd",
+      "file": "media/123569320ffeb77af0dd.png",
+      "width": 2880,
+      "height": 1800,
+      "fps": 25,
+      "hasAudio": false,
+      "provenance": {
+        "type": "capture",
+        "source": "web",
+        "target": "https://app.rewind.codes"
+      },
+      "derived": {
+        "normalized": "image.png",
+        "poster": "poster.jpg"
+      },
+      "status": "ready",
+      "tags": [],
+      "createdAt": "2026-11-16T00:18:18.950Z"
+    },
+    {
+      "id": "a_ywq83f",
+      "kind": "video",
+      "name": "capture-c_cfkpkk",
+      "hash": "406b262cae643308a83e",
+      "file": "media/406b262cae643308a83e.webm",
+      "width": 1080,
+      "height": 1350,
+      "fps": 30,
+      "hasAudio": false,
+      "provenance": {
+        "type": "capture",
+        "source": "web",
+        "target": "https://rewind.codes"
+      },
+      "derived": {
+        "normalized": "normalized.mp4",
+        "thumbs": "thumbs.jpg",
+        "poster": "poster.jpg"
+      },
+      "status": "ready",
+      "tags": [],
+      "createdAt": "2026-11-16T00:19:02.025Z"
+    },
+    {
+      "id": "a_ta7m9j",
+      "kind": "image",
+      "name": "capture-c_c64y4r",
+      "hash": "0ee83a0765066b352f72",
+      "file": "media/0ee83a0765066b352f72.png",
+      "width": 2880,
+      "height": 1800,
+      "fps": 25,
+      "hasAudio": false,
+      "provenance": {
+        "type": "capture",
+        "source": "web",
+        "target": "https://docs.rewind.codes/how-it-works"
+      },
+      "derived": {
+        "normalized": "image.png",
+        "poster": "poster.jpg"
+      },
+      "status": "ready",
+      "tags": [],
+      "createdAt": "2026-11-16T00:19:06.527Z"
+    },
+    {
+      "id": "a_m8jqga",
+      "kind": "image",
+      "name": "capture-c_y7yhf3",
+      "hash": "89b9f63d9b1e09ec5919",
+      "file": "media/89b9f63d9b1e09ec5919.png",
+      "width": 2880,
+      "height": 1800,
+      "fps": 25,
+      "hasAudio": false,
+      "provenance": {
+        "type": "capture",
+        "source": "web",
+        "target": "https://docs.rewind.codes/journal-and-replay"
+      },
+      "derived": {
+        "normalized": "image.png",
+        "poster": "poster.jpg"
+      },
+      "status": "ready",
+      "tags": [],
+      "createdAt": "2026-11-16T00:19:09.302Z"
+    },
+    {
+      "id": "a_aq8xrr",
+      "kind": "image",
+      "name": "capture-c_w91kh3",
+      "hash": "fab60f2ab53caeec0e37",
+      "file": "media/fab60f2ab53caeec0e37.png",
+      "width": 2880,
+      "height": 1800,
+      "fps": 25,
+      "hasAudio": false,
+      "provenance": {
+        "type": "capture",
+        "source": "web",
+        "target": "https://rewind.codes"
+      },
+      "derived": {
+        "normalized": "image.png",
+        "poster": "poster.jpg"
+      },
+      "status": "ready",
+      "tags": [],
+      "createdAt": "2026-11-16T00:19:13.446Z"
+    },
+    {
+      "id": "a_ltth0z",
+      "kind": "image",
+      "name": "capture-c_r7mgq7",
+      "hash": "fac8b30fbe0873f351a7",
+      "file": "media/fac8b30fbe0873f351a7.png",
+      "width": 2880,
+      "height": 1800,
+      "fps": 25,
+      "hasAudio": false,
+      "provenance": {
+        "type": "capture",
+        "source": "web",
+        "target": "https://rewind.codes"
+      },
+      "derived": {
+        "normalized": "image.png",
+        "poster": "poster.jpg"
+      },
+      "status": "ready",
+      "tags": [],
+      "createdAt": "2026-11-16T00:19:19.396Z"
+    },
+    {
+      "id": "a_2wj5y6",
+      "kind": "audio",
+      "name": "trend-sinny-7vvch-time-back",
+      "hash": "2398d70ef0a65d027f4a",
+      "file": "media/2398d70ef0a65d027f4a.m4a",
+      "duration": 79.993,
+      "hasAudio": true,
+      "provenance": {
+        "type": "import",
+        "path": "/Users/paul/Cezane/test-media/music/trend-sinny-7vvch-time-back.m4a"
+      },
+      "derived": {
+        "audio": "audio.wav",
+        "analysis": "analysis.json",
+        "waveform": "waveform.json"
+      },
+      "status": "ready",
+      "tags": [],
+      "createdAt": "2026-11-16T00:20:27.931Z"
+    }
+  ],
+  "montages": [
+    {
+      "id": "m_dfii8t",
+      "name": "Montage"
+    }
+  ],
+  "canvases": [
+    {
+      "id": "cv_errw72",
+      "name": "Canvas"
+    }
+  ]
+}

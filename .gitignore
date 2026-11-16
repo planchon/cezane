@@ -7,3 +7,7 @@ out/
 /demo/media/
 /demo/.cezane/
 packages/app/dist-electron/
+
+# Demo projects: documents are versioned, media and caches are not
+demo/*/media/
+demo/*/.cezane/

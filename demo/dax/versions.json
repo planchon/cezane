@@ -1,0 +1,60 @@
+[
+  {
+    "id": "v1",
+    "n": 1,
+    "montageId": "m_4ujdo1",
+    "revision": 1,
+    "author": "user",
+    "summary": "Dax V1",
+    "status": "ready",
+    "progress": 1,
+    "montageFile": ".cezane/versions/v1.montage.json",
+    "durationFrames": 735,
+    "fps": 30,
+    "changed": [],
+    "comments": [],
+    "segmentKeys": [
+      "af25611e5346be983883",
+      "c5ee15c64fc17d93bcce",
+      "f1f6c6df69135adc7fd9",
+      "aecac54e1bafeb817ec9",
+      "5f0d35b7dfc7c6f9ee72"
+    ],
+    "createdAt": "2026-11-16T00:24:11.683Z",
+    "file": ".cezane/renders/v1.mp4",
+    "poster": ".cezane/renders/v1.jpg",
+    "renderSeconds": 23.5
+  },
+  {
+    "id": "v2",
+    "n": 2,
+    "montageId": "m_4ujdo1",
+    "revision": 2,
+    "author": "user",
+    "summary": "Dax V2: sous-titres en boîte, carte de fin peinte",
+    "status": "ready",
+    "progress": 1,
+    "montageFile": ".cezane/versions/v2.montage.json",
+    "durationFrames": 735,
+    "fps": 30,
+    "changed": [
+      {
+        "start": 0,
+        "end": 735
+      }
+    ],
+    "comments": [],
+    "segmentKeys": [
+      "8ded32fb26cc09881978",
+      "fcab7d49e25233086131",
+      "f2ed99bfbc4ef01cb727",
+      "cc081835e03d9533235b",
+      "48403cbbb46a903e2d37",
+      "b2fc8a265265fe296eae"
+    ],
+    "createdAt": "2026-11-16T00:24:59.671Z",
+    "file": ".cezane/renders/v2.mp4",
+    "poster": ".cezane/renders/v2.jpg",
+    "renderSeconds": 21.2
+  }
+]

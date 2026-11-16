@@ -1,0 +1,206 @@
+{
+  "name": "Dax — explication",
+  "createdAt": "2026-11-16T00:23:13.065Z",
+  "settings": {
+    "claudeModel": "sonnet",
+    "budgetEur": 5,
+    "spentEur": 0
+  },
+  "assets": [
+    {
+      "id": "a_9112yw",
+      "kind": "image",
+      "name": "01-today",
+      "hash": "40ca832fd948538e7159",
+      "file": "media/40ca832fd948538e7159.png",
+      "width": 1206,
+      "height": 2622,
+      "fps": 25,
+      "hasAudio": false,
+      "provenance": {
+        "type": "capture",
+        "source": "ios",
+        "target": "Dax (dev.p6n.dax.dev)"
+      },
+      "derived": {
+        "normalized": "image.png",
+        "poster": "poster.jpg"
+      },
+      "status": "ready",
+      "tags": [],
+      "createdAt": "2026-11-16T00:23:15.130Z"
+    },
+    {
+      "id": "a_07bjfi",
+      "kind": "image",
+      "name": "02-goals",
+      "hash": "faae62f7454214358f9b",
+      "file": "media/faae62f7454214358f9b.png",
+      "width": 1206,
+      "height": 2622,
+      "fps": 25,
+      "hasAudio": false,
+      "provenance": {
+        "type": "capture",
+        "source": "ios",
+        "target": "Dax (dev.p6n.dax.dev)"
+      },
+      "derived": {
+        "normalized": "image.png",
+        "poster": "poster.jpg"
+      },
+      "status": "ready",
+      "tags": [],
+      "createdAt": "2026-11-16T00:23:15.167Z"
+    },
+    {
+      "id": "a_f50y1a",
+      "kind": "image",
+      "name": "03-roadmap",
+      "hash": "c8d71630d78538491b2a",
+      "file": "media/c8d71630d78538491b2a.png",
+      "width": 1206,
+      "height": 2622,
+      "fps": 25,
+      "hasAudio": false,
+      "provenance": {
+        "type": "capture",
+        "source": "ios",
+        "target": "Dax (dev.p6n.dax.dev)"
+      },
+      "derived": {
+        "normalized": "image.png",
+        "poster": "poster.jpg"
+      },
+      "status": "ready",
+      "tags": [],
+      "createdAt": "2026-11-16T00:23:15.203Z"
+    },
+    {
+      "id": "a_p556ud",
+      "kind": "image",
+      "name": "04-profile",
+      "hash": "9d6cad203d73f2ef62d9",
+      "file": "media/9d6cad203d73f2ef62d9.png",
+      "width": 1206,
+      "height": 2622,
+      "fps": 25,
+      "hasAudio": false,
+      "provenance": {
+        "type": "capture",
+        "source": "ios",
+        "target": "Dax (dev.p6n.dax.dev)"
+      },
+      "derived": {
+        "normalized": "image.png",
+        "poster": "poster.jpg"
+      },
+      "status": "ready",
+      "tags": [],
+      "createdAt": "2026-11-16T00:23:15.242Z"
+    },
+    {
+      "id": "a_ugwy41",
+      "kind": "image",
+      "name": "05-workout",
+      "hash": "16d031140aa6f9859793",
+      "file": "media/16d031140aa6f9859793.png",
+      "width": 1206,
+      "height": 2622,
+      "fps": 25,
+      "hasAudio": false,
+      "provenance": {
+        "type": "capture",
+        "source": "ios",
+        "target": "Dax (dev.p6n.dax.dev)"
+      },
+      "derived": {
+        "normalized": "image.png",
+        "poster": "poster.jpg"
+      },
+      "status": "ready",
+      "tags": [],
+      "createdAt": "2026-11-16T00:23:15.279Z"
+    },
+    {
+      "id": "a_nfjr5i",
+      "kind": "video",
+      "name": "roadmap-scroll",
+      "hash": "570b577a6e5b32dc2542",
+      "file": "media/570b577a6e5b32dc2542.mp4",
+      "duration": 36.666667,
+      "width": 1206,
+      "height": 2622,
+      "fps": 30,
+      "hasAudio": false,
+      "provenance": {
+        "type": "capture",
+        "source": "ios",
+        "target": "Dax (dev.p6n.dax.dev)"
+      },
+      "derived": {
+        "normalized": "normalized.mp4",
+        "thumbs": "thumbs.jpg",
+        "poster": "poster.jpg"
+      },
+      "status": "ready",
+      "tags": [],
+      "createdAt": "2026-11-16T00:23:15.324Z"
+    },
+    {
+      "id": "a_14urln",
+      "kind": "audio",
+      "name": "trend-tate-mcrae-housewife",
+      "hash": "dc742e28e3d7ce19615c",
+      "file": "media/dc742e28e3d7ce19615c.m4a",
+      "duration": 79.993,
+      "hasAudio": true,
+      "provenance": {
+        "type": "import",
+        "path": "/Users/paul/Cezane/test-media/music/trend-tate-mcrae-housewife.m4a"
+      },
+      "derived": {
+        "audio": "audio.wav",
+        "analysis": "analysis.json",
+        "waveform": "waveform.json"
+      },
+      "status": "ready",
+      "tags": [],
+      "createdAt": "2026-11-16T00:23:25.527Z"
+    },
+    {
+      "id": "a_c74oid",
+      "kind": "image",
+      "name": "mood-canvas",
+      "hash": "f63dc84707e91adf0ebb",
+      "file": "media/f63dc84707e91adf0ebb.png",
+      "width": 1200,
+      "height": 800,
+      "fps": 25,
+      "hasAudio": false,
+      "provenance": {
+        "type": "import",
+        "path": "/Users/paul/.t3/worktrees/cezane/t3-9b2c2813-2b2130f7d98b79b3/assets/brand/mood-canvas.png"
+      },
+      "derived": {
+        "normalized": "image.png",
+        "poster": "poster.jpg"
+      },
+      "status": "ready",
+      "tags": [],
+      "createdAt": "2026-11-16T00:24:50.094Z"
+    }
+  ],
+  "montages": [
+    {
+      "id": "m_4ujdo1",
+      "name": "Montage"
+    }
+  ],
+  "canvases": [
+    {
+      "id": "cv_tol7mk",
+      "name": "Canvas"
+    }
+  ]
+}

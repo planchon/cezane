@@ -43,6 +43,7 @@ export class ClaudeRunner {
   events: ClaudeEvent[] = [];
   task?: string;
   startedAt?: string;
+  private toolNames = new Map<string, string>();
 
   constructor(private o: Opts) {}
 
@@ -84,7 +85,8 @@ export class ClaudeRunner {
     this.task = task;
     this.startedAt = new Date().toISOString();
     this.emit({ kind: "start", text: task });
-    const proc = Bun.spawn(args, { cwd: this.o.dir, stdout: "pipe", stderr: "pipe", stdin: "ignore" });
+    // Tool search would defer the Cezane tools and cost extra turns: load them upfront.
+    const proc = Bun.spawn(args, { cwd: this.o.dir, stdout: "pipe", stderr: "pipe", stdin: "ignore", env: { ...process.env, ENABLE_TOOL_SEARCH: "false" } });
     this.proc = proc;
     void this.read(proc.stdout as ReadableStream<Uint8Array>);
     void (async () => {
@@ -121,17 +123,21 @@ export class ClaudeRunner {
       return;
     }
     if (msg.type === "assistant" && Array.isArray(msg.message?.content)) {
-      for (const c of msg.message.content as { type: string; text?: string; name?: string; input?: unknown }[]) {
+      for (const c of msg.message.content as { type: string; id?: string; text?: string; name?: string; input?: unknown }[]) {
         if (c.type === "text" && c.text?.trim()) this.emit({ kind: "text", text: c.text.trim() });
-        if (c.type === "tool_use") this.emit({ kind: "tool", tool: (c.name ?? "").replace(/^mcp__cezane__/, ""), input: c.input });
+        if (c.type === "tool_use") {
+          const tool = (c.name ?? "").replace(/^mcp__cezane__/, "");
+          if (c.id) this.toolNames.set(c.id, tool);
+          this.emit({ kind: "tool", tool, input: c.input });
+        }
       }
     } else if (msg.type === "user" && Array.isArray(msg.message?.content)) {
-      for (const c of msg.message.content as { type: string; is_error?: boolean; content?: unknown }[]) {
+      for (const c of msg.message.content as { type: string; tool_use_id?: string; is_error?: boolean; content?: unknown }[]) {
         if (c.type !== "tool_result") continue;
         const text = Array.isArray(c.content)
           ? (c.content as { type: string; text?: string }[]).map((x) => (x.type === "text" ? x.text : `[${x.type}]`)).join(" ")
           : short(c.content);
-        this.emit({ kind: "tool_result", ok: !c.is_error, text: short(text, 400) });
+        this.emit({ kind: "tool_result", tool: c.tool_use_id ? this.toolNames.get(c.tool_use_id) : undefined, ok: !c.is_error, text: short(text, 400) });
       }
     } else if (msg.type === "result") {
       this.emit({ kind: "end", ok: !msg.is_error, text: msg.result ? short(msg.result, 1200) : undefined, costUsd: msg.total_cost_usd });

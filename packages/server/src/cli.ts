@@ -18,6 +18,8 @@ const port = Number(flag("port", process.env.CEZANE_PORT ?? "4317"));
 const outFlag = flag("out");
 const reasonFlag = flag("reason");
 const nameFlag = flag("name");
+const captureFlag = flag("capture");
+const targetFlag = flag("target");
 const base = `http://127.0.0.1:${port}`;
 const [cmd, ...args] = argv;
 
@@ -92,10 +94,11 @@ async function follow(until: (e: ClaudeEvent) => boolean) {
 const usage = `cezane — montage piloté par Claude
   cezane init <dir> [--name N]
   cezane serve [dir] [--port 4317]
-  cezane import <files…>                      (with a running server)
+  cezane import <files…> [--capture ios|web --target T]   (with a running server)
   cezane tool <name> '<json args>' [--out f]  call an MCP tool like Claude does
   cezane edit '<json ops>' [--reason r]
   cezane render [summary]                     render a version and wait
+  cezane send [commentIds…]                   send draft comments to Claude and follow it
   cezane agent "<instruction>"                run Claude on the project and follow it
   cezane state`;
 
@@ -122,7 +125,7 @@ switch (cmd) {
     break;
   }
   case "import": {
-    const assets = await api<{ id: string; name: string; kind: string }[]>("/api/import", { paths: args.map((p) => resolve(p)) });
+    const assets = await api<{ id: string; name: string; kind: string }[]>("/api/import", { paths: args.map((p) => resolve(p)), capture: captureFlag, target: targetFlag });
     for (const a of assets) console.log(`${a.id} ${a.kind} ${a.name}`);
     const s = await waitFor((s) => s.project.assets.every((a) => a.status !== "ingesting"));
     for (const a of s.project.assets.filter((x) => assets.some((y) => y.id === x.id) && x.status === "error")) console.log(`error ${a.id}: ${a.error}`);
@@ -147,10 +150,15 @@ switch (cmd) {
     }
     break;
   }
+  case "send": {
+    await api("/api/claude/send", { commentIds: args.length ? args : undefined });
+    await follow((e) => e.kind === "end" || e.kind === "error");
+    process.exit(0);
+  }
   case "agent": {
     await api("/api/claude/ask", { text: args.join(" ") });
     await follow((e) => e.kind === "end" || e.kind === "error");
-    break;
+    process.exit(0);
   }
   case "state": {
     const s = await api<ServerState>("/api/state");

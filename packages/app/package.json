@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "electron": "bun build electron/main.ts --target=node --format=cjs --external electron --outfile dist-electron/main.cjs && electron ."
+    "electron": "bun build ./electron/main.ts --target=node --format=cjs -e electron --outfile dist-electron/main.cjs && electron ."
   },
   "dependencies": {
     "@cezane/core": "workspace:*",

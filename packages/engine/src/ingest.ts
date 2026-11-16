@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import type { Analysis, Asset, Derived, Transcript } from "@cezane/core";
 import { cacheDir, ffmpeg, FFMPEG, MODELS_DIR, run, runOk } from "./proc";
-import type { Probe } from "./probe";
+import { type Probe, probe } from "./probe";
 
 const WHISPER = Bun.which("whisper-cli") ?? "/opt/homebrew/bin/whisper-cli";
 const WHISPER_MODEL = join(MODELS_DIR, "ggml-large-v3-turbo-q5_0.bin");
@@ -39,7 +39,8 @@ export async function ingest(
     return { derived: { normalized: "image.png", poster: "poster.jpg" }, status: "ready" };
   }
 
-  const duration = info.duration ?? 0;
+  let duration = info.duration ?? 0;
+  const patch: Partial<Asset> = {};
   if (asset.kind === "video") steps.push({ name: "normalized", weight: 3 }, { name: "thumbs", weight: 0.5 });
   if (info.hasAudio) steps.push({ name: "audio", weight: 0.5 }, { name: "analysis", weight: 0.5 }, { name: "waveform", weight: 0.2 });
   const transcribe = info.hasAudio && (opts.transcribe ?? asset.kind === "video");
@@ -60,6 +61,11 @@ export async function ingest(
       await Bun.$`rm -f ${out("normalized.tmp.mp4")}`.quiet();
     }
     derived.normalized = "normalized.mp4";
+    // Screencasts (WebM) carry no duration in their container: read it from the normalized file.
+    if (!info.duration) {
+      duration = (await probe(out("normalized.mp4"))).duration ?? 0;
+      patch.duration = duration;
+    }
     done += 3;
     progress("vignettes");
     if (!have("thumbs.jpg")) {
@@ -92,7 +98,7 @@ export async function ingest(
     derived.transcript = "transcript.v2.json";
     done += 2;
   }
-  return { derived, status: "ready" };
+  return { ...patch, derived, status: "ready" };
 }
 
 /** Silences, scene changes and integrated loudness, from ffmpeg filters. */

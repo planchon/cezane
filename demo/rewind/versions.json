@@ -1,0 +1,93 @@
+[
+  {
+    "id": "v1",
+    "n": 1,
+    "montageId": "m_dfii8t",
+    "revision": 1,
+    "author": "user",
+    "summary": "Rewind V1",
+    "status": "ready",
+    "progress": 1,
+    "montageFile": ".cezane/versions/v1.montage.json",
+    "durationFrames": 780,
+    "fps": 30,
+    "changed": [],
+    "comments": [],
+    "segmentKeys": [
+      "f3e07319b287f3e16d90",
+      "38972a690917ad49202e",
+      "466838b94f9db5434387",
+      "d73d43c839f2bf217dd9",
+      "213cb04466aa6d022d7d",
+      "ca70a1bfb7b9e68de7d1"
+    ],
+    "createdAt": "2026-11-16T00:21:10.000Z",
+    "file": ".cezane/renders/v1.mp4",
+    "poster": ".cezane/renders/v1.jpg",
+    "renderSeconds": 28.6
+  },
+  {
+    "id": "v2",
+    "n": 2,
+    "montageId": "m_dfii8t",
+    "revision": 2,
+    "author": "user",
+    "summary": "Rewind V2: sous-titres équilibrés, carte de fin",
+    "status": "ready",
+    "progress": 1,
+    "montageFile": ".cezane/versions/v2.montage.json",
+    "durationFrames": 780,
+    "fps": 30,
+    "changed": [
+      {
+        "start": 0,
+        "end": 780
+      }
+    ],
+    "comments": [],
+    "segmentKeys": [
+      "5f7a4eead99c7b332f0f",
+      "713f5417779b76bfe2b9",
+      "b5bc9162e4780ce0d630",
+      "bd765add02da02076400",
+      "5965fc55f9a1e9c79c35",
+      "8c260443805085f14173"
+    ],
+    "createdAt": "2026-11-16T00:22:13.023Z",
+    "file": ".cezane/renders/v2.mp4",
+    "poster": ".cezane/renders/v2.jpg",
+    "renderSeconds": 19.7
+  },
+  {
+    "id": "v3",
+    "n": 3,
+    "montageId": "m_dfii8t",
+    "revision": 3,
+    "author": "user",
+    "summary": "Rewind V3: carte de fin",
+    "status": "ready",
+    "progress": 1,
+    "montageFile": ".cezane/versions/v3.montage.json",
+    "durationFrames": 780,
+    "fps": 30,
+    "changed": [
+      {
+        "start": 600,
+        "end": 780
+      }
+    ],
+    "comments": [],
+    "segmentKeys": [
+      "5f7a4eead99c7b332f0f",
+      "713f5417779b76bfe2b9",
+      "b5bc9162e4780ce0d630",
+      "bd765add02da02076400",
+      "e1cca4e722c379b8c558",
+      "2dc06bee60ad4c36844c"
+    ],
+    "createdAt": "2026-11-16T00:22:47.634Z",
+    "file": ".cezane/renders/v3.mp4",
+    "poster": ".cezane/renders/v3.jpg",
+    "renderSeconds": 5.1
+  }
+]

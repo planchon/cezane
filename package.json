@@ -8,9 +8,10 @@
   "scripts": {
     "serve": "bun packages/server/src/cli.ts serve",
     "cezane": "bun packages/server/src/cli.ts",
-    "app": "bun --cwd packages/app run electron",
-    "build:ui": "bun --cwd packages/app run build",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "app": "cd packages/app && bun run electron",
+    "build:ui": "cd packages/app && bun run build",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "shot": "bun packages/engine/scripts/shot.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",

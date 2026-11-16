@@ -42,7 +42,7 @@ const codex: Provider = {
     const started = Date.now();
     const tick = setInterval(() => onProgress(Math.min(0.95, (Date.now() - started) / 90_000)), 1000);
     try {
-      const args = ["codex", "exec", "--skip-git-repo-check", "--full-auto", "-C", req.workDir, ...req.inputPaths.flatMap((p) => ["-i", p]), prompt];
+      const args = ["codex", "exec", "--skip-git-repo-check", "-s", "workspace-write", "-C", req.workDir, ...req.inputPaths.flatMap((p) => ["-i", p]), prompt];
       const r = await run(args, { signal });
       if (!existsSync(out)) {
         // Fallback: the newest image Codex saved under ~/.codex/generated_images.

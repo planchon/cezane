@@ -35,7 +35,7 @@ function bunPath(): string {
 
 function projectDir(): string {
   const args = process.argv.slice(app.isPackaged ? 1 : 2).filter((a) => !a.startsWith("-") && a !== ".");
-  return resolve(args[0] ?? process.env.CEZANE_PROJECT ?? join(repo, "demo"));
+  return resolve(args[0] ?? process.env.CEZANE_PROJECT ?? join(repo, "demo/cezane-demo"));
 }
 
 async function ensureServer() {

@@ -1,4 +1,4 @@
-import type { Comment, Montage, Project, Version } from "./schema";
+import { BED_DB, type Comment, type Montage, musicMode, type Project, type Version } from "./schema";
 import { clipEnd, montageDuration, resolveAnchor } from "./timeline";
 
 const sec = (f: number, fps: number) => `${(f / fps).toFixed(2)}s`;
@@ -11,7 +11,9 @@ export function overview(p: Project, m: Montage, comments: Comment[], versions: 
   lines.push(`Project "${p.name}" · montage ${m.id} ${m.settings.width}x${m.settings.height}@${fps} · ${dur}f (${sec(dur, fps)}) · rev ${revision}`);
   const last = versions.at(-1);
   if (last) lines.push(`Latest version ${last.id} (${last.status}) rev ${last.revision}: ${last.summary}`);
-  lines.push(`Audio: target ${m.audio.targetLufs} LUFS, voice=${m.audio.voice}, duck=${m.audio.duck}`);
+  const music = musicMode(m.audio);
+  const musicInfo = music === "bed" ? `bed ${m.audio.bedDb ?? BED_DB} dB under the voice` : music === "sidechain" ? `sidechain ducking ${m.audio.duckDb} dB` : "untouched";
+  lines.push(`Audio: target ${m.audio.targetLufs} LUFS, voice=${m.audio.voice}, music=${musicInfo}`);
   const g = m.settings.grade;
   lines.push(g ? `Grade: ${g.lut} ${Math.round(g.intensity * 100)}%${g.vignette ? `, vignette ${Math.round(g.vignette * 100)}%` : ""}` : "Grade: none");
   lines.push("", "Tracks (bottom→top), frames:");

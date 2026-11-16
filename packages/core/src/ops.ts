@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+  AudioPatch,
   AudioSettings,
   CaptionsClip,
   Clip,
@@ -60,7 +61,7 @@ export const Op = z.discriminatedUnion("op", [
   }).describe("remove [start,end) frames from every track and close the gap"),
   z.object({ op: z.literal("insert_gap"), at: z.number().int(), frames: z.number().int().min(1) }),
   z.object({ op: z.literal("set_settings"), set: Settings.partial() }),
-  z.object({ op: z.literal("set_audio"), set: AudioSettings.partial() }),
+  z.object({ op: z.literal("set_audio"), set: AudioPatch }),
 ]);
 export type Op = z.input<typeof Op>;
 

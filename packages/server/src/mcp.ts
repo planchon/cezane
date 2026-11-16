@@ -226,7 +226,17 @@ function buildServer(app: Cezane): McpServer {
 
   server.registerTool(
     "audio_cleanup",
-    { description: "Voice processing preset and loudness target for the mix (deterministic, ffmpeg).", inputSchema: { voice: z.enum(["none", "clean", "podcast"]).optional(), targetLufs: z.number().optional(), duck: z.boolean().optional(), duckDb: z.number().optional() } },
+    {
+      description:
+        "Voice processing preset, music level and loudness target for the mix (deterministic, ffmpeg). duck: \"bed\" (default) keeps the music constant, bedDb (default 15) dB under the voice; \"sidechain\" ducks it by up to duckDb while the voice speaks (pumps); false leaves it at its clip volumes. Clips on an sfx track skip the voice chain and the ducking.",
+      inputSchema: {
+        voice: z.enum(["none", "clean", "podcast"]).optional(),
+        targetLufs: z.number().optional(),
+        duck: z.union([z.enum(["bed", "sidechain"]), z.literal(false)]).optional(),
+        bedDb: z.number().optional(),
+        duckDb: z.number().optional(),
+      },
+    },
     async (set) => {
       const r = s.edit([{ op: "set_audio", set }], "claude", "réglages audio");
       app.changed();

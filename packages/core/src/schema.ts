@@ -199,13 +199,33 @@ export const Track = z.object({
 });
 export type Track = z.infer<typeof Track>;
 
+/**
+ * How the music sits under the voice.
+ * - bed (default): constant level, `bedDb` under the voice loudness (measured), never silent.
+ * - sidechain: compressor keyed by the voice, pulled down by up to `duckDb` while the voice speaks (opt-in, pumps).
+ * - false: the music plays at its clip volumes, untouched.
+ * Project files written before v0.2 hold a boolean: `true` (the old default) now reads as "bed".
+ * `true` stays in the type so hand-written montage literals keep compiling; `musicMode()` reads it as "bed".
+ */
+export const MUSIC_MODES = ["bed", "sidechain"] as const;
+export type MusicMode = (typeof MUSIC_MODES)[number] | "off";
+export const Duck = z.preprocess((v) => (v === true ? "bed" : v), z.union([z.enum(MUSIC_MODES), z.boolean()]));
+export const BED_DB = 15; // music bed under the voice, dB (measured on the reference creator's reels)
+
+export const VoicePreset = z.enum(["none", "clean", "podcast"]);
+
 export const AudioSettings = z.object({
   targetLufs: z.number().default(-14),
-  voice: z.enum(["none", "clean", "podcast"]).default("none"),
-  duck: z.boolean().default(true), // music ducked under the voice
-  duckDb: z.number().default(-12),
+  voice: VoicePreset.default("none"),
+  duck: Duck.default("bed"),
+  duckDb: z.number().default(-12), // sidechain mode: max gain reduction of the music
+  bedDb: z.number().optional(), // bed mode: dB of music under the voice (default BED_DB)
 });
 export type AudioSettings = z.infer<typeof AudioSettings>;
+/** set_audio patch: the same fields without defaults, so changing one keeps the others. */
+export const AudioPatch = z.object({ targetLufs: z.number(), voice: VoicePreset, duck: Duck, duckDb: z.number(), bedDb: z.number() }).partial();
+
+export const musicMode = (a: Pick<AudioSettings, "duck">): MusicMode => (a.duck === true ? "bed" : a.duck === false ? "off" : a.duck);
 
 /** Tracks stack bottom → top. The first `video` track is the main track (segments follow its shots). */
 export const Montage = z.object({
@@ -213,7 +233,7 @@ export const Montage = z.object({
   name: z.string(),
   settings: Settings,
   tracks: z.array(Track),
-  audio: AudioSettings.default({ targetLufs: -14, voice: "none", duck: true, duckDb: -12 }),
+  audio: AudioSettings.default({ targetLufs: -14, voice: "none", duck: "bed", duckDb: -12 }),
 });
 export type Montage = z.infer<typeof Montage>;
 

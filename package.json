@@ -2,7 +2,9 @@
   "name": "cezane",
   "private": true,
   "type": "module",
-  "workspaces": ["packages/*"],
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "serve": "bun packages/server/src/cli.ts serve",
     "cezane": "bun packages/server/src/cli.ts",
@@ -13,5 +15,9 @@
   "devDependencies": {
     "@types/bun": "latest",
     "typescript": "^5.9.3"
-  }
+  },
+  "trustedDependencies": [
+    "electron",
+    "esbuild"
+  ]
 }

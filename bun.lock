@@ -59,6 +59,9 @@
         "remotion": "4.0.543",
         "zod": "^4.6.7",
       },
+      "devDependencies": {
+        "@types/react": "^19.2.2",
+      },
     },
     "packages/server": {
       "name": "@cezane/server",
@@ -75,6 +78,10 @@
       },
     },
   },
+  "trustedDependencies": [
+    "electron",
+    "esbuild",
+  ],
   "packages": {
     "@babel/helper-string-parser": ["@babel/helper-string-parser@7.29.14", "", {}, "sha512-CXvKMFvM80ihI7Vox9jb+kQjnyjESQNPM+vB7U0Zz6TWuZA+Z/FL0QPMH300h33qJtIx+REeBhXqWOPW48TcAQ=="],
 

@@ -1,9 +1,10 @@
 #!/usr/bin/env bun
 import { existsSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import type { ClaudeEvent, ServerEvent, ServerState } from "@cezane/core";
-import { Cezane } from "./app";
+import type { ClaudeEvent, ProjectSummary, ServerEvent, ServerState } from "@cezane/core";
 import { startHttp } from "./http";
+import { Hub } from "./hub";
+import { ProjectRegistry } from "./registry";
 import { ProjectStore } from "./store";
 
 const argv = process.argv.slice(2);
@@ -20,7 +21,11 @@ const reasonFlag = flag("reason");
 const nameFlag = flag("name");
 const captureFlag = flag("capture");
 const targetFlag = flag("target");
+const projectFlag = flag("project");
+const parallelFlag = flag("parallel");
 const base = `http://127.0.0.1:${port}`;
+/** Project routes: the default project, or /api/p/<id>/… with --project <id>. */
+const p = (route: string) => (projectFlag ? route.replace(/^\/api\//, `/api/p/${encodeURIComponent(projectFlag)}/`) : route);
 const [cmd, ...args] = argv;
 
 async function api<T>(path: string, body?: unknown): Promise<T> {
@@ -36,7 +41,7 @@ async function api<T>(path: string, body?: unknown): Promise<T> {
 
 /** Calls a Cezane MCP tool through the server's /mcp endpoint, exactly like Claude does. */
 async function tool(name: string, input: Record<string, unknown>) {
-  const r = await fetch(`${base}/mcp`, {
+  const r = await fetch(`${base}${projectFlag ? p("/api/mcp") : "/mcp"}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json, text/event-stream" },
     body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name, arguments: input } }),
@@ -62,7 +67,7 @@ async function tool(name: string, input: Record<string, unknown>) {
 async function waitFor(pred: (s: ServerState) => boolean, timeoutMs = 30 * 60_000) {
   const t0 = Date.now();
   for (;;) {
-    const s = await api<ServerState>("/api/state");
+    const s = await api<ServerState>(p("/api/state"));
     if (pred(s)) return s;
     if (Date.now() - t0 > timeoutMs) throw new Error("timeout");
     await Bun.sleep(1000);
@@ -71,7 +76,7 @@ async function waitFor(pred: (s: ServerState) => boolean, timeoutMs = 30 * 60_00
 
 /** Prints Claude's activity from the SSE stream until `until` matches. */
 async function follow(until: (e: ClaudeEvent) => boolean) {
-  const r = await fetch(`${base}/api/events`);
+  const r = await fetch(`${base}${p("/api/events")}`);
   const dec = new TextDecoder();
   let buf = "";
   for await (const chunk of r.body!) {
@@ -93,7 +98,9 @@ async function follow(until: (e: ClaudeEvent) => boolean) {
 
 const usage = `cezane — montage piloté par Claude
   cezane init <dir> [--name N]
-  cezane serve [dir] [--port 4317]
+  cezane serve [dir] [--port 4317] [--parallel N]  one server for every project; dir = default project
+  cezane projects                             list the projects (with a running server)
+  (project commands below take --project <id> to target another project than the default one)
   cezane import <files…> [--capture ios|web --target T]   (with a running server)
   cezane tool <name> '<json args>' [--out f]  call an MCP tool like Claude does
   cezane edit '<json ops>' [--reason r]
@@ -105,27 +112,32 @@ const usage = `cezane — montage piloté par Claude
 switch (cmd) {
   case "init": {
     const dir = resolve(args[0] ?? ".");
-    ProjectStore.init(dir, nameFlag);
-    console.log(`project ready: ${dir}`);
+    if (!existsSync(resolve(dir, "cezane.json"))) ProjectStore.init(dir, nameFlag);
+    const e = new ProjectRegistry().add(dir);
+    console.log(`project ready: ${dir} (id ${e.id})`);
     break;
   }
   case "serve": {
-    const dir = resolve(args[0] ?? process.env.CEZANE_PROJECT ?? ".");
-    const store = existsSync(resolve(dir, "cezane.json")) ? new ProjectStore(dir).load() : ProjectStore.init(dir, nameFlag);
-    const app = new Cezane(store, port);
-    startHttp(app, port);
-    console.log(`cezane: "${store.project.name}" on ${base} (MCP ${base}/mcp)`);
+    const hub = new Hub({ port, limits: parallelFlag ? { render: Number(parallelFlag) } : undefined });
+    const given = args[0] ?? process.env.CEZANE_PROJECT;
+    const app = given ? hub.setDefault(resolve(given), { name: nameFlag }) : hub.default();
+    startHttp(hub, port);
+    console.log(`cezane on ${base}: default project "${app.store.project.name}" (${app.id}), ${hub.registry.list().length} project(s) known, MCP ${base}/api/p/<id>/mcp`);
     const stop = async () => {
-      app.claude.stop();
-      await app.worker.stop(); // the worker closes Chrome before leaving
+      await hub.stop();
       process.exit(0);
     };
     process.on("SIGINT", stop);
     process.on("SIGTERM", stop);
     break;
   }
+  case "projects": {
+    for (const x of await api<ProjectSummary[]>("/api/projects"))
+      console.log(`${x.isDefault ? "*" : " "} ${x.id.padEnd(16)} ${x.name.padEnd(28)} ${x.reels.map((r) => `${r.name}:${r.status}`).join(", ")}  ${x.missing ? "(dossier introuvable) " : ""}${x.path}`);
+    break;
+  }
   case "import": {
-    const assets = await api<{ id: string; name: string; kind: string }[]>("/api/import", { paths: args.map((p) => resolve(p)), capture: captureFlag, target: targetFlag });
+    const assets = await api<{ id: string; name: string; kind: string }[]>(p("/api/import"), { paths: args.map((p) => resolve(p)), capture: captureFlag, target: targetFlag });
     for (const a of assets) console.log(`${a.id} ${a.kind} ${a.name}`);
     const s = await waitFor((s) => s.project.assets.every((a) => a.status !== "ingesting"));
     for (const a of s.project.assets.filter((x) => assets.some((y) => y.id === x.id) && x.status === "error")) console.log(`error ${a.id}: ${a.error}`);
@@ -135,12 +147,12 @@ switch (cmd) {
     await tool(args[0]!, args[1] ? (JSON.parse(args[1]) as Record<string, unknown>) : {});
     break;
   case "edit": {
-    const r = await api<{ summary: string[]; revision: number }>("/api/edit", { ops: JSON.parse(args[0]!), reason: reasonFlag });
+    const r = await api<{ summary: string[]; revision: number }>(p("/api/edit"), { ops: JSON.parse(args[0]!), reason: reasonFlag });
     console.log(`rev ${r.revision}: ${r.summary.join("; ")}`);
     break;
   }
   case "render": {
-    const v = await api<{ id: string }>("/api/render", { summary: args.join(" ") || undefined });
+    const v = await api<{ id: string }>(p("/api/render"), { summary: args.join(" ") || undefined });
     const s = await waitFor((s) => s.versions.find((x) => x.id === v.id)?.status !== "rendering");
     const done = s.versions.find((x) => x.id === v.id)!;
     if (done.status === "ready") console.log(`${done.id} ready in ${done.renderSeconds}s: ${resolve(s.dir, done.file!)} changed=${JSON.stringify(done.changed)}`);
@@ -151,18 +163,19 @@ switch (cmd) {
     break;
   }
   case "send": {
-    await api("/api/claude/send", { commentIds: args.length ? args : undefined });
+    await api(p("/api/claude/send"), { commentIds: args.length ? args : undefined });
     await follow((e) => e.kind === "end" || e.kind === "error");
     process.exit(0);
   }
   case "agent": {
-    await api("/api/claude/ask", { text: args.join(" ") });
+    await api(p("/api/claude/ask"), { text: args.join(" ") });
     await follow((e) => e.kind === "end" || e.kind === "error");
     process.exit(0);
   }
   case "state": {
-    const s = await api<ServerState>("/api/state");
+    const s = await api<ServerState>(p("/api/state"));
     const summary = {
+      id: s.projectId,
       project: s.project.name,
       revision: s.revision,
       assets: s.project.assets.map((a) => `${a.id} ${a.kind} ${a.status} ${a.name}`),

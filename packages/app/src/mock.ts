@@ -122,6 +122,7 @@ const jobs: Job[] = [
 ];
 
 const state: ServerState = {
+  projectId: "demo",
   dir: "/Users/paul/Cezane/projects/demo",
   project: { name: "Démo Cezane", createdAt: ago(300), settings: { claudeModel: "sonnet", budgetEur: 5, spentEur: 0.35 }, assets, montages: [{ id: "m_demo", name: "Démo" }], canvases: [{ id: "cv_1", name: "Idées" }] },
   montage,

@@ -1,4 +1,4 @@
-import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import {
   type Analysis,
@@ -19,7 +19,9 @@ import {
   Project as ProjectSchema,
   Version as VersionSchema,
 } from "@cezane/core";
-import { CACHE_DIR } from "@cezane/engine";
+import { ALL_FOLDERS, CACHE_DIR } from "@cezane/engine";
+import { LAYOUT_VERSION, readLayout, writeLayout } from "./layout";
+import { type MigrationReport, migrateProject } from "./migrate";
 
 const now = () => new Date().toISOString();
 
@@ -47,9 +49,10 @@ export class ProjectStore {
   constructor(readonly dir: string) {}
 
   static init(dir: string, name = basename(dir)): ProjectStore {
-    for (const d of ["montages", "canvases", "media", "graphics", ".cezane/history", ".cezane/versions", ".cezane/renders", ".cezane/comments"])
+    for (const d of ["montages", "canvases", "graphics", ".cezane/history", ".cezane/versions", ".cezane/renders", ".cezane/comments", ...ALL_FOLDERS])
       mkdirSync(join(dir, d), { recursive: true });
     if (!existsSync(join(dir, "cezane.json"))) {
+      if (!readLayout(dir)) writeLayout(dir, { version: LAYOUT_VERSION, migratedAt: new Date().toISOString(), moves: {} });
       const m = emptyMontage("Montage");
       const canvas: CanvasDoc = { id: newId("cv"), name: "Canvas", pending: [], updatedAt: now() };
       const p = ProjectSchema.parse({ name, createdAt: now(), montages: [{ id: m.id, name: m.name }], canvases: [{ id: canvas.id, name: canvas.name }] });
@@ -63,8 +66,16 @@ export class ProjectStore {
     return new ProjectStore(dir).load();
   }
 
+  /** Opens an existing project: migrates its folder layout if needed (safe, idempotent), then loads it. */
+  static open(dir: string): { store: ProjectStore; migration: MigrationReport } {
+    const migration = migrateProject(dir);
+    if (migration.status === "failed") console.error(`[migration] ${dir}: ${migration.error} (project left untouched)`);
+    else if (migration.status === "migrated") console.log(`[migration] ${dir}: ${migration.moved.length} file(s) moved, ${migration.exported.length} export(s), ${migration.repaired.length} repaired`);
+    return { store: new ProjectStore(dir).load(), migration };
+  }
+
   load(): this {
-    for (const d of [".cezane/history", ".cezane/versions", ".cezane/renders", ".cezane/comments", "media"]) mkdirSync(join(this.dir, d), { recursive: true });
+    for (const d of [".cezane/history", ".cezane/versions", ".cezane/renders", ".cezane/comments", ...ALL_FOLDERS]) mkdirSync(join(this.dir, d), { recursive: true });
     this.project = ProjectSchema.parse(readJson(join(this.dir, "cezane.json"), {}));
     const ref = this.project.montages[0];
     if (!ref) throw new Error("project has no montage");
@@ -147,6 +158,58 @@ export class ProjectStore {
   assetMap(): Map<string, Asset> {
     return new Map(this.project.assets.map((a) => [a.id, a]));
   }
+  /** Every current montage of the project (the loaded one from memory, the others from disk). */
+  montages(): Montage[] {
+    return this.project.montages.flatMap((ref) => {
+      if (ref.id === this.montage.id) return [this.montage];
+      const p = this.path("montages", `${ref.id}.json`);
+      if (!existsSync(p)) return [];
+      try {
+        return [MontageSchema.parse(JSON.parse(readFileSync(p, "utf8")))];
+      } catch {
+        return [];
+      }
+    });
+  }
+
+  /** assetId → ids of the montages (and canvases) whose current content refers to it. */
+  usage(): Map<string, string[]> {
+    const docs: { id: string; text: string }[] = this.montages().map((m) => ({ id: m.id, text: JSON.stringify(m) }));
+    const cdir = this.path("canvases");
+    if (existsSync(cdir))
+      for (const f of readdirSync(cdir).filter((x) => x.endsWith(".json"))) docs.push({ id: f.replace(/\.json$/, ""), text: readFileSync(join(cdir, f), "utf8") });
+    const out = new Map<string, string[]>();
+    for (const a of this.project.assets) {
+      const ids = docs.filter((d) => d.text.includes(`"${a.id}"`)).map((d) => d.id);
+      if (ids.length) out.set(a.id, ids);
+    }
+    return out;
+  }
+
+  // Assets whose file was deleted from the Finder while nothing used them: kept aside, so the
+  // same file put back (Trash → Put Back) gets its old id again.
+  private trashPath = () => this.path(".cezane/trash.json");
+  trash(): Asset[] {
+    return readJson<Asset[]>(this.trashPath(), []);
+  }
+  moveToTrash(ids: string[]) {
+    const gone = this.project.assets.filter((a) => ids.includes(a.id));
+    if (!gone.length) return;
+    this.project.assets = this.project.assets.filter((a) => !ids.includes(a.id));
+    writeJson(this.trashPath(), [...this.trash().filter((t) => !ids.includes(t.id)), ...gone].slice(-500));
+    this.saveProject();
+  }
+  restoreFromTrash(hash: string, file: string): Asset | undefined {
+    const t = this.trash();
+    const a = t.find((x) => x.hash === hash);
+    if (!a) return undefined;
+    writeJson(this.trashPath(), t.filter((x) => x !== a));
+    const restored = { ...a, file, missing: undefined };
+    this.project.assets.push(restored);
+    this.saveProject();
+    return restored;
+  }
+
   updateAsset(id: string, patch: Partial<Asset>) {
     const a = this.asset(id);
     if (!a) return;

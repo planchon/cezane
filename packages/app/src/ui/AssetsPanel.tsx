@@ -1,14 +1,38 @@
 import type { Asset } from "@cezane/core";
-import { Film, Image as ImageIcon, Loader2, Music2, Plus, Smartphone, Sparkles } from "lucide-react";
+import { Film, Folder, Image as ImageIcon, Loader2, Music2, Plus, Smartphone, Sparkles } from "lucide-react";
 import { useRef, useState } from "react";
 import { assetThumb } from "../api";
 import { useApp } from "../store";
 import { importFiles } from "./actions";
 import { clockShort } from "./format";
+import { Resizer, usePanelSize } from "./Resizer";
 
 export const ASSET_MIME = "application/x-cezane-asset";
 
-/** Left panel, "Rushes" tab: the project's media. Drag a row onto the canvas, drop files here to import. */
+/**
+ * Médias view, left pane: the project folder and its media (provisional, until the file viewer lands).
+ * Resizable from its right edge.
+ */
+export function AssetsPane() {
+  const { state } = useApp();
+  const panel = usePanelSize("medias-files", 241, 200, 400);
+  const folder = state?.dir.split("/").filter(Boolean).at(-1);
+  return (
+    <aside className="fv" style={{ width: panel.size }}>
+      <Resizer edge="right" panel={panel} />
+      <div className="fv-head" title={state?.dir}>
+        <Folder size={16} />
+        <span className="t13 s ell" style={{ flex: "none", maxWidth: "60%" }}>
+          {state?.project.name ?? "Projet"}
+        </span>
+        {folder && <span className="c3 ell">{folder}</span>}
+      </div>
+      <AssetsList />
+    </aside>
+  );
+}
+
+/** The project's media. Drag a row onto the canvas, drop files here to import. */
 export function AssetsList() {
   const { state } = useApp();
   const input = useRef<HTMLInputElement>(null);

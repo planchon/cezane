@@ -28,7 +28,8 @@ bun run serve demo/cezane-demo         # puis http://127.0.0.1:4317
 
 ```sh
 bun run cezane init <dossier> [--name N]
-bun run cezane serve [dossier] [--port 4317]
+bun run cezane serve [dossier] [--port 4317]  # un serveur pour tous les projets ; dossier = projet par défaut
+bun run cezane projects                                  # liste les projets (ids)
 bun run cezane import <fichiers…> [--capture ios|web --target T]
 bun run cezane tool <outil> '<json>' [--out image.jpg]   # appelle un outil MCP comme Claude
 bun run cezane edit '<ops json>' [--reason r]
@@ -36,10 +37,13 @@ bun run cezane render [résumé]                            # rend une version e
 bun run cezane send [ids…]                                # envoie les commentaires à Claude
 bun run cezane agent "<consigne>"                         # Claude travaille sur le projet
 bun run cezane state
+# les commandes de projet visent le projet par défaut, ou --project <id>
 ```
 
-Le serveur MCP est sur `http://127.0.0.1:4317/mcp` : il marche aussi depuis un Claude Code ouvert
-dans un terminal (`claude mcp add --transport http cezane http://127.0.0.1:4317/mcp`).
+Le serveur MCP est sur `http://127.0.0.1:4317/mcp` (projet par défaut) et
+`http://127.0.0.1:4317/api/p/<id>/mcp` (chaque projet) : il marche aussi depuis un Claude Code ouvert
+dans un terminal (`claude mcp add --transport http cezane http://127.0.0.1:4317/mcp`). Projets,
+dossiers Finder et routes : [archi/projets.md](archi/projets.md).
 
 ## Organisation
 

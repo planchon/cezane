@@ -1,9 +1,19 @@
-import { existsSync, mkdirSync, readdirSync, statSync } from "node:fs";
-import { join } from "node:path";
+import { copyFileSync, existsSync, mkdirSync, readdirSync, renameSync, rmSync, statSync, unlinkSync } from "node:fs";
+import { extname, join } from "node:path";
 import type { GenerateRequest, ModelInfo } from "@cezane/core";
+import { counterName } from "./naming";
 import { run, runOk } from "./proc";
 
-export type GenerateInput = GenerateRequest & { inputPaths: string[]; workDir: string };
+/**
+ * `out`: where the result lands, straight in the project's Générés/ folder as `<slug>-01.png`
+ * (next free counter). `claim` is told the file name just before it appears, so a folder watcher
+ * can tell the server's own writes from the user's.
+ */
+export type GenerateInput = GenerateRequest & {
+  inputPaths: string[];
+  workDir: string;
+  out?: { dir: string; slug: string; claim?: (name: string) => void };
+};
 export type GenerateOutput = { file?: string; text?: string; costEur: number; model: string; provider: string };
 
 type Provider = {
@@ -161,5 +171,19 @@ export async function listModels(): Promise<ModelInfo[]> {
 export async function generate(req: GenerateInput, onProgress: (p: number) => void, signal?: AbortSignal): Promise<GenerateOutput> {
   const p = providers.find((x) => x.id === req.provider);
   if (!p) throw new Error(`unknown provider ${req.provider}`);
-  return p.run(req, onProgress, signal);
+  const r = await p.run(req, onProgress, signal);
+  if (!r.file || !req.out) return r;
+  // Straight into the project folder under a readable name; the work dir goes away.
+  mkdirSync(req.out.dir, { recursive: true });
+  const name = counterName(req.out.dir, req.out.slug, extname(r.file) || ".png");
+  req.out.claim?.(name);
+  const dest = join(req.out.dir, name);
+  try {
+    renameSync(r.file, dest);
+  } catch {
+    copyFileSync(r.file, dest);
+    unlinkSync(r.file);
+  }
+  rmSync(req.workDir, { recursive: true, force: true });
+  return { ...r, file: dest };
 }

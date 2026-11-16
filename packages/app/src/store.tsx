@@ -2,11 +2,13 @@ import type { ClaudeEvent, Montage, ServerEvent, ServerState, Version } from "@c
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { get, subscribe } from "./api";
 
-export type Tool = "select" | "hand" | "comment";
+export type Tool = "select" | "comment";
+/** The work area's views, picked in the floating switcher. */
+export type View = "timeline" | "medias" | "export";
 export type Selection = { kind: "clip"; id: string } | { kind: "asset"; id: string } | undefined;
 
 export type UI = {
-  tab: "montage" | "canvas";
+  view: View;
   versionId?: string; // displayed version (default: latest ready)
   compare: boolean;
   compareId?: string; // B side
@@ -40,7 +42,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [log, setLog] = useState<ClaudeEvent[]>([]);
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState<string>();
-  const [ui, setUiState] = useState<UI>({ tab: "montage", compare: false, tool: "select", panel: "comments", selection: undefined });
+  const [ui, setUiState] = useState<UI>({ view: "timeline", compare: false, tool: "select", panel: "comments", selection: undefined });
   const canvasListeners = useRef(new Set<(e: Extract<ServerEvent, { type: "canvas" }>) => void>());
 
   useEffect(() => {

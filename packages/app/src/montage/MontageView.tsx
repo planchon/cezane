@@ -1,9 +1,10 @@
 import { type Anchor, type Comment, type Montage, type Point, type Region, resolveAnchor, type Version } from "@cezane/core";
-import { ArrowUp, Columns2, Hand, MessageCircle, MousePointer2 } from "lucide-react";
+import { ArrowUp, Columns2, MessageCircle, MousePointer2 } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { brandUrl, fileUrl, post } from "../api";
 import { playhead, useApp, useFrame, useVersionMontage } from "../store";
 import { clock } from "../ui/format";
+import { Resizer, usePanelSize } from "../ui/Resizer";
 import { attempt } from "../ui/toast";
 import { commentAvatar, shotsOf } from "./clips";
 import { Timeline } from "./Timeline";
@@ -14,9 +15,11 @@ type Draft =
   | { kind: "range"; frame: number; frameEnd?: number };
 
 const frameOf = (t: number, fps: number) => Math.floor(t * fps + 1e-3);
+const STAGE_TOP = 76; // under the floating view switcher (top 12, 40 high) and the reel pill
 
 export function MontageView() {
   const { state, ui, setUi, version } = useApp();
+  const dock = usePanelSize("timeline", 232, 160, () => Math.round(window.innerHeight * 0.6));
   const montage = useVersionMontage(version, state?.montage);
   const compareVersion = ui.compare ? (state?.versions.find((v) => v.id === ui.compareId) ?? previousReady(state?.versions ?? [], version)) : undefined;
   const compareMontage = useVersionMontage(compareVersion, undefined);
@@ -31,8 +34,8 @@ export function MontageView() {
   useLayoutEffect(() => {
     const el = stage.current;
     if (!el) return;
-    // Room for the frame: 36 px above (label), the floating toolbar below.
-    const ro = new ResizeObserver(() => setBox({ w: el.clientWidth - 64, h: el.clientHeight - 36 - 20 - 96 }));
+    // Room for the frame: the view switcher and the label above (STAGE_TOP + 20), the floating toolbar below.
+    const ro = new ResizeObserver(() => setBox({ w: el.clientWidth - 64, h: el.clientHeight - STAGE_TOP - 20 - 72 }));
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
@@ -190,7 +193,7 @@ export function MontageView() {
             <div>Importe des rushes, demande un montage à Claude, puis clique sur « Rendre ».</div>
           </div>
         ) : (
-          <div className="stage">
+          <div className="stage" style={{ paddingTop: STAGE_TOP }}>
             {compareVersion && (
               <Screen
                 label={`B · V${compareVersion.n}`}
@@ -220,15 +223,18 @@ export function MontageView() {
         {draft && <Composer draft={draft} fps={fps} versionN={version?.n} onCancel={() => setDraft(undefined)} onSubmit={submit} />}
         <Toolbar />
       </div>
-      <Timeline
-        montage={montage}
-        version={version}
-        onRangeComment={(a, b) => {
-          const r = stage.current?.getBoundingClientRect();
-          openComposer(b > a ? { kind: "range", frame: a, frameEnd: b } : { kind: "range", frame: a }, { x: (r?.width ?? 600) / 2 - 132, y: (r?.height ?? 600) - 240 });
-          playhead.seek(a);
-        }}
-      />
+      <div className="dock-b" style={{ height: dock.size }}>
+        <Resizer edge="top" panel={dock} grip />
+        <Timeline
+          montage={montage}
+          version={version}
+          onRangeComment={(a, b) => {
+            const r = stage.current?.getBoundingClientRect();
+            openComposer(b > a ? { kind: "range", frame: a, frameEnd: b } : { kind: "range", frame: a }, { x: (r?.width ?? 600) / 2 - 132, y: (r?.height ?? 600) - 240 });
+            playhead.seek(a);
+          }}
+        />
+      </div>
     </>
   );
 }
@@ -272,12 +278,7 @@ function Screen({ label, version, montage, w, h, videoRef, muted, interactive, s
   const frame = useFrame();
   const overlay = useRef<HTMLDivElement>(null);
   const [rect, setRect] = useState<Region>();
-  const [view, setView] = useState({ s: 1, x: 0, y: 0 }); // hand tool: zoom & pan to inspect details
   const fps = version.fps;
-
-  useEffect(() => {
-    setView({ s: 1, x: 0, y: 0 });
-  }, [version.id]);
 
   const norm = (e: { clientX: number; clientY: number }) => {
     const r = overlay.current!.getBoundingClientRect();
@@ -286,17 +287,6 @@ function Screen({ label, version, montage, w, h, videoRef, muted, interactive, s
 
   const onDown = (e: React.PointerEvent) => {
     if (!interactive) return;
-    if (ui.tool === "hand") {
-      const start = { x: e.clientX, y: e.clientY, vx: view.x, vy: view.y };
-      const move = (ev: PointerEvent) => setView((v) => ({ ...v, x: start.vx + ev.clientX - start.x, y: start.vy + ev.clientY - start.y }));
-      const up = () => {
-        window.removeEventListener("pointermove", move);
-        window.removeEventListener("pointerup", up);
-      };
-      window.addEventListener("pointermove", move);
-      window.addEventListener("pointerup", up);
-      return;
-    }
     if (ui.tool !== "comment") {
       playhead.toggle();
       return;
@@ -344,14 +334,11 @@ function Screen({ label, version, montage, w, h, videoRef, muted, interactive, s
         <b>{label ?? `V${version.n}`}</b>
         <span className="ell">{caption}</span>
       </div>
-    <div className="fr" style={{ width: w, height: h, overflow: view.s > 1 ? "hidden" : "visible" }} onWheel={(e) => {
-      if (ui.tool !== "hand") return;
-      setView((v) => ({ ...v, s: Math.min(6, Math.max(1, v.s * (e.deltaY < 0 ? 1.1 : 1 / 1.1))) }));
-    }}>
+    <div className="fr" style={{ width: w, height: h, overflow: "visible" }}>
       <div style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
-        <video ref={videoRef} src={fileUrl(version.file!)} muted={muted} playsInline preload="auto" style={{ width: "100%", height: "100%", transform: `translate(${view.x}px, ${view.y}px) scale(${view.s})`, transformOrigin: "center" }} />
+        <video ref={videoRef} src={fileUrl(version.file!)} muted={muted} playsInline preload="auto" />
       </div>
-      <div style={{ position: "absolute", inset: 0, transform: `translate(${view.x}px, ${view.y}px) scale(${view.s})`, transformOrigin: "center" }}>
+      <div style={{ position: "absolute", inset: 0 }}>
         <div ref={overlay} className={`overlay ${interactive ? ui.tool : ""}`} onPointerDown={onDown}>
           {visible.map((c) => <Mark key={c.id} c={c} active={ui.commentId === c.id} onClick={() => setUi({ commentId: c.id, panel: "comments" })} />)}
           {rect && <div className="zone draft-rect" style={pct(rect)} />}
@@ -363,11 +350,6 @@ function Screen({ label, version, montage, w, h, videoRef, muted, interactive, s
           )}
         </div>
       </div>
-      {view.s > 1 && (
-        <button className="btn zoom-reset" onClick={() => setView({ s: 1, x: 0, y: 0 })}>
-          {Math.round(view.s * 100)} % · réinitialiser
-        </button>
-      )}
     </div>
     </div>
   );
@@ -447,7 +429,7 @@ function Composer({ draft, fps, versionN, onCancel, onSubmit }: { draft: Draft &
   );
 }
 
-/** Floating toolbar (Figma UI3): tools, then the A/B comparison. Transport lives in the timeline header. */
+/** Floating toolbar: select and comment, then the A/B comparison. Transport lives in the timeline header. */
 function Toolbar() {
   const { ui, setUi, state } = useApp();
   const canCompare = (state?.versions.filter((v) => v.status === "ready" && v.file).length ?? 0) >= 2;
@@ -455,9 +437,6 @@ function Toolbar() {
     <div className="tb">
       <button className={`t ${ui.tool === "select" ? "on" : ""}`} title="Sélection (V)" onClick={() => setUi({ tool: "select" })}>
         <MousePointer2 size={16} />
-      </button>
-      <button className={`t ${ui.tool === "hand" ? "on" : ""}`} title="Main : zoomer/déplacer l'image (H)" onClick={() => setUi({ tool: "hand" })}>
-        <Hand size={16} />
       </button>
       <button className={`t ${ui.tool === "comment" ? "on" : ""}`} title="Commentaire (C) : clic = épingle, glisser = zone, glisser sur la règle = plage" onClick={() => setUi({ tool: "comment" })}>
         <MessageCircle size={16} />

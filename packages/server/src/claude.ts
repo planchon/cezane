@@ -39,7 +39,8 @@ Style (TikTok codes, 1080x1920):
 - Color: a montage grade (set_settings grade) gives footage a look; "drame" for dramatic, "film" for soft, "provence" for warm. Text and graphics are never graded.
 - Screenshots for docs/onboarding/help: ScreenshotShowcase with label + caption + muted, a Figma cursor on what to click, a loupe on small details.`;
 
-type Opts = { dir: string; port: number; model: string; onEvent: (e: ClaudeEvent) => void; onEnd: (ok: boolean) => void };
+/** mcpUrl: the project's MCP endpoint (http://127.0.0.1:<port>/api/p/<projectId>/mcp). */
+type Opts = { dir: string; mcpUrl: string; model: string; onEvent: (e: ClaudeEvent) => void; onEnd: (ok: boolean) => void };
 
 const short = (v: unknown, n = 300) => {
   const s = typeof v === "string" ? v : JSON.stringify(v);
@@ -70,7 +71,7 @@ export class ClaudeRunner {
   start(prompt: string, task: string, model = this.o.model) {
     if (this.running) throw new Error("Claude is already working");
     const cfg = join(this.o.dir, ".cezane/mcp.json");
-    writeFileSync(cfg, JSON.stringify({ mcpServers: { cezane: { type: "http", url: `http://127.0.0.1:${this.o.port}/mcp` } } }));
+    writeFileSync(cfg, JSON.stringify({ mcpServers: { cezane: { type: "http", url: this.o.mcpUrl } } }));
     const args = [
       "claude",
       "-p",

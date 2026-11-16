@@ -74,7 +74,8 @@ async function createWindow() {
     minHeight: 700,
     title: "Cezane",
     titleBarStyle: "hiddenInset",
-    trafficLightPosition: { x: 16, y: 17 },
+    // Centred in the app's 40 px top strip (the future project tabs), which is the drag region.
+    trafficLightPosition: { x: 14, y: 14 },
     backgroundColor: "#EFEFEE",
     icon: img,
     show: false,

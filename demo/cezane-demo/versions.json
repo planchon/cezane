@@ -25,7 +25,8 @@
       "82bc33e1baa443bd4199"
     ],
     "renderSeconds": 58.2,
-    "createdAt": "2026-11-16T00:30:34.558Z"
+    "createdAt": "2026-11-16T00:30:34.558Z",
+    "exportFile": "Exports/cezane-demo-v0-1-v1.mp4"
   },
   {
     "id": "v2",
@@ -66,7 +67,8 @@
       "82bc33e1baa443bd4199"
     ],
     "renderSeconds": 16.5,
-    "createdAt": "2026-11-16T00:33:50.792Z"
+    "createdAt": "2026-11-16T00:33:50.792Z",
+    "exportFile": "Exports/cezane-demo-v0-1-v2.mp4"
   },
   {
     "id": "v3",
@@ -107,7 +109,8 @@
       "82bc33e1baa443bd4199"
     ],
     "renderSeconds": 25.7,
-    "createdAt": "2026-11-16T00:35:28.063Z"
+    "createdAt": "2026-11-16T00:35:28.063Z",
+    "exportFile": "Exports/cezane-demo-v0-1-v3.mp4"
   },
   {
     "id": "v4",
@@ -142,7 +145,8 @@
       "82bc33e1baa443bd4199"
     ],
     "renderSeconds": 10.7,
-    "createdAt": "2026-11-16T00:36:34.696Z"
+    "createdAt": "2026-11-16T00:36:34.696Z",
+    "exportFile": "Exports/cezane-demo-v0-1-v4.mp4"
   },
   {
     "id": "v5",
@@ -175,7 +179,8 @@
       "81af7d869bd3e3a27da7"
     ],
     "renderSeconds": 81.6,
-    "createdAt": "2026-11-16T10:37:45.907Z"
+    "createdAt": "2026-11-16T10:37:45.907Z",
+    "exportFile": "Exports/cezane-demo-v0-1-v5.mp4"
   },
   {
     "id": "v6",
@@ -208,6 +213,7 @@
     "createdAt": "2026-11-16T11:14:02.061Z",
     "file": ".cezane/renders/v6.mp4",
     "poster": ".cezane/renders/v6.jpg",
-    "renderSeconds": 62.9
+    "renderSeconds": 62.9,
+    "exportFile": "Exports/cezane-demo-v0-1-v6.mp4"
   }
 ]

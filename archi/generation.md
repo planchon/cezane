@@ -32,7 +32,7 @@
 - Le serveur suit lui-même l'avancement : les webhooks de FAL demanderaient une URL publique,
   qu'une app locale n'a pas.
 - Les fichiers d'entrée sont envoyés sur le stockage de FAL ; les résultats sont téléchargés dans
-  `media/` et passent par l'ingestion ([ingestion.md](ingestion.md)).
+  `Générés/` sous un nom lisible ([projets.md](projets.md)) et passent par l'ingestion ([ingestion.md](ingestion.md)).
 
 ## Provenance
 

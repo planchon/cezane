@@ -1,5 +1,5 @@
-import { copyFileSync, existsSync, linkSync, mkdirSync, writeFileSync } from "node:fs";
-import { basename, extname, join, resolve } from "node:path";
+import { copyFileSync, existsSync, mkdirSync, realpathSync, renameSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
+import { basename, extname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import {
   type Anchor,
   type Asset,
@@ -17,41 +17,185 @@ import {
   montageDuration,
   newId,
 } from "@cezane/core";
-import { CACHE_DIR, cacheDir, CUTOUT_VERSION, cutout, ffmpeg, gradeAsset, generate as runGenerate, ingest, probe, RenderWorker, renderMontage, sha256File } from "@cezane/engine";
+import {
+  CACHE_DIR,
+  cacheDir,
+  captureIos,
+  captureSlug,
+  captureWeb,
+  counterName,
+  CUTOUT_VERSION,
+  cutout,
+  eventsPath,
+  ffmpeg,
+  FOLDERS,
+  gradeAsset,
+  generate as runGenerate,
+  ingest,
+  nfc,
+  probe,
+  promptSlug,
+  type RenderWorker,
+  renderMontage,
+  safeFileName,
+  sha256File,
+  uniqueName,
+  WATCHED_FOLDERS,
+  type WebAction,
+} from "@cezane/engine";
 import { ClaudeRunner } from "./claude";
-import { Jobs } from "./jobs";
-import { now, ProjectStore } from "./store";
+import { Jobs, type Scheduler } from "./jobs";
+import { exportRender, fileNameFor, folderFor, linkOrCopy, readableName, reelSlug } from "./layout";
+import { FolderSync } from "./library";
+import { now, type ProjectStore } from "./store";
+import { FolderWatcher } from "./watcher";
 
 type Listener = (e: ServerEvent) => void;
 type PermissionWaiter = { resolve: (r: { allow: boolean; message?: string }) => void };
 
-/** Everything the HTTP API and the MCP tools act on. */
+/** What a project shares with the others: the HTTP port, the job scheduler, the render worker. */
+export type ProjectContext = {
+  id: string;
+  port: number;
+  scheduler: Scheduler;
+  worker: RenderWorker;
+  watch?: boolean; // follow Rushes/, Générés/, Captures/ (default true)
+  onChange?: () => void; // the project summary may have changed (home tab)
+};
+
+export type CaptureRequest = {
+  target: "web" | "ios";
+  mode?: "screenshot" | "video";
+  url?: string;
+  width?: number;
+  height?: number;
+  fullPage?: boolean;
+  seconds?: number;
+  actions?: WebAction[];
+  name?: string; // file name in Captures/ (default: from the URL, `rewind-codes-01.png`)
+};
+
+/** Everything the HTTP API and the MCP tools act on, for one project. */
 export class Cezane {
+  /** Command used to show a file in the Finder (tests replace it). */
+  static revealCommand = ["open", "-R"];
+  readonly id: string;
   readonly jobs: Jobs;
-  readonly worker = new RenderWorker();
+  readonly worker: RenderWorker;
   readonly claude: ClaudeRunner;
+  readonly sync: FolderSync;
+  watcher?: FolderWatcher;
   private listeners = new Set<Listener>();
   private permissions = new Map<string, PermissionWaiter>();
   private stateTimer?: ReturnType<typeof setTimeout>;
+  private offJobs: () => void;
+  /** Files the server is writing into the watched folders (NFC, lowercase) → until when to ignore them. */
+  private claims = new Map<string, number>();
+  /** Files being imported in place right now (lowercase). */
+  private importing = new Set<string>();
+  private ingests = new Map<string, Promise<Job>>();
   /** Comments handled by the running Claude session, and the revision it started from. */
   private session?: { comments: string[]; fromRevision: number; render: boolean };
 
   constructor(
     readonly store: ProjectStore,
-    readonly port: number,
+    readonly ctx: ProjectContext,
   ) {
-    this.jobs = new Jobs(() => this.changed());
+    this.id = ctx.id;
+    this.worker = ctx.worker;
+    this.jobs = new Jobs(ctx.scheduler, ctx.id);
+    this.offJobs = ctx.scheduler.listen(ctx.id, () => this.changed());
     this.claude = new ClaudeRunner({
       dir: store.dir,
-      port,
+      mcpUrl: `${this.baseUrl}/api/p/${encodeURIComponent(ctx.id)}/mcp`,
       model: store.project.settings.claudeModel,
       onEvent: (event) => this.broadcast({ type: "claude", event }),
       onEnd: (ok) => void this.onClaudeEnd(ok),
     });
+    this.sync = new FolderSync(this);
+    if (ctx.watch !== false) {
+      this.watcher = new FolderWatcher(store.dir, () => void this.sync.sync().catch((e) => console.error(`[watch] ${store.dir}: ${e}`)));
+      this.watcher.start();
+    }
+  }
+
+  get port() {
+    return this.ctx.port;
   }
 
   get baseUrl() {
     return `http://127.0.0.1:${this.port}`;
+  }
+
+  /** Stops the watcher and Claude, cancels the project's jobs (project closed or server stopping). */
+  close() {
+    this.watcher?.stop();
+    this.claude.stop();
+    this.ctx.scheduler.cancelProject(this.id);
+    this.offJobs();
+    clearTimeout(this.stateTimer);
+    this.listeners.clear();
+  }
+
+  // ───── the project folders ─────
+
+  /** Path relative to the project ("/"-separated, NFC) when `abs` is inside a watched folder. */
+  relInFolders(abs: string): string | undefined {
+    const real = (p: string) => {
+      try {
+        return nfc(realpathSync(p));
+      } catch {
+        return nfc(resolve(p));
+      }
+    };
+    const r = relative(real(this.store.dir), real(abs));
+    if (!r || r.startsWith("..") || isAbsolute(r)) return undefined;
+    const rel = r.split(sep).join("/");
+    return WATCHED_FOLDERS.some((f) => rel.startsWith(`${f}/`)) ? rel : undefined;
+  }
+
+  /** Marks a file the server is about to write, so the watcher does not import it on its own. */
+  claim(rel: string, ms = 30_000) {
+    this.claims.set(nfc(rel).toLowerCase(), Date.now() + ms);
+  }
+
+  /** True while the server itself is writing or importing this file. */
+  isBusy(rel: string): boolean {
+    const k = nfc(rel).toLowerCase();
+    if (this.importing.has(k)) return true;
+    const until = this.claims.get(k);
+    if (until === undefined) return false;
+    if (until > Date.now()) return true;
+    this.claims.delete(k);
+    return false;
+  }
+
+  /** Resolves when the asset's ingestion job is over (immediately if none is running). */
+  async waitIngest(assetId: string) {
+    await this.ingests.get(assetId);
+  }
+
+  /** Shows a project file in the Finder (`open -R`). Nothing: the project folder itself. */
+  reveal(target: { path?: string; assetId?: string; versionId?: string } = {}): string {
+    const s = this.store;
+    const fail = (status: number, msg: string) => Object.assign(new Error(msg), { status });
+    let rel = target.path ?? "";
+    if (target.assetId) {
+      const a = s.asset(target.assetId);
+      if (!a) throw fail(404, `unknown asset ${target.assetId}`);
+      rel = a.file;
+    } else if (target.versionId) {
+      const v = s.versions.find((x) => x.id === target.versionId);
+      const file = v?.exportFile && existsSync(s.path(v.exportFile)) ? v.exportFile : v?.file;
+      if (!file) throw fail(404, `no render for ${target.versionId}`);
+      rel = file;
+    }
+    const root = resolve(s.dir);
+    const abs = resolve(root, rel);
+    if (abs !== root && !abs.startsWith(root + sep)) throw fail(403, "outside the project");
+    if (!existsSync(abs)) throw fail(404, `not found: ${rel}`);
+    Bun.spawn([...Cezane.revealCommand, abs], { stdout: "ignore", stderr: "ignore" });
+    return abs;
   }
 
   // ───── events ─────
@@ -65,12 +209,20 @@ export class Cezane {
   }
   changed() {
     clearTimeout(this.stateTimer);
-    this.stateTimer = setTimeout(() => this.broadcast({ type: "state", state: this.state() }), 80);
+    this.stateTimer = setTimeout(() => {
+      this.broadcast({ type: "state", state: this.state() });
+      this.ctx.onChange?.();
+    }, 80);
+  }
+
+  changedFiles() {
+    this.broadcast({ type: "files", projectId: this.id });
   }
 
   state(): ServerState {
     const s = this.store;
     return {
+      projectId: this.id,
       dir: s.dir,
       project: s.project,
       montage: s.montage,
@@ -84,72 +236,138 @@ export class Cezane {
 
   // ───── import & ingestion ─────
 
-  async importFiles(paths: string[], provenance?: Asset["provenance"], opts: { wait?: boolean; name?: string; tags?: string[] } = {}): Promise<Asset[]> {
+  /**
+   * Imports files as assets. A file already in Rushes/, Générés/ or Captures/ is used where it is;
+   * any other file is linked (or copied) into the folder of its provenance under a readable name:
+   * imports keep their original name ("plage 2.mov" on a collision), captures their name or target.
+   * `events`: interaction log of a screen recording (default: `<file>.events.json` next to it).
+   */
+  async importFiles(paths: string[], provenance?: Asset["provenance"], opts: { wait?: boolean; name?: string; tags?: string[]; events?: string } = {}): Promise<Asset[]> {
     const out: Asset[] = [];
     const waits: Promise<Job>[] = [];
+    const s = this.store;
     for (const raw of paths) {
       const src = resolve(raw);
       if (!existsSync(src)) throw new Error(`file not found: ${raw}`);
-      const hash = await sha256File(src);
-      const existing = this.store.project.assets.find((a) => a.hash === hash);
-      if (existing) {
-        out.push(existing);
-        continue;
-      }
-      const info = await probe(src);
-      const kind: Asset["kind"] = info.isImage ? "image" : info.hasVideo ? "video" : "audio";
-      // A screen recording can come with its interaction log (capture.events.json next to capture.webm).
-      const sidecar = src.replace(/\.[^.]+$/, ".events.json");
-      const derived: Asset["derived"] = {};
-      if (kind === "video" && existsSync(sidecar)) {
-        copyFileSync(sidecar, join(cacheDir(hash), "events.json"));
-        derived.events = "events.json";
-      }
-      const file = join("media", `${hash}${extname(src).toLowerCase() || ".bin"}`);
-      const dest = this.store.path(file);
-      if (!existsSync(dest)) {
-        try {
-          linkSync(src, dest); // same volume: no extra disk space
-        } catch {
-          copyFileSync(src, dest);
+      const inPlace = this.relInFolders(src);
+      const key = inPlace && nfc(inPlace).toLowerCase();
+      if (key) this.importing.add(key);
+      try {
+        const hash = await sha256File(src);
+        const twin = () => s.project.assets.find((a) => a.hash === hash);
+        if (twin()) {
+          out.push(twin()!);
+          continue;
         }
-      }
-      const asset: Asset = {
-        id: newId("a"),
-        kind,
-        name: opts.name ?? basename(src, extname(src)),
-        hash,
-        file,
-        duration: info.duration,
-        width: info.width,
-        height: info.height,
-        fps: info.fps,
-        hasAudio: info.hasAudio,
-        provenance: provenance ?? { type: "import", path: src },
-        derived,
-        status: "ingesting",
-        tags: opts.tags ?? [],
-        createdAt: now(),
-      };
-      this.store.project.assets.push(asset);
-      this.store.saveProject();
-      out.push(asset);
-      waits.push(
-        this.jobs.add("ingest", `Import · ${asset.name}`, async (update) => {
+        const info = await probe(src);
+        if (twin()) {
+          out.push(twin()!); // imported meanwhile (watcher, double click)
+          continue;
+        }
+        const kind: Asset["kind"] = info.isImage ? "image" : info.hasVideo ? "video" : "audio";
+        const prov: Asset["provenance"] = provenance ?? { type: "import", path: src };
+        // A screen recording can come with its interaction log (capture.events.json next to capture.webm).
+        const sidecar = opts.events ?? src.replace(/\.[^.]+$/, ".events.json");
+        const derived: Asset["derived"] = {};
+        if (kind === "video" && existsSync(sidecar)) {
+          copyFileSync(sidecar, join(cacheDir(hash), "events.json"));
+          derived.events = "events.json";
+        }
+        let file = inPlace;
+        if (!file) {
+          const folder = folderFor(prov);
+          const dir = s.path(folder);
+          mkdirSync(dir, { recursive: true });
+          file = `${folder}/${fileNameFor({ name: opts.name ?? basename(src, extname(src)), provenance: prov }, extname(src) || ".bin", dir)}`;
+          this.claim(file);
+          linkOrCopy(src, s.path(file)); // same volume: a hard link, no extra disk space
+        }
+        const dest = s.path(file);
+        const asset: Asset = {
+          id: newId("a"),
+          kind,
+          name: opts.name ?? basename(src, extname(src)),
+          hash,
+          file,
+          duration: info.duration,
+          width: info.width,
+          height: info.height,
+          fps: info.fps,
+          hasAudio: info.hasAudio,
+          provenance: prov,
+          derived,
+          status: "ingesting",
+          tags: opts.tags ?? [],
+          createdAt: now(),
+        };
+        s.project.assets.push(asset);
+        s.saveProject();
+        out.push(asset);
+        const job = this.jobs.add("ingest", `Import · ${asset.name}`, async (update) => {
           try {
             const patch = await ingest(asset, dest, info, (p, label) => update(p, `${label} · ${asset.name}`));
-            this.store.updateAsset(asset.id, patch);
+            s.updateAsset(asset.id, patch);
           } catch (e) {
-            this.store.updateAsset(asset.id, { status: "error", error: e instanceof Error ? e.message : String(e) });
+            s.updateAsset(asset.id, { status: "error", error: e instanceof Error ? e.message : String(e) });
             throw e;
           }
           return { assetId: asset.id };
-        }),
-      );
+        });
+        this.ingests.set(asset.id, job);
+        void job.then(() => this.ingests.delete(asset.id));
+        waits.push(job);
+      } finally {
+        if (key) this.importing.delete(key);
+      }
     }
     this.changed();
+    if (out.length) this.changedFiles();
     if (opts.wait) await Promise.all(waits);
-    return out.map((a) => this.store.asset(a.id) ?? a);
+    return out.map((a) => s.asset(a.id) ?? a);
+  }
+
+  /** Writes uploaded files straight into Rushes/ (original names, " 2" on collisions), then imports them. */
+  async importUploads(files: File[]): Promise<Asset[]> {
+    const dir = this.store.path(FOLDERS.rushes);
+    mkdirSync(dir, { recursive: true });
+    const paths: string[] = [];
+    for (const f of files) {
+      const name = uniqueName(dir, f.name || "rush");
+      this.claim(`${FOLDERS.rushes}/${name}`);
+      await Bun.write(join(dir, name), f);
+      paths.push(join(dir, name));
+    }
+    return this.importFiles(paths);
+  }
+
+  /**
+   * Captures the iOS simulator or a web page into Captures/ (readable name) and imports it.
+   * Captures go through the scheduler: one at a time across all projects (one simulator, one Chrome).
+   * The job ends when the file is imported; ingestion runs as its own job (see waitIngest).
+   */
+  capture(o: CaptureRequest): Promise<Job> {
+    const s = this.store;
+    if (o.target === "web" && !o.url) return Promise.reject(new Error("url required"));
+    const label = `Capture ${o.target === "web" ? o.url : "simulateur"}`;
+    return this.jobs.add("capture", label, async () => {
+      const mode = o.mode ?? "screenshot";
+      const ext = mode === "video" ? (o.target === "web" ? ".webm" : ".mov") : ".png";
+      mkdirSync(s.path(".cezane/tmp"), { recursive: true });
+      const tmp = s.path(".cezane/tmp", `capture-${newId("c")}${ext}`);
+      if (o.target === "web") await captureWeb({ url: o.url!, out: tmp, width: o.width, height: o.height, fullPage: o.fullPage, actions: o.actions });
+      else await captureIos({ out: tmp, seconds: o.seconds });
+      const target = o.url ?? "simulator";
+      const dir = s.path(FOLDERS.captures);
+      mkdirSync(dir, { recursive: true });
+      const name = readableName(o.name) ? uniqueName(dir, `${safeFileName(o.name)}${ext}`) : counterName(dir, captureSlug(target), ext);
+      const rel = `${FOLDERS.captures}/${name}`;
+      this.claim(rel);
+      renameSync(tmp, s.path(rel));
+      const events = eventsPath(tmp);
+      const [a] = await this.importFiles([s.path(rel)], { type: "capture", source: o.target, target }, { name: basename(name, ext), events: existsSync(events) ? events : undefined });
+      if (existsSync(events)) unlinkSync(events);
+      return { assetId: a!.id };
+    });
   }
 
   // ───── rendering ─────
@@ -232,6 +450,12 @@ export class Cezane {
         const poster = join(".cezane/renders", `${id}.jpg`);
         await ffmpeg(["-ss", "0.5", "-i", s.path(file), "-frames:v", "1", "-vf", "scale=-2:640", "-q:v", "4", s.path(poster)]).catch(() => undefined);
         Object.assign(version, { status: "ready", progress: 1, file, poster, changed: prev ? r.changed : [], segmentKeys: r.keys, renderSeconds: +r.seconds.toFixed(1) });
+        try {
+          version.exportFile = exportRender(s.dir, file, this.reelSlug(montage.id), n);
+          this.changedFiles();
+        } catch (e) {
+          console.error(`[export] ${id}: ${e instanceof Error ? e.message : e}`);
+        }
         for (const c of s.comments) if (c.status === "fixed" && !c.fixedIn && commentIds.includes(c.id)) c.fixedIn = id;
         s.saveComments();
         console.log(`[render] ${id}: ${r.rendered}/${r.total} segments in ${r.seconds.toFixed(1)}s`);
@@ -245,6 +469,26 @@ export class Cezane {
     });
     this.changed();
     return version;
+  }
+
+  reelSlug(montageId: string): string {
+    const s = this.store;
+    return reelSlug(s.project.name, s.project.montages.find((m) => m.id === montageId)?.name ?? (s.montage.id === montageId ? s.montage.name : undefined));
+  }
+
+  /** Links a ready render into Exports/ again (after it was deleted there, or for an old version). */
+  exportVersion(id: string): Version {
+    const s = this.store;
+    const v = s.versions.find((x) => x.id === id);
+    if (!v) throw Object.assign(new Error("unknown version"), { status: 404 });
+    if (v.status !== "ready" || !v.file || !existsSync(s.path(v.file))) throw new Error(`${id} has no render`);
+    if (!v.exportFile || !existsSync(s.path(v.exportFile))) {
+      v.exportFile = exportRender(s.dir, v.file, this.reelSlug(v.montageId), v.n);
+      s.saveVersions();
+      this.changed();
+      this.changedFiles();
+    }
+    return v;
   }
 
   // ───── comments ─────
@@ -373,7 +617,9 @@ export class Cezane {
     return this.jobs.add("generate", `${model.label} · ${req.prompt.slice(0, 40)}`, async (update, signal) => {
       const workDir = s.path(".cezane/generate", newId("g"));
       mkdirSync(workDir, { recursive: true });
-      const out = await runGenerate({ ...req, inputPaths, workDir }, (p) => update(p), signal);
+      // The result lands straight in Générés/ as `<prompt-slug>-01.png`.
+      const dest = { dir: s.path(FOLDERS.generated), slug: promptSlug(req.prompt), claim: (name: string) => this.claim(`${FOLDERS.generated}/${name}`) };
+      const out = await runGenerate({ ...req, inputPaths, workDir, out: dest }, (p) => update(p), signal).finally(() => rmSync(workDir, { recursive: true, force: true }));
       s.project.settings.spentEur = +(s.project.settings.spentEur + out.costEur).toFixed(4);
       s.saveProject();
       if (out.text !== undefined) return { text: out.text };

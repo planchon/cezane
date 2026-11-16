@@ -4,13 +4,16 @@
 
 ```
 mon-projet/
+  Rushes/              rushes importés, sous leur nom d'origine
+  Générés/             générations IA (« fond-studio-01.png »)
+  Captures/            captures simulateur et web
+  Exports/             rendus (« mon-reel-v3.mp4 »)
   cezane.json          index du projet : réglages, assets, liste des documents
   montages/<id>.json   timeline d'un montage
   canvases/<id>.json   contenu d'un canvas
   comments.json        tous les commentaires du projet
   versions.json        versions du montage (métadonnées)
   graphics/            composants Remotion écrits pour ce projet
-  media/               fichiers importés et générés, nommés par empreinte
   .cezane/
     history/           une copie par révision + journal (qui a changé quoi)
     segments/          segments vidéo rendus (cache)
@@ -18,8 +21,10 @@ mon-projet/
     comments/          captures prises au moment des commentaires
 ```
 
-Le serveur `cezane` est le seul à écrire ces fichiers. L'UI et Claude passent par lui
-([README.md](README.md)).
+Le serveur `cezane` est le seul à écrire les documents. L'UI et Claude passent par lui
+([README.md](README.md)). Les quatre dossiers de médias sont faits pour le Finder : ce qu'on y
+ajoute, renomme ou supprime est suivi en direct ([projets.md](projets.md), qui décrit aussi le
+registre des projets et la migration depuis l'ancien `media/<empreinte>`).
 
 ## Assets
 

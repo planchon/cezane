@@ -24,7 +24,8 @@
       "ca70a1bfb7b9e68de7d1"
     ],
     "renderSeconds": 28.6,
-    "createdAt": "2026-11-16T00:21:10.000Z"
+    "createdAt": "2026-11-16T00:21:10.000Z",
+    "exportFile": "Exports/rewind-explication-v1.mp4"
   },
   {
     "id": "v2",
@@ -56,7 +57,8 @@
       "8c260443805085f14173"
     ],
     "renderSeconds": 19.7,
-    "createdAt": "2026-11-16T00:22:13.023Z"
+    "createdAt": "2026-11-16T00:22:13.023Z",
+    "exportFile": "Exports/rewind-explication-v2.mp4"
   },
   {
     "id": "v3",
@@ -88,7 +90,8 @@
       "2dc06bee60ad4c36844c"
     ],
     "renderSeconds": 5.1,
-    "createdAt": "2026-11-16T00:22:47.634Z"
+    "createdAt": "2026-11-16T00:22:47.634Z",
+    "exportFile": "Exports/rewind-explication-v3.mp4"
   },
   {
     "id": "v4",
@@ -119,7 +122,8 @@
       "54bb0e8a62b00073a7b8"
     ],
     "renderSeconds": 25.5,
-    "createdAt": "2026-11-16T10:37:19.512Z"
+    "createdAt": "2026-11-16T10:37:19.512Z",
+    "exportFile": "Exports/rewind-explication-v4.mp4"
   },
   {
     "id": "v5",
@@ -150,6 +154,7 @@
     "createdAt": "2026-11-16T11:13:35.656Z",
     "file": ".cezane/renders/v5.mp4",
     "poster": ".cezane/renders/v5.jpg",
-    "renderSeconds": 25.6
+    "renderSeconds": 25.6,
+    "exportFile": "Exports/rewind-explication-v5.mp4"
   }
 ]

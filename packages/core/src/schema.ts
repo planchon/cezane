@@ -44,7 +44,7 @@ export const Provenance = z.discriminatedUnion("type", [
   }),
   z.object({
     type: z.literal("capture"),
-    source: z.enum(["web", "ios"]),
+    source: z.enum(["web", "ios", "finder"]), // finder: a file dropped into Captures/ by hand
     target: z.string(),
     note: z.string().optional(),
   }),
@@ -73,7 +73,7 @@ export const Asset = z.object({
   kind: z.enum(["video", "image", "audio"]),
   name: z.string(),
   hash: z.string(),
-  file: z.string(), // original file, relative to the project dir (media/<hash>.<ext>)
+  file: z.string(), // original file, relative to the project dir: Rushes/…, Générés/…, Captures/… (media/<hash>.<ext> before v0.2)
   duration: z.number().optional(), // seconds
   width: z.number().optional(),
   height: z.number().optional(),
@@ -83,6 +83,7 @@ export const Asset = z.object({
   derived: Derived.default({}),
   status: z.enum(["ingesting", "ready", "error"]).default("ingesting"),
   error: z.string().optional(),
+  missing: z.boolean().optional(), // its file was deleted from the Finder; renders still work from the cache
   tags: z.array(z.string()).default([]),
   createdAt: z.string(),
 });
@@ -304,7 +305,8 @@ export const Version = z.object({
   status: z.enum(["rendering", "ready", "error"]),
   progress: z.number().default(0),
   error: z.string().optional(),
-  file: z.string().optional(), // project-relative mp4
+  file: z.string().optional(), // project-relative mp4 (.cezane/renders/vN.mp4)
+  exportFile: z.string().optional(), // the same render in Exports/ (`<reel-slug>-vN.mp4`, hard link)
   poster: z.string().optional(),
   montageFile: z.string(), // frozen montage json
   durationFrames: z.number().int(),

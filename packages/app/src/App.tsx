@@ -1,39 +1,42 @@
 import { useEffect, useState } from "react";
 import { brandUrl } from "./api";
 import { CanvasView } from "./canvas/CanvasView";
+import { ExportView } from "./export/ExportView";
 import { MontageView } from "./montage/MontageView";
 import { RightPanel } from "./panels/RightPanel";
 import { useApp } from "./store";
 import { importFiles } from "./ui/actions";
-import { LeftPanel } from "./ui/LeftPanel";
+import { AssetsPane } from "./ui/AssetsPanel";
+import { ReelPicker, ViewSwitcher } from "./ui/Pickers";
 import { Toaster } from "./ui/toast";
+import { TopBar } from "./ui/TopBar";
 
 export function App() {
   const { state, error, connected, ui, setUi } = useApp();
   const [dragging, setDragging] = useState(false);
+  const timeline = ui.view === "timeline";
 
-  // Global shortcuts (the canvas handles its own keys).
+  // Global shortcuts of the timeline (the canvas handles its own keys).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement;
       if (t.closest("input, textarea, select, [contenteditable=true]") || e.metaKey || e.ctrlKey || e.altKey) return;
-      if (ui.tab !== "montage") return;
+      if (!timeline) return;
       const k = e.key.toLowerCase();
       if (k === "v") setUi({ tool: "select" });
-      else if (k === "h") setUi({ tool: "hand" });
       else if (k === "c") setUi({ tool: "comment" });
       else if (e.key === "Escape") setUi({ tool: "select" });
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [ui.tab, setUi]);
+  }, [timeline, setUi]);
 
-  // Files dropped anywhere on the montage screen become assets.
+  // Files dropped anywhere on the timeline become assets (the Médias pane has its own drop zone).
   useEffect(() => {
     let depth = 0;
     const hasFiles = (e: DragEvent) => Array.from(e.dataTransfer?.types ?? []).includes("Files");
     const enter = (e: DragEvent) => {
-      if (!hasFiles(e) || ui.tab !== "montage") return;
+      if (!hasFiles(e) || !timeline) return;
       depth++;
       setDragging(true);
     };
@@ -42,12 +45,12 @@ export function App() {
       if (!depth) setDragging(false);
     };
     const over = (e: DragEvent) => {
-      if (hasFiles(e) && ui.tab === "montage") e.preventDefault();
+      if (hasFiles(e) && timeline) e.preventDefault();
     };
     const drop = (e: DragEvent) => {
       depth = 0;
       setDragging(false);
-      if (!hasFiles(e) || ui.tab !== "montage") return;
+      if (!hasFiles(e) || !timeline) return;
       e.preventDefault();
       importFiles(Array.from(e.dataTransfer?.files ?? []));
     };
@@ -61,7 +64,7 @@ export function App() {
       window.removeEventListener("dragover", over);
       window.removeEventListener("drop", drop);
     };
-  }, [ui.tab]);
+  }, [timeline]);
 
   if (!state)
     return (
@@ -72,12 +75,20 @@ export function App() {
       </div>
     );
 
-  // Figma UI3 layout: left panel, canvas with its docked timeline, right panel. No top bar.
+  // Top strip (future project tabs), then the work area: the view with its floating switcher, and the
+  // right panel (not in Export). No left panel: versions live in the right panel's header.
   return (
     <div className="app">
-      <LeftPanel />
-      <div className="mid">{ui.tab === "montage" ? <MontageView /> : <CanvasView />}</div>
-      <RightPanel />
+      <TopBar />
+      <div className="work">
+        {ui.view === "medias" && <AssetsPane />}
+        <div className="mid">
+          {timeline ? <MontageView /> : ui.view === "medias" ? <CanvasView /> : <ExportView />}
+          {timeline && <ReelPicker />}
+          <ViewSwitcher />
+        </div>
+        {ui.view !== "export" && <RightPanel />}
+      </div>
       {!connected && <div className="offline">Connexion au serveur perdue — reconnexion…</div>}
       {dragging && <div className="global-drop">Déposer pour importer dans le projet</div>}
       <Toaster />

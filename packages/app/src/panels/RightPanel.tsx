@@ -5,14 +5,18 @@ import { api, assetMedia, assetThumb, fileUrl, post } from "../api";
 import { claudeMade, clipIcon, clipLabel } from "../montage/clips";
 import { playhead, useApp, useVersionMontage } from "../store";
 import { renderVersion } from "../ui/actions";
+import { VersionPicker } from "../ui/Pickers";
+import { Resizer, usePanelSize } from "../ui/Resizer";
 import { clock, pendingForClaude, relTime, shortTool, statusChip, statusLabel, timecode } from "../ui/format";
 import { attempt } from "../ui/toast";
 
 export function RightPanel() {
   const { ui, setUi, log } = useApp();
   const waitingPermission = useMemo(() => openPermissions(log).length, [log]);
+  const panel = usePanelSize("right", 300, 240, 480);
   return (
-    <aside className="R">
+    <aside className="R" style={{ width: panel.size }}>
+      <Resizer edge="left" panel={panel} />
       <PanelHead />
       <div className="tabs">
         <button className={`tab ${ui.panel === "props" ? "on" : ""}`} onClick={() => setUi({ panel: "props" })}>
@@ -30,7 +34,7 @@ export function RightPanel() {
   );
 }
 
-/** Avatars (you, Claude with its activity), running jobs, and the primary action. */
+/** The displayed version, running jobs, the avatars (you, Claude with its activity), and the primary action. */
 function PanelHead() {
   const { state, setUi, connected } = useApp();
   const running = state?.jobs.filter((j) => j.status === "running" || j.status === "queued") ?? [];
@@ -39,6 +43,14 @@ function PanelHead() {
   const rendering = state?.versions.some((v) => v.status === "rendering");
   return (
     <div className="rh">
+      <VersionPicker empty="Pas de version" />
+      <div className="sp" />
+      {job && (
+        <span className="jobs" title={running.map((j) => `${j.label} ${Math.round(j.progress * 100)} %`).join("\n")}>
+          <span className="ring" style={{ "--p": job.progress } as React.CSSProperties} />
+          {running.length > 1 && <span>{running.length}</span>}
+        </span>
+      )}
       <div className="avs">
         <span className="av me" title="Toi">
           P
@@ -52,15 +64,6 @@ function PanelHead() {
           C
         </button>
       </div>
-      <div className="sp" />
-      {job && (
-        <span className="jobs" title={running.map((j) => `${j.label} ${Math.round(j.progress * 100)} %`).join("\n")}>
-          <span className="ring" style={{ "--p": job.progress } as React.CSSProperties} />
-          <span className="ell">
-            {Math.round(job.progress * 100)} %{running.length > 1 ? ` (+${running.length - 1})` : ""}
-          </span>
-        </span>
-      )}
       <button className="btn pri" disabled={!state || rendering} onClick={() => void renderVersion()} title="Rendre une nouvelle version du montage">
         {rendering && <Loader2 size={12} className="spin" />}
         Rendre
@@ -152,7 +155,7 @@ function CommentItem({ c, first }: { c: Comment; first: boolean }) {
 
   const focus = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest("button, input, textarea, a")) return;
-    setUi(a.kind === "canvas" ? { commentId: c.id, tab: "canvas" } : { commentId: c.id, tab: "montage" });
+    setUi(a.kind === "canvas" ? { commentId: c.id, view: "medias" } : { commentId: c.id, view: "timeline" });
     if (target !== undefined && !removed) playhead.seek(target);
   };
 
@@ -197,7 +200,7 @@ function CommentItem({ c, first }: { c: Comment; first: boolean }) {
               <button
                 className="btn"
                 onClick={() => {
-                  setUi({ versionId: fixedIn.id, compare: true, compareId: a.versionId, commentId: c.id, tab: "montage" });
+                  setUi({ versionId: fixedIn.id, compare: true, compareId: a.versionId, commentId: c.id, view: "timeline" });
                   if (target !== undefined) setTimeout(() => playhead.seek(target!), 300);
                 }}
               >

@@ -16,6 +16,7 @@ Ce dossier fixe l'architecture avant d'écrire du code.
 |---|---|
 | [interface.md](interface.md) | L'interface à la Figma : documents, barre d'outils, panneaux |
 | [projet.md](projet.md) | Les documents du projet, les assets, le montage, le stockage |
+| [projets.md](projets.md) | Plusieurs projets par serveur, dossiers Finder, registre, routes, watcher, jobs |
 | [versions-commentaires.md](versions-commentaires.md) | Révisions, versions, outil commentaire, ancres, cycle de vie, comparaison |
 | [canvas.md](canvas.md) | Le canvas libre de création, la génération, les workflows, le lien avec le montage |
 | [ingestion.md](ingestion.md) | Tout ce qui se calcule une fois à l'import |

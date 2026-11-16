@@ -4,7 +4,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { z } from "zod";
 import { CAPTION_STYLES, type LookItem, type Op, clipEnd, findClip, newId, OpError, overview, resolveAnchor } from "@cezane/core";
-import { captionsOps, captureIos, captureWeb, cutSilencesOps, ffmpeg, greenScreenOps, look, timelineWords, transcriptLines } from "@cezane/engine";
+import { captionsOps, cutSilencesOps, ffmpeg, greenScreenOps, look, timelineWords, transcriptLines } from "@cezane/engine";
 import type { Cezane } from "./app";
 
 type Content = { type: "text"; text: string } | { type: "image"; data: string; mimeType: string };
@@ -261,7 +261,7 @@ function buildServer(app: Cezane): McpServer {
   server.registerTool(
     "capture",
     {
-      description: "Capture an app as a new asset: a web page in Chrome (screenshot or scrolling recording) or the booted iOS simulator (screenshot or recording).",
+      description: "Capture an app as a new asset (saved in the project's Captures/ folder): a web page in Chrome (screenshot or scrolling recording) or the booted iOS simulator (screenshot or recording). One capture at a time across projects: it may wait.",
       inputSchema: {
         target: z.enum(["web", "ios"]),
         mode: z.enum(["screenshot", "video"]).default("screenshot"),
@@ -271,16 +271,16 @@ function buildServer(app: Cezane): McpServer {
         fullPage: z.boolean().optional(),
         seconds: z.number().optional(),
         actions: z.array(z.record(z.string(), z.unknown())).optional().describe("web: [{wait:ms}|{click:sel}|{type:[sel,text]}|{scroll:px,ms?}|{goto:url}|{hover:sel}]"),
+        name: z.string().optional().describe("readable file name in Captures/, e.g. 'onboarding-step-1' (default: from the URL)"),
       },
     },
     async (o) => {
-      const out = tmp(`capture-${newId("c")}.${o.mode === "video" ? (o.target === "web" ? "webm" : "mov") : "png"}`);
-      if (o.target === "web") {
-        if (!o.url) return fail("url required");
-        await captureWeb({ url: o.url, out, width: o.width, height: o.height, fullPage: o.fullPage, actions: o.actions as never });
-      } else await captureIos({ out, seconds: o.seconds });
-      const [a] = await app.importFiles([out], { type: "capture", source: o.target, target: o.url ?? "simulator" }, { wait: true });
-      return text(`${a!.id} "${a!.name}" ${a!.kind} ${a!.width}x${a!.height}`);
+      // Queued behind any other capture (all projects share one simulator and one Chrome).
+      const job = await app.capture({ ...o, actions: o.actions as never }).catch((e: Error) => ({ status: "error" as const, error: e.message, result: undefined }));
+      if (job.status === "error" || !job.result?.assetId) return fail(job.error ?? "capture failed");
+      await app.waitIngest(job.result.assetId);
+      const a = s.asset(job.result.assetId)!;
+      return text(`${a.id} "${a.name}" ${a.kind} ${a.width}x${a.height} → ${a.file}`);
     },
   );
 

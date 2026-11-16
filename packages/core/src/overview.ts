@@ -41,7 +41,7 @@ export function overview(p: Project, m: Montage, comments: Comment[], versions: 
   }
   lines.push("", "Assets:");
   for (const a of p.assets) {
-    const meta = [a.kind, a.duration ? `${a.duration.toFixed(1)}s` : "", a.width ? `${a.width}x${a.height}` : "", a.derived.transcript ? "transcript" : "", a.derived.cutout ? "cutout" : "", a.status !== "ready" ? a.status : ""].filter(Boolean);
+    const meta = [a.kind, a.duration ? `${a.duration.toFixed(1)}s` : "", a.width ? `${a.width}x${a.height}` : "", a.derived.transcript ? "transcript" : "", a.derived.cutout ? "cutout" : "", a.status !== "ready" ? a.status : "", a.missing ? "FILE MISSING" : ""].filter(Boolean);
     lines.push(`- ${a.id} "${a.name}" ${meta.join(" ")} (${a.provenance.type})`);
   }
   const open = comments.filter((c) => c.status !== "validated");

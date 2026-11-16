@@ -1,11 +1,39 @@
 {
   "id": "cv_799gel",
   "name": "Canvas",
-  "pending": [],
-  "updatedAt": "2026-11-16T00:40:45.230Z",
   "snapshot": {
     "document": {
       "store": {
+        "shape:BOmRSg4QTuAuWZGcfbTqO": {
+          "x": 760,
+          "y": 302,
+          "rotation": 0,
+          "isLocked": false,
+          "opacity": 1,
+          "meta": {
+            "ratio": "9:16",
+            "refs": []
+          },
+          "id": "shape:BOmRSg4QTuAuWZGcfbTqO",
+          "type": "gen-card",
+          "props": {
+            "w": 278,
+            "h": 254,
+            "kind": "image",
+            "prompt": "je veux une view de la montage saint victoire, avec un petit teckel a bord de la fenetre de la cuisine",
+            "provider": "codex",
+            "model": "imagegen",
+            "status": "running",
+            "jobId": "j_kesa2w",
+            "assetId": "",
+            "versions": [],
+            "chosen": 0,
+            "error": ""
+          },
+          "parentId": "page:page",
+          "index": "a4Bkv",
+          "typeName": "shape"
+        },
         "shape:cl_8c34db": {
           "x": 760,
           "y": 0,
@@ -19,8 +47,8 @@
           "id": "shape:cl_8c34db",
           "type": "gen-card",
           "props": {
-            "w": 320,
-            "h": 629,
+            "w": 278,
+            "h": 254,
             "kind": "image",
             "prompt": "Cézanne : caméra dans l atelier, Sainte-Victoire (Codex)",
             "provider": "codex",
@@ -130,6 +158,14 @@
           "index": "a24PI",
           "typeName": "shape"
         },
+        "user:ycNTajdwObSrCeu4k533I": {
+          "name": "",
+          "color": "#02B1CC",
+          "imageUrl": "",
+          "meta": {},
+          "id": "user:ycNTajdwObSrCeu4k533I",
+          "typeName": "user"
+        },
         "user:TrUy6mURaRzwfJy9lrcVB": {
           "name": "",
           "color": "#BD54C6",
@@ -139,8 +175,8 @@
           "typeName": "user"
         },
         "shape:cl_2a0qq8": {
-          "x": 0,
-          "y": 0,
+          "x": 36.114284365558916,
+          "y": 5.8629154078549846,
           "rotation": 0,
           "isLocked": false,
           "opacity": 1,
@@ -235,6 +271,7 @@
           "com.tldraw.shape.image": 5,
           "com.tldraw.shape.video": 4,
           "com.tldraw.shape.gen-card": 0,
+          "com.tldraw.shape.media-ref": 0,
           "com.tldraw.binding.arrow": 1
         }
       }
@@ -251,14 +288,18 @@
         {
           "pageId": "page:page",
           "camera": {
-            "x": 104.41087613293053,
-            "y": 352.7507552870091,
-            "z": 0.6129629629629629
+            "x": -93.74702740142993,
+            "y": 220.2716619247774,
+            "z": 1.0147795356500402
           },
-          "selectedShapeIds": [],
+          "selectedShapeIds": [
+            "shape:BOmRSg4QTuAuWZGcfbTqO"
+          ],
           "focusedGroupId": null
         }
       ]
     }
-  }
+  },
+  "pending": [],
+  "updatedAt": "2026-11-16T23:07:16.549Z"
 }

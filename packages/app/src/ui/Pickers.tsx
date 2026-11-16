@@ -142,7 +142,7 @@ export function VersionPicker({ align = "left", empty = "Aucune version" }: { al
                 aria-checked={on}
                 className="menu-item tall"
                 onClick={() => {
-                  setUi({ versionId: v.id });
+                  setUi({ versionId: v.id, compareId: undefined });
                   setOpen(false);
                 }}
               >

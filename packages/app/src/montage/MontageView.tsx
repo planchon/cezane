@@ -1,9 +1,10 @@
 import { type Anchor, type Comment, type Montage, type Point, type Region, resolveAnchor, type Version } from "@cezane/core";
-import { ArrowUp, Columns2, MessageCircle, MousePointer2 } from "lucide-react";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { ArrowUp, Check, ChevronDown, Columns2, MessageCircle, MousePointer2 } from "lucide-react";
+import { type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { brandUrl, fileUrl, post } from "../api";
 import { playhead, useApp, useFrame, useVersionMontage } from "../store";
-import { clock } from "../ui/format";
+import { clock, clockShort } from "../ui/format";
+import { usePopover, versionWhen } from "../ui/Pickers";
 import { Resizer, usePanelSize } from "../ui/Resizer";
 import { attempt } from "../ui/toast";
 import { commentAvatar, shotsOf } from "./clips";
@@ -21,7 +22,7 @@ export function MontageView() {
   const { state, ui, setUi, version } = useApp();
   const dock = usePanelSize("timeline", 232, 160, () => Math.round(window.innerHeight * 0.6));
   const montage = useVersionMontage(version, state?.montage);
-  const compareVersion = ui.compare ? (state?.versions.find((v) => v.id === ui.compareId) ?? previousReady(state?.versions ?? [], version)) : undefined;
+  const compareVersion = ui.compare ? compareTarget(state?.versions ?? [], version, ui.compareId) : undefined;
   const compareMontage = useVersionMontage(compareVersion, undefined);
   const stage = useRef<HTMLDivElement>(null);
   const [box, setBox] = useState({ w: 400, h: 700 });
@@ -196,7 +197,7 @@ export function MontageView() {
           <div className="stage" style={{ paddingTop: STAGE_TOP }}>
             {compareVersion && (
               <Screen
-                label={`B · V${compareVersion.n}`}
+                head={<ComparePicker current={version!} chosen={compareVersion} />}
                 version={compareVersion}
                 montage={compareMontage}
                 w={screenW}
@@ -207,7 +208,7 @@ export function MontageView() {
               />
             )}
             <Screen
-              label={compareVersion ? `A · V${version!.n}` : undefined}
+              label={compareVersion ? `Après · V${version!.n}` : undefined}
               version={version!}
               montage={montage}
               w={screenW}
@@ -239,9 +240,62 @@ export function MontageView() {
   );
 }
 
-function previousReady(versions: Version[], v?: Version) {
-  if (!v) return undefined;
-  return [...versions].reverse().find((x) => x.n < v.n && x.status === "ready" && x.file);
+/** Rendered versions older than `v`, newest first. */
+function olderReady(versions: Version[], v?: Version) {
+  if (!v) return [];
+  return versions.filter((x) => x.n < v.n && x.status === "ready" && x.file).sort((a, b) => b.n - a.n);
+}
+
+/** The left side of A/B: the version picked in the menu if it is older than the shown one, else N-1. */
+function compareTarget(versions: Version[], v: Version | undefined, chosenId?: string) {
+  const older = olderReady(versions, v);
+  return older.find((x) => x.id === chosenId) ?? older[0];
+}
+
+/** "Avant · V6 ▾" above the left screen: picks which older version to compare with the shown one. */
+function ComparePicker({ current, chosen }: { current: Version; chosen: Version }) {
+  const { state, setUi } = useApp();
+  const { open, setOpen, ref } = usePopover();
+  const older = olderReady(state?.versions ?? [], current);
+  return (
+    <div className="cpick" ref={ref}>
+      <button className={`cpick-btn ${open ? "on" : ""}`} onClick={() => setOpen(!open)} aria-haspopup="menu" aria-expanded={open} title="Choisir la version à comparer">
+        Avant · V{chosen.n}
+        <ChevronDown size={12} />
+      </button>
+      {open && (
+        <div className="pop menu vmenu scroll" role="menu" style={{ top: 22, left: 0 }}>
+          {older.map((v) => {
+            const on = v.id === chosen.id;
+            return (
+              <button
+                key={v.id}
+                role="menuitemradio"
+                aria-checked={on}
+                className="menu-item tall"
+                onClick={() => {
+                  setUi({ compareId: v.id });
+                  setOpen(false);
+                }}
+              >
+                <span className="chk">{on && <Check size={12} />}</span>
+                <span className="vtxt">
+                  <span className="vrow">
+                    <span className="s">V{v.n}</span>
+                    <span className="c2">
+                      {versionWhen(v)} · {clockShort(v.durationFrames, v.fps)}
+                    </span>
+                    {v.n === current.n - 1 && <span className="c2 by">précédente</span>}
+                  </span>
+                  {v.summary && <span className="c2 sum">{v.summary}</span>}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 }
 
 /** JPEG of the displayed frame, at most 540 px wide. */
@@ -261,6 +315,7 @@ function captureFrame(v: HTMLVideoElement | null): string | undefined {
 
 type ScreenProps = {
   label?: string;
+  head?: ReactNode;
   version: Version;
   montage?: Montage;
   w: number;
@@ -273,7 +328,7 @@ type ScreenProps = {
   draft?: Draft;
 };
 
-function Screen({ label, version, montage, w, h, videoRef, muted, interactive, stageRef, onDraft, draft }: ScreenProps) {
+function Screen({ label, head, version, montage, w, h, videoRef, muted, interactive, stageRef, onDraft, draft }: ScreenProps) {
   const { ui, setUi, state } = useApp();
   const frame = useFrame();
   const overlay = useRef<HTMLDivElement>(null);
@@ -330,8 +385,8 @@ function Screen({ label, version, montage, w, h, videoRef, muted, interactive, s
 
   return (
     <div className="fw">
-      <div className="fl" style={{ maxWidth: w }}>
-        <b>{label ?? `V${version.n}`}</b>
+      <div className={`fl ${head ? "has-pick" : ""}`} style={{ maxWidth: w }}>
+        {head ?? <b>{label ?? `V${version.n}`}</b>}
         <span className="ell">{caption}</span>
       </div>
     <div className="fr" style={{ width: w, height: h, overflow: "visible" }}>
@@ -442,7 +497,7 @@ function Toolbar() {
         <MessageCircle size={16} />
       </button>
       <span className="dv" />
-      <button className={`t ${ui.compare ? "on" : ""}`} disabled={!canCompare} title="Comparer deux versions côte à côte (A/B)" onClick={() => setUi((u) => ({ compare: !u.compare }))}>
+      <button className={`t ${ui.compare ? "on" : ""}`} disabled={!canCompare} title="Comparer deux versions côte à côte (A/B)" onClick={() => setUi((u) => ({ compare: !u.compare, compareId: undefined }))}>
         <Columns2 size={16} />
       </button>
     </div>

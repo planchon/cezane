@@ -167,5 +167,128 @@
     "snapshot": ".cezane/comments/k_a4edxq.jpg",
     "fixedIn": "v3",
     "createdAt": "2026-11-16T00:35:02.696Z"
+  },
+  {
+    "id": "k_scmt80",
+    "n": 5,
+    "status": "validated",
+    "anchor": {
+      "kind": "montage",
+      "montageId": "m_jmdvsc",
+      "versionId": "v6",
+      "frame": 231,
+      "pin": {
+        "x": 0.4066205984309433,
+        "y": 0.2213477524630542
+      },
+      "content": {
+        "clipId": "c_7dd132",
+        "assetId": "a_vk1uar",
+        "srcTime": 7.699966666666667
+      }
+    },
+    "thread": [
+      {
+        "author": "user",
+        "text": "attention on ne voit pas le logo\nmets le au premier plan",
+        "at": "2026-11-16T22:51:32.662Z"
+      },
+      {
+        "author": "claude",
+        "text": "J'ai supprimé le détourage (f190–280) : « Vlog week » passe devant la tête et se lit en entier sur f200, f231 et f260. Cela règle aussi le commentaire #1.",
+        "at": "2026-11-16T22:51:49.579Z"
+      }
+    ],
+    "snapshot": ".cezane/comments/k_scmt80.jpg",
+    "createdAt": "2026-11-16T22:51:32.662Z"
+  },
+  {
+    "id": "k_bdthya",
+    "n": 6,
+    "status": "validated",
+    "anchor": {
+      "kind": "montage",
+      "montageId": "m_jmdvsc",
+      "versionId": "v7",
+      "frame": 606,
+      "pin": {
+        "x": 0.5200921364714468,
+        "y": 0.6531647680623974
+      },
+      "content": {
+        "clipId": "c_j8zz7d",
+        "assetId": "a_vk1uar",
+        "srcTime": 20.2
+      }
+    },
+    "thread": [
+      {
+        "author": "user",
+        "text": "le texte des caption est trop au milieu de l'image sur toute la vidéo",
+        "at": "2026-11-16T22:53:59.020Z"
+      },
+      {
+        "author": "claude",
+        "text": "J'ai descendu les captions sur toute la vidéo (y=0.72 au lieu de 0.65), style clean conservé. Elles restent au-dessus de la zone UI TikTok.",
+        "at": "2026-11-16T22:55:01.883Z"
+      },
+      {
+        "author": "user",
+        "text": "encore plus bas",
+        "at": "2026-11-16T22:58:18.826Z"
+      },
+      {
+        "author": "claude",
+        "text": "Captions descendues encore (y=0.8 au lieu de 0.72) sur toute la vidéo. Attention : elles approchent de la zone UI TikTok (bas ~30%), dis-moi si c'est trop.",
+        "at": "2026-11-16T22:58:40.367Z"
+      }
+    ],
+    "snapshot": ".cezane/comments/k_bdthya.jpg",
+    "createdAt": "2026-11-16T22:53:59.020Z",
+    "fixedIn": "v8"
+  },
+  {
+    "id": "k_1ekzil",
+    "n": 7,
+    "status": "validated",
+    "anchor": {
+      "kind": "montage",
+      "montageId": "m_jmdvsc",
+      "versionId": "v7",
+      "frame": 815,
+      "pin": {
+        "x": 0.5149949826673964,
+        "y": 0.1505990866174056
+      },
+      "content": {
+        "clipId": "c_j8zz7d",
+        "assetId": "a_vk1uar",
+        "srcTime": 27.166666666666668
+      }
+    },
+    "thread": [
+      {
+        "author": "user",
+        "text": "met ce texte dans une police sans serif",
+        "at": "2026-11-16T22:54:27.138Z"
+      },
+      {
+        "author": "claude",
+        "text": "Pas réglé : le composant Counter n'a pas de prop de police. J'ai essayé fontFamily sans serif, mais le rendu reste en serif à f815. Il faut modifier le composant (ou le remplacer par un Title sans serif, sans l'animation de comptage). Dis-moi si tu veux l'un des deux.",
+        "at": "2026-11-16T22:55:03.090Z"
+      },
+      {
+        "author": "user",
+        "text": "modifie le component",
+        "at": "2026-11-16T23:00:17.487Z"
+      },
+      {
+        "author": "claude",
+        "text": "J'ai modifié le composant Counter : il utilise maintenant Inter Tight (sans serif) pour le chiffre et le label, et j'ai retiré la prop fontFamily qui ne servait à rien. Visible à f815.",
+        "at": "2026-11-16T23:02:19.052Z"
+      }
+    ],
+    "snapshot": ".cezane/comments/k_1ekzil.jpg",
+    "createdAt": "2026-11-16T22:54:27.138Z"
   }
 ]

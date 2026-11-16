@@ -312,12 +312,13 @@
       "hidden": false,
       "clips": [
         {
-          "id": "c_sj34qu",
+          "id": "c_zgzhgb",
           "start": 0,
           "duration": 990,
           "type": "captions",
           "style": "clean",
           "position": "bottom",
+          "y": 0.8,
           "words": [
             {
               "text": "n'ont",
@@ -1104,34 +1105,13 @@
       "role": "graphics",
       "muted": false,
       "hidden": false,
-      "clips": [
-        {
-          "id": "c_7dd132",
-          "start": 190,
-          "duration": 90,
-          "type": "media",
-          "assetId": "a_vk1uar",
-          "srcIn": 6.3333,
-          "speed": 1,
-          "volume": 1,
-          "muted": true,
-          "fadeIn": 0,
-          "fadeOut": 0,
-          "fit": "cover",
-          "focus": {
-            "x": 0.5,
-            "y": 0.5
-          },
-          "cutout": true,
-          "opacity": 1
-        }
-      ]
+      "clips": []
     }
   ],
   "audio": {
     "targetLufs": -14,
     "voice": "clean",
-    "duck": true,
+    "duck": "bed",
     "duckDb": -12
   }
 }

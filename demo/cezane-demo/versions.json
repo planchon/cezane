@@ -9,6 +9,7 @@
     "status": "ready",
     "progress": 1,
     "file": ".cezane/renders/v1.mp4",
+    "exportFile": "Exports/cezane-demo-v0-1-v1.mp4",
     "poster": ".cezane/renders/v1.jpg",
     "montageFile": ".cezane/versions/v1.montage.json",
     "durationFrames": 990,
@@ -25,8 +26,7 @@
       "82bc33e1baa443bd4199"
     ],
     "renderSeconds": 58.2,
-    "createdAt": "2026-11-16T00:30:34.558Z",
-    "exportFile": "Exports/cezane-demo-v0-1-v1.mp4"
+    "createdAt": "2026-11-16T00:30:34.558Z"
   },
   {
     "id": "v2",
@@ -38,6 +38,7 @@
     "status": "ready",
     "progress": 1,
     "file": ".cezane/renders/v2.mp4",
+    "exportFile": "Exports/cezane-demo-v0-1-v2.mp4",
     "poster": ".cezane/renders/v2.jpg",
     "montageFile": ".cezane/versions/v2.montage.json",
     "durationFrames": 990,
@@ -67,8 +68,7 @@
       "82bc33e1baa443bd4199"
     ],
     "renderSeconds": 16.5,
-    "createdAt": "2026-11-16T00:33:50.792Z",
-    "exportFile": "Exports/cezane-demo-v0-1-v2.mp4"
+    "createdAt": "2026-11-16T00:33:50.792Z"
   },
   {
     "id": "v3",
@@ -80,6 +80,7 @@
     "status": "ready",
     "progress": 1,
     "file": ".cezane/renders/v3.mp4",
+    "exportFile": "Exports/cezane-demo-v0-1-v3.mp4",
     "poster": ".cezane/renders/v3.jpg",
     "montageFile": ".cezane/versions/v3.montage.json",
     "durationFrames": 990,
@@ -109,8 +110,7 @@
       "82bc33e1baa443bd4199"
     ],
     "renderSeconds": 25.7,
-    "createdAt": "2026-11-16T00:35:28.063Z",
-    "exportFile": "Exports/cezane-demo-v0-1-v3.mp4"
+    "createdAt": "2026-11-16T00:35:28.063Z"
   },
   {
     "id": "v4",
@@ -122,6 +122,7 @@
     "status": "ready",
     "progress": 1,
     "file": ".cezane/renders/v4.mp4",
+    "exportFile": "Exports/cezane-demo-v0-1-v4.mp4",
     "poster": ".cezane/renders/v4.jpg",
     "montageFile": ".cezane/versions/v4.montage.json",
     "durationFrames": 990,
@@ -145,8 +146,7 @@
       "82bc33e1baa443bd4199"
     ],
     "renderSeconds": 10.7,
-    "createdAt": "2026-11-16T00:36:34.696Z",
-    "exportFile": "Exports/cezane-demo-v0-1-v4.mp4"
+    "createdAt": "2026-11-16T00:36:34.696Z"
   },
   {
     "id": "v5",
@@ -158,6 +158,7 @@
     "status": "ready",
     "progress": 1,
     "file": ".cezane/renders/v5.mp4",
+    "exportFile": "Exports/cezane-demo-v0-1-v5.mp4",
     "poster": ".cezane/renders/v5.jpg",
     "montageFile": ".cezane/versions/v5.montage.json",
     "durationFrames": 990,
@@ -179,8 +180,7 @@
       "81af7d869bd3e3a27da7"
     ],
     "renderSeconds": 81.6,
-    "createdAt": "2026-11-16T10:37:45.907Z",
-    "exportFile": "Exports/cezane-demo-v0-1-v5.mp4"
+    "createdAt": "2026-11-16T10:37:45.907Z"
   },
   {
     "id": "v6",
@@ -191,6 +191,9 @@
     "summary": "Enregistrements réels, serif, LUT",
     "status": "ready",
     "progress": 1,
+    "file": ".cezane/renders/v6.mp4",
+    "exportFile": "Exports/cezane-demo-v0-1-v6.mp4",
+    "poster": ".cezane/renders/v6.jpg",
     "montageFile": ".cezane/versions/v6.montage.json",
     "durationFrames": 990,
     "fps": 30,
@@ -210,10 +213,134 @@
       "884917bb020de018dec7",
       "64e2e60836afa22a4528"
     ],
-    "createdAt": "2026-11-16T11:14:02.061Z",
-    "file": ".cezane/renders/v6.mp4",
-    "poster": ".cezane/renders/v6.jpg",
     "renderSeconds": 62.9,
-    "exportFile": "Exports/cezane-demo-v0-1-v6.mp4"
+    "createdAt": "2026-11-16T11:14:02.061Z"
+  },
+  {
+    "id": "v7",
+    "n": 7,
+    "montageId": "m_jmdvsc",
+    "revision": 12,
+    "author": "claude",
+    "summary": "Texte Vlog week au premier plan",
+    "status": "ready",
+    "progress": 1,
+    "montageFile": ".cezane/versions/v7.montage.json",
+    "durationFrames": 990,
+    "fps": 30,
+    "changed": [
+      {
+        "start": 150,
+        "end": 300
+      }
+    ],
+    "comments": [
+      "k_scmt80"
+    ],
+    "segmentKeys": [
+      "ee3d07c8954abd6669a8",
+      "eca7212ec0a5f54b605b",
+      "629842091770060a6586",
+      "72c06ea172829502f1f5",
+      "a4b375c82770e89b9c7b",
+      "884917bb020de018dec7",
+      "64e2e60836afa22a4528"
+    ],
+    "createdAt": "2026-11-16T22:51:51.782Z",
+    "file": ".cezane/renders/v7.mp4",
+    "poster": ".cezane/renders/v7.jpg",
+    "renderSeconds": 20.3,
+    "exportFile": "Exports/cezane-demo-v0-1-v7.mp4"
+  },
+  {
+    "id": "v8",
+    "n": 8,
+    "montageId": "m_jmdvsc",
+    "revision": 14,
+    "author": "claude",
+    "summary": "sous-titres clean · Counter en sans serif",
+    "status": "ready",
+    "progress": 1,
+    "montageFile": ".cezane/versions/v8.montage.json",
+    "durationFrames": 990,
+    "fps": 30,
+    "changed": [
+      {
+        "start": 0,
+        "end": 990
+      }
+    ],
+    "comments": [
+      "k_bdthya",
+      "k_1ekzil"
+    ],
+    "segmentKeys": [
+      "f67836dea46b334ecdbf",
+      "34142294118c3e7e8815",
+      "273145f2304931e0e4bd",
+      "f2e3025a668c47c331c8",
+      "55bbf8510db030b6f8da",
+      "bffadd02f67ab2eb6004",
+      "f406121cc26fac40954b"
+    ],
+    "createdAt": "2026-11-16T22:55:05.944Z",
+    "file": ".cezane/renders/v8.mp4",
+    "poster": ".cezane/renders/v8.jpg",
+    "renderSeconds": 66.5,
+    "exportFile": "Exports/cezane-demo-v0-1-v8.mp4"
+  },
+  {
+    "id": "v9",
+    "n": 9,
+    "montageId": "m_jmdvsc",
+    "revision": 15,
+    "author": "claude",
+    "summary": "sous-titres clean",
+    "status": "error",
+    "progress": 0.12878787878787878,
+    "montageFile": ".cezane/versions/v9.montage.json",
+    "durationFrames": 990,
+    "fps": 30,
+    "changed": [],
+    "comments": [
+      "k_bdthya"
+    ],
+    "segmentKeys": [],
+    "createdAt": "2026-11-16T22:58:42.469Z",
+    "error": "Error: cancelled"
+  },
+  {
+    "id": "v10",
+    "n": 10,
+    "montageId": "m_jmdvsc",
+    "revision": 17,
+    "author": "claude",
+    "summary": "sous-titres clean · updated c_c0kdbs (props)",
+    "status": "ready",
+    "progress": 1,
+    "montageFile": ".cezane/versions/v10.montage.json",
+    "durationFrames": 990,
+    "fps": 30,
+    "changed": [
+      {
+        "start": 0,
+        "end": 990
+      }
+    ],
+    "comments": [],
+    "segmentKeys": [
+      "1c8bf7b7ef6bd1a77a3a",
+      "03841f400bc581826d24",
+      "52b342a314501a2130c2",
+      "d1f6a4b43217f819739f",
+      "6d1e33457d62a1ed3d0a",
+      "ed33e20c1d9e1d64f2e4",
+      "c58ad5262cb5b9c3a3a8"
+    ],
+    "createdAt": "2026-11-16T23:02:21.669Z",
+    "file": ".cezane/renders/v10.mp4",
+    "poster": ".cezane/renders/v10.jpg",
+    "renderSeconds": 74.5,
+    "exportFile": "Exports/cezane-demo-v0-1-v10.mp4"
   }
 ]

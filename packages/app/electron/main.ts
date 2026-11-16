@@ -1,14 +1,22 @@
 // Electron shell: makes sure `cezane serve` runs, then shows its UI in one window.
 import { spawn } from "node:child_process";
 import type { EventEmitter } from "node:events";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { app, BrowserWindow, nativeImage, shell } from "electron";
 
 const PORT = Number(process.env.CEZANE_PORT ?? 4317);
 const BASE = `http://127.0.0.1:${PORT}`;
-const repo = resolve(__dirname, "../../..");
+
+// The installed Cezane.app carries repo.json (written by scripts/install-mac.ts) pointing at the checkout it runs from.
+function repoRoot(): string {
+  if (process.env.CEZANE_REPO) return resolve(process.env.CEZANE_REPO);
+  const baked = join(__dirname, "repo.json");
+  if (existsSync(baked)) return (JSON.parse(readFileSync(baked, "utf8")) as { repo: string }).repo;
+  return resolve(__dirname, "../../..");
+}
+const repo = repoRoot();
 let server: ReturnType<typeof spawn> | undefined;
 
 async function alive(): Promise<boolean> {
@@ -36,7 +44,8 @@ async function ensureServer() {
   const proc = spawn(bunPath(), [join(repo, "packages/server/src/cli.ts"), "serve", dir, "--port", String(PORT)], {
     cwd: repo,
     stdio: ["ignore", "inherit", "inherit"],
-    env: { ...process.env, PATH: `${join(homedir(), ".bun/bin")}:/opt/homebrew/bin:/usr/local/bin:${process.env.PATH ?? ""}` },
+    // Apps opened from Finder get a minimal PATH: add where bun, claude, ffmpeg and whisper-cli usually live.
+    env: { ...process.env, PATH: `${join(homedir(), ".bun/bin")}:${join(homedir(), ".local/bin")}:/opt/homebrew/bin:/usr/local/bin:${process.env.PATH ?? ""}` },
   });
   server = proc;
   (proc as unknown as EventEmitter).on("exit", (code: number | null) => {
@@ -80,7 +89,7 @@ async function createWindow() {
     await ensureServer();
     await win.loadURL(process.env.VITE_DEV_URL ?? `${BASE}/`);
   } catch (e) {
-    await win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(`<body style="font-family:-apple-system;background:#F3EDE0;color:#372838;padding:60px"><h2>Cezane</h2><p>${String(e)}</p></body>`)}`);
+    await win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(`<body style="font-family:-apple-system;font-size:13px;background:#EFEFEE;color:rgba(0,0,0,.9);padding:60px"><h2>Cezane</h2><p>${String(e)}</p></body>`)}`);
     win.show();
   }
 }

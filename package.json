@@ -11,7 +11,8 @@
     "app": "cd packages/app && bun run electron",
     "build:ui": "cd packages/app && bun run build",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "shot": "bun packages/engine/scripts/shot.ts"
+    "shot": "bun packages/engine/scripts/shot.ts",
+    "install:mac": "bun packages/app/scripts/install-mac.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",

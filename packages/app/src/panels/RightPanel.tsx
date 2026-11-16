@@ -1,10 +1,11 @@
 import { type ClaudeEvent, type Comment, findClip, resolveAnchor } from "@cezane/core";
-import { ArrowUp, Check, ChevronDown, ChevronRight, Loader2, RotateCcw, Trash2 } from "lucide-react";
+import { ArrowUp, Check, ChevronDown, ChevronRight, Loader2, Lock, RotateCcw, SlidersHorizontal, Trash2 } from "lucide-react";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { api, assetMedia, assetThumb, fileUrl, post } from "../api";
 import { claudeMade, clipIcon, clipLabel } from "../montage/clips";
 import { playhead, useApp, useVersionMontage } from "../store";
 import { renderVersion } from "../ui/actions";
+import { openPermissions as openPermissionSettings } from "../ui/Permissions";
 import { VersionPicker } from "../ui/Pickers";
 import { Resizer, usePanelSize } from "../ui/Resizer";
 import { clock, pendingForClaude, relTime, shortTool, statusChip, statusLabel, timecode } from "../ui/format";
@@ -272,6 +273,19 @@ const summarize = (tool: string | undefined, input: unknown): string => {
       return `${[].concat(i.paths ?? []).length} fichier(s)`;
     case "Bash":
       return String(i.command ?? "");
+    case "Read":
+    case "Write":
+    case "Edit":
+    case "MultiEdit":
+    case "NotebookEdit":
+      return String(i.file_path ?? i.notebook_path ?? "").replace(/^\/Users\/[^/]+(?=\/)/, "~");
+    case "Glob":
+    case "Grep":
+      return `${i.pattern ?? ""}${i.path ? ` · ${String(i.path).replace(/^\/Users\/[^/]+(?=\/)/, "~")}` : ""}`;
+    case "WebFetch":
+      return String(i.url ?? "");
+    case "WebSearch":
+      return String(i.query ?? "");
     default: {
       const s = JSON.stringify(i);
       return s === "{}" ? "" : s.slice(0, 90);
@@ -291,11 +305,11 @@ export function ClaudePanel() {
   // Pair each tool call with its result (next result of the same tool).
   const items = useMemo(() => {
     const used = new Set<string>();
-    const done = new Set(log.filter((e) => e.kind === "permission_done").map((e) => e.permissionId));
+    const done = new Map(log.filter((e) => e.kind === "permission_done").map((e) => [e.permissionId, e]));
     return log
       .filter((e) => e.kind !== "tool_result" && e.kind !== "permission_done")
       .map((e) => {
-        if (e.kind !== "tool") return { e, done: e.kind === "permission" && done.has(e.permissionId) };
+        if (e.kind !== "tool") return { e, done: e.kind === "permission" ? done.get(e.permissionId) : undefined };
         const idx = log.indexOf(e);
         const res = log.slice(idx + 1).find((r) => r.kind === "tool_result" && r.tool === e.tool && !used.has(r.id));
         if (res) used.add(res.id);
@@ -317,6 +331,9 @@ export function ClaudePanel() {
           {running ? "Claude travaille" : "Claude attend"}
           <span className="r">
             {state?.claude.model}
+            <button className="ib" onClick={openPermissionSettings} title="Autorisations de Claude" aria-label="Autorisations de Claude">
+              <SlidersHorizontal size={14} />
+            </button>
             {running && (
               <button className="btn" style={{ marginLeft: 4 }} onClick={() => attempt(() => post("/api/claude/stop"))}>
                 Arrêter
@@ -360,7 +377,7 @@ export function ClaudePanel() {
   );
 }
 
-function Event({ e, res, done }: { e: ClaudeEvent; res?: ClaudeEvent; done?: boolean }) {
+function Event({ e, res, done }: { e: ClaudeEvent; res?: ClaudeEvent; done?: ClaudeEvent }) {
   const time = new Date(e.at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
   if (e.kind === "start")
     return (
@@ -372,26 +389,47 @@ function Event({ e, res, done }: { e: ClaudeEvent; res?: ClaudeEvent; done?: boo
   if (e.kind === "end") return <div className="c2">Terminé{e.costUsd !== undefined ? ` · ${e.costUsd.toFixed(2)} $ (abonnement)` : ""}</div>;
   if (e.kind === "error") return <div className="ev-err">{e.text}</div>;
   if (e.kind === "text") return <div className="ev-text">{e.text}</div>;
-  if (e.kind === "permission")
+  if (e.kind === "permission") {
+    const answer = (body: { allow: boolean; message?: string; always?: boolean }) => attempt(() => post(`/api/claude/permission/${e.permissionId}`, body));
+    const rules = e.paid ? undefined : e.alwaysRules;
     return (
       <div className="ev-perm">
         <div className="s">Autorisation demandée · {shortTool(e.tool)}</div>
         {e.text && <div>{e.text}</div>}
         <pre>{summarize(e.tool, e.input) || JSON.stringify(e.input, null, 1)}</pre>
         {done ? (
-          <span className="c2">Répondu</span>
+          <span className="c2">{done.ok ? (done.text?.startsWith("Toujours") ? done.text : "Autorisé") : "Refusé"}</span>
         ) : (
-          <div style={{ display: "flex", gap: 8 }}>
-            <button className="btn pri" onClick={() => attempt(() => post(`/api/claude/permission/${e.permissionId}`, { allow: true }))}>
-              Autoriser
-            </button>
-            <button className="btn" onClick={() => attempt(() => post(`/api/claude/permission/${e.permissionId}`, { allow: false, message: "Refusé par l'utilisateur" }))}>
-              Refuser
-            </button>
-          </div>
+          <>
+            <div className="acts">
+              <button className="btn pri" onClick={() => answer({ allow: true })}>
+                Autoriser
+              </button>
+              <button className="btn" onClick={() => answer({ allow: false, message: "Refusé par l'utilisateur" })}>
+                Refuser
+              </button>
+              {rules?.length ? (
+                <button className="btn" onClick={() => answer({ allow: true, always: true })} title="Autoriser maintenant et ajouter la règle aux autorisations de Claude">
+                  Toujours autoriser
+                </button>
+              ) : null}
+            </div>
+            {rules?.length ? (
+              <div className="rule c2">
+                <span style={{ flex: "none" }}>Toujours ajoute</span>
+                <code title={rules.join("\n")}>{rules.join(", ")}</code>
+              </div>
+            ) : e.paid ? (
+              <div className="paid">
+                <Lock size={12} />
+                Dépense : Claude demande à chaque fois.
+              </div>
+            ) : null}
+          </>
         )}
       </div>
     );
+  }
   return (
     <div className="ev-tool" title={res?.text ?? JSON.stringify(e.input, null, 1)}>
       <span className={`dot ${!res ? "wait" : res.ok === false ? "no" : ""}`} />

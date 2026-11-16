@@ -16,6 +16,7 @@ export type UI = {
   panel: "comments" | "claude" | "props";
   commentId?: string;
   selection: Selection;
+  reveal?: string; // Médias: show this asset's file (its folder opens), then cleared
 };
 
 type Ctx = {

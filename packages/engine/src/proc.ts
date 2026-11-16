@@ -1,6 +1,7 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { mkdirSync } from "node:fs";
+import { renderLog } from "./renderlog";
 
 export const CEZANE_HOME = process.env.CEZANE_HOME ?? join(homedir(), "Cezane");
 export const CACHE_DIR = join(CEZANE_HOME, "cache");
@@ -29,6 +30,21 @@ export async function run(
     stdin: opts.stdin !== undefined ? new TextEncoder().encode(opts.stdin) : "ignore",
   });
   opts.signal?.addEventListener("abort", () => proc.kill());
+  // During a render, the command and its stderr go to the render log (complete lines only).
+  const log = renderLog();
+  let pending = "";
+  const toLog = (s: string) => {
+    pending += s;
+    const i = pending.lastIndexOf("\n");
+    if (i >= 0) {
+      log!.line(pending.slice(0, i));
+      pending = pending.slice(i + 1);
+    } else if (pending.length > 4000) pending = pending.slice(pending.lastIndexOf("\r") + 1);
+  };
+  if (log) {
+    const line = cmd.map((a) => (/^[\w./:=,+-]+$/.test(a) ? a : `'${a.replace(/'/g, "'\\''")}'`)).join(" ");
+    log.line(`$ ${line.length > 600 ? `${line.slice(0, 600)}…` : line}`);
+  }
   const read = async (stream: ReadableStream<Uint8Array>, cb?: (s: string) => void) => {
     const dec = new TextDecoder();
     let all = "";
@@ -39,8 +55,18 @@ export async function run(
     }
     return all;
   };
-  const [stdout, stderr] = await Promise.all([read(proc.stdout, opts.onStdout), read(proc.stderr, opts.onStderr)]);
+  const onStderr = log
+    ? (s: string) => {
+        toLog(s);
+        opts.onStderr?.(s);
+      }
+    : opts.onStderr;
+  const [stdout, stderr] = await Promise.all([read(proc.stdout, opts.onStdout), read(proc.stderr, onStderr)]);
   const code = await proc.exited;
+  if (log) {
+    if (pending.trim()) log.line(pending);
+    if (code !== 0) log.line(`→ ${cmd[0]?.split("/").at(-1)} a échoué (code ${code})`);
+  }
   return { code, stdout, stderr };
 }
 

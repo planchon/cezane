@@ -303,10 +303,10 @@
         "target": "recordings"
       },
       "derived": {
-        "events": "events.json",
         "normalized": "normalized.mp4",
         "thumbs": "thumbs.jpg",
-        "poster": "poster.jpg"
+        "poster": "poster.jpg",
+        "events": "events.json"
       },
       "status": "ready",
       "tags": [],
@@ -329,14 +329,41 @@
         "target": "recordings"
       },
       "derived": {
-        "events": "events.json",
         "normalized": "normalized.mp4",
         "thumbs": "thumbs.jpg",
-        "poster": "poster.jpg"
+        "poster": "poster.jpg",
+        "events": "events.json"
       },
       "status": "ready",
       "tags": [],
       "createdAt": "2026-11-16T11:09:20.060Z"
+    },
+    {
+      "id": "a_b7bke5",
+      "kind": "image",
+      "name": "je veux une view de la montage saint vic",
+      "hash": "44e56f75eed302d1fd4e",
+      "file": "Générés/je-veux-view-01.png",
+      "width": 941,
+      "height": 1672,
+      "fps": 25,
+      "hasAudio": false,
+      "provenance": {
+        "type": "generated",
+        "provider": "codex",
+        "model": "imagegen",
+        "prompt": "je veux une view de la montage saint victoire, avec un petit teckel a bord de la fenetre de la cuisine\n\nFormat 9:16 (vertical).",
+        "inputs": [],
+        "settings": {},
+        "cost": 0
+      },
+      "derived": {
+        "normalized": "image.png",
+        "poster": "poster.jpg"
+      },
+      "status": "ready",
+      "tags": [],
+      "createdAt": "2026-11-16T23:08:19.800Z"
     }
   ],
   "montages": [

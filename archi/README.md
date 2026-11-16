@@ -22,6 +22,7 @@ Ce dossier fixe l'architecture avant d'écrire du code.
 | [ingestion.md](ingestion.md) | Tout ce qui se calcule une fois à l'import |
 | [rendu.md](rendu.md) | Le pipeline de rendu et les trois niveaux de cache |
 | [boucle-claude.md](boucle-claude.md) | La boucle avec Claude, les outils MCP, la frugalité en tokens |
+| [autorisations.md](autorisations.md) | Ce que Claude fait sans demander : niveaux, règles Claude Code, « Toujours autoriser » |
 | [generation.md](generation.md) | Providers IA, registre de modèles, coûts, vidéo 100 % IA |
 | [motion-design.md](motion-design.md) | La bibliothèque de composants Remotion et les polices |
 | [plus-tard.md](plus-tard.md) | Capture d'apps et publication |

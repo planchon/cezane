@@ -6,6 +6,7 @@ import { playhead, useApp, useVersionMontage } from "../store";
 import { renderVersion } from "../ui/actions";
 import { clockShort, relTime } from "../ui/format";
 import { VersionPicker } from "../ui/Pickers";
+import { FailureCard } from "../ui/RenderFailure";
 import { toast } from "../ui/toast";
 
 const ZONES_KEY = "cezane.export.tiktokZones";
@@ -228,11 +229,13 @@ function RenderStatus({ version }: { version?: Version }) {
         </div>
       </div>
     );
-  if (version.status === "error")
+  // A failed render (the one shown, or a newer one): why, and what fixes it.
+  const last = state?.versions.at(-1);
+  const failed = version.status === "error" ? version : last?.status === "error" && last.n > version.n ? last : undefined;
+  if (failed)
     return (
-      <div className="pad ex-st err" title={version.error}>
-        <CircleAlert size={16} />
-        <span className="ell">{version.error ?? "Le rendu a échoué."}</span>
+      <div className="pad">
+        <FailureCard version={failed} kicker={failed !== version} />
       </div>
     );
   const newer = [...(state?.versions ?? [])].reverse().find((v) => v.n > version.n && v.status === "ready");

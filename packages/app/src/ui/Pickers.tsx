@@ -3,6 +3,7 @@ import { ChartGantt, Check, ChevronDown, Images, Loader2, Pencil, Plus, Send } f
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useApp, type View } from "../store";
 import { clockShort, relTime } from "./format";
+import { failureLabel } from "./RenderFailure";
 import { newReel, renameReel, selectReel } from "./projectActions";
 
 /** Open state of a popover that closes on an outside click or Escape. */
@@ -114,7 +115,7 @@ export function ReelPicker() {
 /** "il y a 10 min", the render progress, or the failure. */
 export function versionWhen(v: Version): string {
   if (v.status === "rendering") return `rendu ${Math.round(v.progress * 100)} %`;
-  if (v.status === "error") return "échec du rendu";
+  if (v.status === "error") return failureLabel(v);
   return relTime(v.createdAt);
 }
 
@@ -154,6 +155,11 @@ export function VersionPicker({ align = "left", empty = "Aucune version" }: { al
                       {v.status === "rendering" && <Loader2 size={10} className="spin" />} {versionWhen(v)}
                       {v.status === "ready" ? ` · ${clockShort(v.durationFrames, v.fps)}` : ""}
                     </span>
+                    {v.status === "error" && (
+                      <span className="fail-chip" title="Voir pourquoi le rendu a échoué et le réparer">
+                        Réparer
+                      </span>
+                    )}
                     <span className={`c2 by ${v.author === "claude" ? "cl" : ""}`}>{v.author === "claude" ? "Claude" : "Toi"}</span>
                   </span>
                   {v.summary && <span className="c2 sum">{v.summary}</span>}

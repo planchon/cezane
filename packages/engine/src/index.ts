@@ -10,3 +10,4 @@ export * from "./generate";
 export * from "./smart";
 export * from "./grade";
 export * from "./naming";
+export * from "./renderlog";

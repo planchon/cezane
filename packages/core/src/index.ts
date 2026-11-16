@@ -6,3 +6,4 @@ export * from "./overview";
 export * from "./api";
 export * from "./subject";
 export * from "./grade";
+export * from "./permissions";

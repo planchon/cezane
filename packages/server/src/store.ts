@@ -20,6 +20,7 @@ import {
   Version as VersionSchema,
 } from "@cezane/core";
 import { ALL_FOLDERS, CACHE_DIR } from "@cezane/engine";
+import { legacyFailure } from "./failures";
 import { LAYOUT_VERSION, readLayout, writeLayout } from "./layout";
 import { type MigrationReport, migrateProject } from "./migrate";
 
@@ -157,8 +158,13 @@ export class ProjectStore {
     this.reel();
     this.comments = readJson<unknown[]>(join(this.dir, "comments.json"), []).map((c) => CommentSchema.parse(c));
     this.versions = readJson<unknown[]>(join(this.dir, "versions.json"), []).map((v) => VersionSchema.parse(v));
-    // A render interrupted by a restart is not coming back.
-    for (const v of this.versions) if (v.status === "rendering") Object.assign(v, { status: "error", error: "interrupted" });
+    // A render interrupted by a restart is not coming back. Failures saved before they were classified get a kind.
+    for (const v of this.versions) {
+      if (v.status === "rendering") {
+        const failure = legacyFailure(v, this.dir, true);
+        Object.assign(v, { status: "error", error: failure.message, failure });
+      } else if (v.status === "error" && !v.failure) v.failure = legacyFailure(v, this.dir);
+    }
     return this;
   }
 

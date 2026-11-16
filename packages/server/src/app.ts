@@ -8,6 +8,7 @@ import {
   type GenerateRequest,
   type Job,
   type Montage,
+  type Op,
   type ReelSummary,
   type ServerEvent,
   type ServerState,
@@ -37,6 +38,8 @@ import {
   nfc,
   probe,
   promptSlug,
+  RenderLog,
+  renderLog,
   type RenderWorker,
   renderMontage,
   safeFileName,
@@ -44,8 +47,11 @@ import {
   uniqueName,
   WATCHED_FOLDERS,
   type WebAction,
+  withRenderLog,
 } from "@cezane/engine";
 import { ClaudeRunner } from "./claude";
+import { cliSettings, decide, describeRequest, type PermissionContext, requestExample, SettingsStore } from "./permissions";
+import { checkAssets, classifyFailure, clipsUsing, legacyFailure, missingMessage, readRenderLog, RenderFailureError, repairPrompt, usedAssets } from "./failures";
 import { Jobs, type Scheduler } from "./jobs";
 import { exportRender, fileNameFor, folderFor, linkOrCopy, readableName, reelSlug } from "./layout";
 import { FolderSync } from "./library";
@@ -54,7 +60,7 @@ import { now, type ProjectStore } from "./store";
 import { FolderWatcher } from "./watcher";
 
 type Listener = (e: ServerEvent) => void;
-type PermissionWaiter = { resolve: (r: { allow: boolean; message?: string }) => void };
+type PermissionWaiter = { resolve: (r: { allow: boolean; message?: string }) => void; always?: { rules: string[]; example?: string } };
 
 /** What a project shares with the others: the HTTP port, the job scheduler, the render worker. */
 export type ProjectContext = {
@@ -64,6 +70,7 @@ export type ProjectContext = {
   worker: RenderWorker;
   watch?: boolean; // follow Rushes/, Générés/, Captures/ (default true)
   onChange?: () => void; // the project summary may have changed (home tab)
+  settings?: SettingsStore; // ~/Cezane/settings.json: what Claude may do without asking (shared by every project)
 };
 
 export type CaptureRequest = {
@@ -87,6 +94,7 @@ export class Cezane {
   readonly worker: RenderWorker;
   readonly claude: ClaudeRunner;
   readonly sync: FolderSync;
+  readonly settings: SettingsStore;
   watcher?: FolderWatcher;
   private listeners = new Set<Listener>();
   private permissions = new Map<string, PermissionWaiter>();
@@ -98,7 +106,7 @@ export class Cezane {
   private importing = new Set<string>();
   private ingests = new Map<string, Promise<Job>>();
   /** The running Claude session: its reel (pinned when it started), the comments it handles, the revision it started from. */
-  private session?: { montageId: string; comments: string[]; fromRevision: number; render: boolean };
+  private session?: { montageId: string; comments: string[]; fromRevision: number; render: boolean; repair?: string };
 
   constructor(
     readonly store: ProjectStore,
@@ -108,12 +116,14 @@ export class Cezane {
     this.worker = ctx.worker;
     this.jobs = new Jobs(ctx.scheduler, ctx.id);
     this.offJobs = ctx.scheduler.listen(ctx.id, () => this.changed());
+    this.settings = ctx.settings ?? new SettingsStore();
     this.claude = new ClaudeRunner({
       dir: store.dir,
       mcpUrl: `${this.baseUrl}/api/p/${encodeURIComponent(ctx.id)}/mcp`,
       model: store.project.settings.claudeModel,
       onEvent: (event) => this.broadcast({ type: "claude", event }),
       onEnd: (ok) => void this.onClaudeEnd(ok),
+      settings: () => cliSettings(this.settings.permissions(), this.permissionContext()),
     });
     this.sync = new FolderSync(this);
     if (ctx.watch !== false) {
@@ -241,6 +251,7 @@ export class Cezane {
         startedAt: this.claude.startedAt,
         model: s.project.settings.claudeModel,
         montageId: running ? this.session?.montageId : undefined,
+        repairing: running ? this.session?.repair : undefined,
       },
       reels: this.reels(),
     };
@@ -489,45 +500,172 @@ export class Cezane {
     };
     s.versions.push(version);
     s.saveVersions();
-    const prev = [...s.reelVersions(reel.id)].reverse().find((v) => v.status === "ready" && v.id !== id);
-    const montage = reel.montage;
-    void this.jobs.add(
-      "render",
-      `Rendu V${n}`,
-      async (update) => {
-        try {
-          await this.ensureCutouts(update, montage);
-          await this.ensureGrades(update, montage);
-          const env = this.renderEnv();
-          const file = join(".cezane/renders", `${id}.mp4`);
-          const r = await renderMontage(montage, env, s.path(file), prev?.segmentKeys ?? [], (p, label) => {
-            version.progress = p;
-            update(p, `Rendu V${n} · ${label}`);
-          });
-          const poster = join(".cezane/renders", `${id}.jpg`);
-          await ffmpeg(["-ss", "0.5", "-i", s.path(file), "-frames:v", "1", "-vf", "scale=-2:640", "-q:v", "4", s.path(poster)]).catch(() => undefined);
-          Object.assign(version, { status: "ready", progress: 1, file, poster, changed: prev ? r.changed : [], segmentKeys: r.keys, renderSeconds: +r.seconds.toFixed(1) });
-          try {
-            version.exportFile = exportRender(s.dir, file, this.reelSlug(montage.id), n);
-            this.changedFiles();
-          } catch (e) {
-            console.error(`[export] ${id}: ${e instanceof Error ? e.message : e}`);
-          }
-          for (const c of s.comments) if (c.status === "fixed" && !c.fixedIn && commentIds.includes(c.id)) c.fixedIn = id;
-          s.saveComments();
-          console.log(`[render] ${id}: ${r.rendered}/${r.total} segments in ${r.seconds.toFixed(1)}s`);
-          return { versionId: id };
-        } catch (e) {
-          Object.assign(version, { status: "error", error: e instanceof Error ? e.message : String(e) });
-          throw e;
-        } finally {
-          s.saveVersions();
-        }
-      },
-      { montageId: reel.id },
-    );
+    this.queueRender(version, reel.montage);
     this.changed();
     return version;
+  }
+
+  /**
+   * Renders a version (a new one, or a failed one again) through the scheduler. What the render
+   * prints goes to .cezane/renders/<id>.log; a failure is classified and kept on the version.
+   */
+  private queueRender(version: Version, montage: Montage) {
+    const s = this.store;
+    const { id, n } = version;
+    const commentIds = version.comments;
+    const prev = [...s.reelVersions(s.reelOf(version.montageId))].reverse().find((v) => v.status === "ready" && v.id !== id);
+    const log = new RenderLog(s.path(".cezane/renders", `${id}.log`));
+    log.line(`Rendu V${n} (${id}) · révision ${version.revision} · ${now()}`);
+    log.flush();
+    const job = this.jobs.add(
+      "render",
+      `Rendu V${n}`,
+      (update) =>
+        withRenderLog(log, async () => {
+          try {
+            await this.prepareAssets(montage, update);
+            await this.ensureCutouts(update, montage);
+            await this.ensureGrades(update, montage);
+            const env = this.renderEnv();
+            const file = join(".cezane/renders", `${id}.mp4`);
+            const r = await renderMontage(montage, env, s.path(file), prev?.segmentKeys ?? [], (p, label) => {
+              version.progress = p;
+              update(p, `Rendu V${n} · ${label}`);
+            });
+            const poster = join(".cezane/renders", `${id}.jpg`);
+            await ffmpeg(["-ss", "0.5", "-i", s.path(file), "-frames:v", "1", "-vf", "scale=-2:640", "-q:v", "4", s.path(poster)]).catch(() => undefined);
+            Object.assign(version, { status: "ready", progress: 1, file, poster, changed: prev ? r.changed : [], segmentKeys: r.keys, renderSeconds: +r.seconds.toFixed(1) });
+            try {
+              version.exportFile = exportRender(s.dir, file, this.reelSlug(montage.id), n);
+              this.changedFiles();
+            } catch (e) {
+              console.error(`[export] ${id}: ${e instanceof Error ? e.message : e}`);
+            }
+            for (const c of s.comments) if (c.status === "fixed" && !c.fixedIn && commentIds.includes(c.id)) c.fixedIn = id;
+            s.saveComments();
+            log.line(`Terminé : ${r.rendered}/${r.total} segments en ${r.seconds.toFixed(1)} s`);
+            console.log(`[render] ${id}: ${r.rendered}/${r.total} segments in ${r.seconds.toFixed(1)}s`);
+            return { versionId: id };
+          } catch (e) {
+            this.failVersion(version, e, montage, log);
+            throw e;
+          } finally {
+            log.flush();
+            s.saveVersions();
+          }
+        }),
+      { montageId: version.montageId },
+    );
+    // Cancelled before it started (project closed): this render is not coming.
+    void job.then((j) => {
+      if (version.status !== "rendering") return;
+      this.failVersion(version, new RenderFailureError("interrupted", j.error ?? "cancelled"), montage, log);
+      log.flush();
+      s.saveVersions();
+      this.changed();
+    });
+  }
+
+  /**
+   * Before a render: waits for the ingestion of the assets it uses, stops at once when a file is
+   * gone with its cache (only the user can bring it back), and rebuilds a cache that was cleared
+   * from the original file.
+   */
+  private async prepareAssets(montage: Montage, update: (p: number, label?: string) => void) {
+    const s = this.store;
+    for (const a of usedAssets(montage, s.project.assets)) if (a.status === "ingesting") await this.waitIngest(a.id);
+    const { missing, stale } = checkAssets(montage, s.project.assets, s.dir);
+    if (missing.length) {
+      for (const a of missing) renderLog()?.line(`Introuvable : ${a.file} (et sa copie en cache ${a.hash})`);
+      // Flagged as the watcher does: the Médias view lists them, and the flag drops when the file is back.
+      if (missing.some((a) => !a.missing)) {
+        for (const a of missing) a.missing = true;
+        s.saveProject();
+        this.changedFiles();
+      }
+      throw new RenderFailureError("missing", missingMessage(missing), missing.map((a) => a.id));
+    }
+    for (const a of stale) {
+      renderLog()?.line(`Cache absent pour ${a.file} : reconstruction depuis le fichier`);
+      update(0, `Import · ${a.name}`);
+      const path = s.path(a.file);
+      s.updateAsset(a.id, await ingest(a, path, await probe(path), (p, label) => update(p * 0.2, `${label} · ${a.name}`), { transcribe: false }));
+    }
+  }
+
+  /** Marks a version failed, with the classified cause (see failures.ts). */
+  private failVersion(version: Version, e: unknown, montage: Montage, log: RenderLog) {
+    const s = this.store;
+    // A cause the render diagnosed itself needs no stack; anything else keeps it (for Claude and for us).
+    log.line(`Erreur : ${e instanceof RenderFailureError || !(e instanceof Error) ? String(e instanceof Error ? e.message : e) : (e.stack ?? e.message)}`);
+    const missing = e instanceof RenderFailureError ? [] : checkAssets(montage, s.project.assets, s.dir).missing;
+    const failure = classifyFailure({ error: e, missing, logTail: log.tail() });
+    Object.assign(version, { status: "error", error: failure.message, failure });
+    console.error(`[render] ${version.id} failed (${failure.kind}): ${failure.message}`);
+  }
+
+  private failedVersion(id: string): Version {
+    const v = this.store.versions.find((x) => x.id === id);
+    if (!v) throw Object.assign(new Error(`unknown version ${id}`), { status: 404 });
+    if (v.status !== "error") throw Object.assign(new Error(`V${v.n} has not failed`), { status: 409 });
+    return v;
+  }
+
+  /** Renders a failed version again, in place (same number, same frozen montage). */
+  retryVersion(id: string): Version {
+    const s = this.store;
+    const v = this.failedVersion(id);
+    const montage = s.versionMontage(id);
+    if (!montage) throw Object.assign(new Error(`V${v.n} has no montage`), { status: 404 });
+    Object.assign(v, { status: "rendering", progress: 0, error: undefined, failure: undefined, createdAt: now() });
+    s.saveVersions();
+    this.queueRender(v, montage);
+    this.changed();
+    return v;
+  }
+
+  /**
+   * Removes from the reel's current montage the clips that use these assets (default: the files the
+   * failed version could not find), as one revision. The UI then offers a new render.
+   */
+  removeClipsOf(id: string, assetIds?: string[]): { removed: number; revision: number } {
+    const s = this.store;
+    const v = s.versions.find((x) => x.id === id);
+    if (!v) throw Object.assign(new Error(`unknown version ${id}`), { status: 404 });
+    const ids = assetIds?.length ? assetIds : (v.failure?.assetIds ?? []);
+    if (!ids.length) throw Object.assign(new Error("no asset to remove"), { status: 400 });
+    const reel = s.reel(s.reelOf(v.montageId));
+    const clips = clipsUsing(reel.montage, ids);
+    if (!clips.length) return { removed: 0, revision: reel.revision };
+    const names = ids.map((x) => s.asset(x)?.file.split("/").at(-1) ?? x).join(", ");
+    const ops: Op[] = clips.map((c) => ({ op: "remove_clip", id: c.id, ripple: false }));
+    const r = reel.edit(ops, "user", `Plans retirés (${names} introuvable)`);
+    this.changed();
+    return { removed: clips.length, revision: r.revision };
+  }
+
+  /** The render log of a version (its end). */
+  versionLog(id: string): string {
+    const v = this.store.versions.find((x) => x.id === id);
+    if (!v) throw Object.assign(new Error(`unknown version ${id}`), { status: 404 });
+    return readRenderLog(this.store.dir, id) || v.failure?.logTail || "";
+  }
+
+  /**
+   * Asks Claude to repair a failed render: a session on the version's reel, with the error and the
+   * end of the render log. When it ends, the reel is rendered again (a new version when Claude
+   * changed the montage, else this one again).
+   */
+  repairWithClaude(id: string) {
+    const s = this.store;
+    const v = this.failedVersion(id);
+    if (this.claude.running) throw Object.assign(new Error("Claude is already working"), { status: 409 });
+    const reel = s.reel(s.reelOf(v.montageId));
+    const failure = v.failure ?? legacyFailure(v, s.dir);
+    const prompt = repairPrompt({ version: v, failure, log: readRenderLog(s.dir, id, 8000), revisionNow: reel.revision });
+    this.session = { montageId: reel.id, comments: [], fromRevision: reel.revision, render: true, repair: v.id };
+    this.claude.start(prompt, `Réparer le rendu V${v.n}`, undefined, this.mcpUrl(reel.id));
+    this.changed();
   }
 
   reelSlug(montageId: string): string {
@@ -622,6 +760,8 @@ export class Cezane {
   }
 
   private async onClaudeEnd(ok: boolean) {
+    // Cards still waiting belong to the session that just ended: close them so they leave the UI.
+    for (const id of [...this.permissions.keys()]) this.answerPermission(id, false, "session terminée");
     const session = this.session;
     this.session = undefined;
     const s = this.store;
@@ -636,14 +776,40 @@ export class Cezane {
       const journal = reel.journal().filter((r) => r.rev > session.fromRevision);
       const summary = journal.map((r) => r.reason ?? r.summary.join(", ")).join(" · ").slice(0, 300);
       this.renderVersion("claude", summary || "Modifications de Claude", session.comments, reel.id);
+    } else if (ok && session?.repair && reel && !rendering) {
+      // A repair that changed nothing (the montage was not the cause): the same version again.
+      const v = s.versions.find((x) => x.id === session.repair);
+      if (v?.status === "error") this.retryVersion(v.id);
     }
     this.changed();
   }
 
-  /** Permission requests (Claude's tools, paid generations) wait for the user in the UI. */
-  requestPermission(text: string, tool: string, input: unknown): Promise<{ allow: boolean; message?: string }> {
+  permissionContext(): PermissionContext {
+    return this.settings.context(this.store.dir);
+  }
+
+  /**
+   * What Claude Code asks about (the `approve` MCP tool): allowed at once when the settings cover it
+   * (the CLI rules should have, or a rule was added during the session), else a card in the UI.
+   */
+  async approve(tool: string, input: Record<string, unknown>): Promise<{ allow: boolean; message?: string }> {
+    const ctx = this.permissionContext();
+    const d = decide(this.settings.permissions(), ctx, tool, input);
+    if (d.allow) {
+      console.log(`[approve] ${this.id}: ${tool} allowed (${d.why})`);
+      return { allow: true };
+    }
+    return this.requestPermission(describeRequest(tool, input, ctx), tool, input, { paid: d.paid, alwaysRules: d.alwaysRules, example: requestExample(tool, input, ctx) });
+  }
+
+  /**
+   * Permission requests (Claude's tools, paid generations) wait for the user in the UI. `alwaysRules`:
+   * what "Toujours autoriser" saves; never offered for spending (`paid`).
+   */
+  requestPermission(text: string, tool: string, input: unknown, opts: { paid?: boolean; alwaysRules?: string[]; example?: string } = {}): Promise<{ allow: boolean; message?: string }> {
     const permissionId = newId("p");
-    const ev: ClaudeEvent = { id: newId("e"), at: now(), kind: "permission", permissionId, tool, input, text };
+    const alwaysRules = !opts.paid && opts.alwaysRules?.length ? opts.alwaysRules : undefined;
+    const ev: ClaudeEvent = { id: newId("e"), at: now(), kind: "permission", permissionId, tool, input, text, ...(alwaysRules ? { alwaysRules } : {}), ...(opts.paid ? { paid: true } : {}) };
     this.claude.events.push(ev);
     this.broadcast({ type: "claude", event: ev });
     return new Promise((resolve) => {
@@ -653,14 +819,20 @@ export class Cezane {
           clearTimeout(timer);
           resolve(r);
         },
+        always: alwaysRules && { rules: alwaysRules, example: opts.example },
       });
     });
   }
 
-  answerPermission(id: string, allow: boolean, message?: string) {
+  /** `always`: also save the request's rules ("Toujours autoriser"; ignored for spending). */
+  answerPermission(id: string, allow: boolean, message?: string, always = false) {
     const w = this.permissions.get(id);
     if (!w) return false;
     this.permissions.delete(id);
+    if (allow && always && w.always) {
+      this.settings.addRules(w.always.rules, w.always.example);
+      message ??= `Toujours autorisé : ${w.always.rules.join(", ")}`;
+    }
     w.resolve({ allow, message });
     const ev: ClaudeEvent = { id: newId("e"), at: now(), kind: "permission_done", permissionId: id, ok: allow, text: message };
     this.claude.events.push(ev);
@@ -680,7 +852,7 @@ export class Cezane {
       const left = s.project.settings.budgetEur - s.project.settings.spentEur;
       if (model.costEur > left) throw new Error(`budget exceeded: ${model.costEur}€ needed, ${left.toFixed(2)}€ left`);
       if (opts.askPermission) {
-        const r = await this.requestPermission(`Générer avec ${model.label} pour ~${model.costEur.toFixed(2)} € ?`, "generate", req);
+        const r = await this.requestPermission(`Générer avec ${model.label} pour ~${model.costEur.toFixed(2)} € ?`, "generate", req, { paid: true });
         if (!r.allow) throw new Error(`refused by the user${r.message ? `: ${r.message}` : ""}`);
       } else if ((req.confirmCostEur ?? -1) < model.costEur) throw new Error(`confirm the cost (${model.costEur} €) first`);
     }

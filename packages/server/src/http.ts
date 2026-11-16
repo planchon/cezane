@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join, normalize, resolve, sep } from "node:path";
-import { Anchor, CanvasDoc, type GenerateRequest, newId, type Op, type ProjectsEvent, type ServerEvent } from "@cezane/core";
+import { Anchor, CanvasDoc, type GenerateRequest, newId, type Op, type PermissionsPatch, type ProjectsEvent, type ServerEvent } from "@cezane/core";
 import { CACHE_DIR, LIBRARY_DIR, listModels, REPO_DIR } from "@cezane/engine";
 import type { CaptureRequest, Cezane } from "./app";
 import type { Hub } from "./hub";
@@ -124,8 +124,8 @@ const projectRoutes: ProjectRoute[] = [
       "POST",
       /^\/api\/claude\/permission\/([\w-]+)$/,
       async (req, m, app) => {
-        const b = (await req.json()) as { allow: boolean; message?: string };
-        return app.answerPermission(m[1]!, b.allow, b.message) ? json({ ok: true }) : bad("unknown permission", 404);
+        const b = (await req.json()) as { allow: boolean; message?: string; always?: boolean };
+        return app.answerPermission(m[1]!, b.allow, b.message, b.always === true) ? json({ ok: true }) : bad("unknown permission", 404);
       },
     ],
     [
@@ -305,6 +305,18 @@ const projectRoutes: ProjectRoute[] = [
     },
   ],
   ["POST", /^\/api\/versions\/(v\d+)\/export$/, (_r, m, app) => json(app.exportVersion(m[1]!))],
+  // A failed render: render it again, remove the clips of a missing file, repair with Claude, read its log.
+  ["POST", /^\/api\/versions\/(v\d+)\/retry$/, (_r, m, app) => json(app.retryVersion(m[1]!))],
+  [
+    "POST",
+    /^\/api\/versions\/(v\d+)\/remove-clips$/,
+    async (req, m, app) => {
+      const b = (await req.json().catch(() => ({}))) as { assetIds?: string[] };
+      return json(app.removeClipsOf(m[1]!, b.assetIds));
+    },
+  ],
+  ["POST", /^\/api\/versions\/(v\d+)\/repair$/, (_r, m, app) => (app.repairWithClaude(m[1]!), json({ ok: true }))],
+  ["GET", /^\/api\/versions\/(v\d+)\/log$/, (_r, m, app) => new Response(app.versionLog(m[1]!), { headers: { "Content-Type": "text/plain; charset=utf-8" } })],
   ["POST", /^\/api\/mcp$/, (req, _m, app) => mcpHandler(app)(req)],
   ["GET", /^\/api\/mcp$/, (req, _m, app) => mcpHandler(app)(req)],
   ["DELETE", /^\/api\/mcp$/, (req, _m, app) => mcpHandler(app)(req)],
@@ -334,6 +346,25 @@ export function startHttp(hub: Hub, port: number) {
     ["GET", /^\/api\/projects\/([\w.-]+)$/, (_r, m) => json(hub.summary(m[1]!))],
     ["DELETE", /^\/api\/projects\/([\w.-]+)$/, (_r, m) => (hub.forget(m[1]!), json({ ok: true }))],
     ["GET", /^\/api\/jobs$/, () => json(hub.scheduler.state())],
+    // What Claude may do without asking (global, ~/Cezane/settings.json).
+    ["GET", /^\/api\/settings\/permissions$/, () => json(hub.settings.view())],
+    ["PUT", /^\/api\/settings\/permissions$/, async (req) => json(hub.settings.update((await req.json().catch(() => ({}))) as PermissionsPatch))],
+    [
+      "POST",
+      /^\/api\/settings\/permissions\/rules$/,
+      async (req) => {
+        const b = (await req.json().catch(() => ({}))) as { rule?: string };
+        return json(hub.settings.addRules([b.rule ?? ""]));
+      },
+    ],
+    [
+      "DELETE",
+      /^\/api\/settings\/permissions\/rules$/,
+      async (req) => {
+        const b = (await req.json().catch(() => ({}))) as { rule?: string };
+        return json(hub.settings.removeRule(b.rule ?? ""));
+      },
+    ],
   ];
 
   const dispatch = async (req: Request, path: string, app: () => Cezane): Promise<Response | undefined> => {

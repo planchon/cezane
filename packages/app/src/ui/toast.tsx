@@ -1,26 +1,45 @@
 import { useEffect, useState } from "react";
 
-let push: ((msg: string) => void) | undefined;
+type Action = { label: string; run: () => void };
+type Msg = { text: string; action?: Action };
 
-/** Shows a short message at the bottom of the window. */
-export function toast(msg: string) {
-  push?.(msg);
+let push: ((m: Msg) => void) | undefined;
+
+/** Shows a short message at the bottom of the window, maybe with one action ("Voir"). */
+export function toast(msg: string, action?: Action) {
+  push?.({ text: msg, action });
 }
 
 export function Toaster() {
-  const [msg, setMsg] = useState<string>();
+  const [msg, setMsg] = useState<Msg>();
   useEffect(() => {
     let t: ReturnType<typeof setTimeout>;
     push = (m) => {
       setMsg(m);
       clearTimeout(t);
-      t = setTimeout(() => setMsg(undefined), 3200);
+      t = setTimeout(() => setMsg(undefined), m.action ? 7000 : 3200);
     };
     return () => {
       push = undefined;
     };
   }, []);
-  return msg ? <div className="toast">{msg}</div> : null;
+  if (!msg) return null;
+  return (
+    <div className={`toast ${msg.action ? "act" : ""}`} role="status">
+      {msg.text}
+      {msg.action && (
+        <button
+          className="toast-btn"
+          onClick={() => {
+            msg.action!.run();
+            setMsg(undefined);
+          }}
+        >
+          {msg.action.label}
+        </button>
+      )}
+    </div>
+  );
 }
 
 /** Runs an async action and reports its error as a toast. */

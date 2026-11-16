@@ -9,7 +9,9 @@ import { useProjects } from "./projects";
 import { useApp } from "./store";
 import { importFiles } from "./ui/actions";
 import { DialogHost } from "./ui/Dialog";
+import { PermissionsHost } from "./ui/Permissions";
 import { ReelPicker, ViewSwitcher } from "./ui/Pickers";
+import { FailureToasts } from "./ui/RenderFailure";
 import { Toaster } from "./ui/toast";
 import { TopBar } from "./ui/TopBar";
 
@@ -92,6 +94,7 @@ export function App() {
         )}
         <Toaster />
         <DialogHost />
+        <PermissionsHost />
       </div>
     );
 
@@ -116,8 +119,10 @@ export function App() {
       </div>
       {!connected && <div className="offline">Connexion au serveur perdue — reconnexion…</div>}
       {dragging && <div className="global-drop">Déposer pour importer dans le projet</div>}
+      <FailureToasts />
       <Toaster />
       <DialogHost />
+      <PermissionsHost />
     </div>
   );
 }

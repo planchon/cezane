@@ -295,6 +295,21 @@ export type Comment = z.infer<typeof Comment>;
 export const FrameRange = z.object({ start: z.number().int(), end: z.number().int() });
 export type FrameRange = z.infer<typeof FrameRange>;
 
+/**
+ * Why a render failed, classified by the server (deterministic, no AI):
+ * - missing: a file the reel uses is gone (deleted or moved in the Finder) and its cache too: `assetIds`;
+ * - interrupted: the app or the server closed during the render;
+ * - technical: anything else (ffmpeg, Remotion…); `transient` when the error looks like it may pass on a retry.
+ */
+export const RenderFailure = z.object({
+  kind: z.enum(["missing", "interrupted", "technical"]),
+  message: z.string(),
+  assetIds: z.array(z.string()).optional(),
+  logTail: z.string().optional(), // last lines of .cezane/renders/<versionId>.log
+  transient: z.boolean().optional(),
+});
+export type RenderFailure = z.infer<typeof RenderFailure>;
+
 export const Version = z.object({
   id: z.string(), // "v1"
   n: z.number().int(),
@@ -304,7 +319,8 @@ export const Version = z.object({
   summary: z.string(),
   status: z.enum(["rendering", "ready", "error"]),
   progress: z.number().default(0),
-  error: z.string().optional(),
+  error: z.string().optional(), // short message (same as failure.message)
+  failure: RenderFailure.optional(), // status "error": why, and what can fix it
   file: z.string().optional(), // project-relative mp4 (.cezane/renders/vN.mp4)
   exportFile: z.string().optional(), // the same render in Exports/ (`<reel-slug>-vN.mp4`, hard link)
   poster: z.string().optional(),

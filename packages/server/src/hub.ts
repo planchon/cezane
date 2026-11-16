@@ -6,6 +6,7 @@ import { Cezane } from "./app";
 import { Scheduler } from "./jobs";
 import { projectFileUrl, readMontage, reelSummaries } from "./reels";
 import { ProjectRegistry, type RegistryEntry } from "./registry";
+import { SettingsStore } from "./permissions";
 import { ProjectStore } from "./store";
 
 export class HttpError extends Error {
@@ -53,6 +54,8 @@ export class Hub {
   readonly registry: ProjectRegistry;
   readonly scheduler: Scheduler;
   readonly worker: RenderWorker;
+  /** ~/Cezane/settings.json: global settings (what Claude may do without asking). */
+  readonly settings: SettingsStore;
   defaultId?: string;
   private apps = new Map<string, Cezane>();
   private projectListeners = new Set<(e: ProjectsEvent) => void>();
@@ -63,6 +66,7 @@ export class Hub {
   constructor(readonly opts: HubOptions) {
     const demos = opts.demos === false ? [] : Array.isArray(opts.demos) ? opts.demos : demoDirs();
     this.registry = new ProjectRegistry({ home: opts.home, demoDirs: demos });
+    this.settings = new SettingsStore(this.registry.home);
     this.scheduler = new Scheduler(opts.limits);
     this.scheduler.onAnyChange = () => this.projectsChanged();
     this.worker = opts.worker ?? new RenderWorker();
@@ -99,7 +103,7 @@ export class Hub {
     if (!e) throw new HttpError(404, `unknown project ${id}`);
     if (!existsSync(join(e.path, "cezane.json"))) throw new HttpError(404, `project folder missing: ${e.path}`);
     const { store } = ProjectStore.open(e.path);
-    const app = new Cezane(store, { id, port: this.port, scheduler: this.scheduler, worker: this.worker, watch: this.opts.watch, onChange: () => this.projectsChanged() });
+    const app = new Cezane(store, { id, port: this.port, scheduler: this.scheduler, worker: this.worker, watch: this.opts.watch, onChange: () => this.projectsChanged(), settings: this.settings });
     this.apps.set(id, app);
     this.registry.touch(id);
     this.projectsChanged();

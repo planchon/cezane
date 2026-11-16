@@ -81,7 +81,7 @@ const store = (key: string, v: string) => {
 
 /** The Médias view state: the project's files (reloaded on `files` events), the selection, the composer references. */
 export function MediasProvider({ children }: { children: ReactNode }) {
-  const { state } = useApp();
+  const { state, ui, setUi } = useApp();
   const projectId = state?.projectId;
   const [listing, setListing] = useState<FilesListing>();
   const [error, setError] = useState<string>();
@@ -157,13 +157,24 @@ export function MediasProvider({ children }: { children: ReactNode }) {
   const selectAsset = useCallback(
     (assetId: string) => {
       const f = byAsset.get(assetId);
+      const gone = listing?.missing.find((m) => m.assetId === assetId);
       if (f) {
         setSelected(f.path);
         setFolder(dirOf(f.path));
-      } else if (listing?.missing.some((m) => m.assetId === assetId)) setSelected(missingKey(assetId));
+      } else if (gone) {
+        setSelected(missingKey(assetId));
+        setFolder(dirOf(gone.path));
+      }
     },
     [byAsset, listing, setFolder],
   );
+
+  // Another view asked to show a file here (a failed render: "Relier le fichier").
+  useEffect(() => {
+    if (!ui.reveal || !listing) return;
+    selectAsset(ui.reveal);
+    setUi({ reveal: undefined });
+  }, [ui.reveal, listing, selectAsset, setUi]);
 
   // "Enregistré dans Générés/…" once the listing shows the new file.
   useEffect(() => {

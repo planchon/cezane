@@ -18,7 +18,7 @@ export function setActiveProject(id: string | undefined) {
 }
 
 /** Routes about every project, never prefixed. */
-const GLOBAL = /^\/api\/(projects|jobs|p)(\/|\?|$)/;
+const GLOBAL = /^\/api\/(projects|jobs|settings|p)(\/|\?|$)/;
 
 /**
  * The URL of a project route for the active project: `/api/state` → `/api/p/<id>/state`,

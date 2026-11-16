@@ -18,6 +18,7 @@ import type {
   Version,
   Workflow,
 } from "@cezane/core";
+import { DEFAULT_PERMISSIONS, isCustomPermissions, LEVEL_PRESETS, type PermissionsPatch, type PermissionsView, SAFE_COMMANDS } from "@cezane/core";
 
 const now = () => new Date().toISOString();
 const ago = (min: number) => new Date(Date.now() - min * 60_000).toISOString();
@@ -150,7 +151,7 @@ let claudeLog: ClaudeEvent[] = [
   ev({ kind: "tool_result", tool: "mcp__cezane__edit", ok: true, text: "rev 15 · cut 468–489f (0.70s) · cut 506–520f (0.47s)" }, 0.8),
   ev({ kind: "tool", tool: "mcp__cezane__look", input: { frames: [450, 470, 500] } }, 0.6),
   ev({ kind: "tool_result", tool: "mcp__cezane__look", ok: true }, 0.6),
-  ev({ kind: "permission", tool: "Bash", input: { command: "ls ~/Cezane/library/fonts" }, permissionId: "p_1", text: "Claude veut lister les polices de la bibliothèque." }, 0.3),
+  ev({ kind: "permission", tool: "Bash", input: { command: "magick identify Rushes/plage.png" }, permissionId: "p_1", text: "Claude veut lancer une commande.", alwaysRules: ["Bash(magick:*)"] }, 0.3),
 ];
 
 const models: ModelInfo[] = [
@@ -293,8 +294,31 @@ function runJob(job: Job, done: () => void) {
   }, 600);
 }
 
+/** ~/Cezane/settings.json: what Claude may do without asking. */
+const permissions: PermissionsView = {
+  ...structuredClone(DEFAULT_PERMISSIONS),
+  rules: [{ rule: "Bash(git status:*)", addedAt: ago(60 * 26), example: "git status -s" }],
+  file: "/Users/paul/Cezane/settings.json",
+  home: "/Users/paul/Cezane",
+  safeCommands: SAFE_COMMANDS,
+  custom: false,
+};
+const permissionsView = (): PermissionsView => ({ ...structuredClone(permissions), custom: isCustomPermissions(permissions) });
+
 /** Global routes (every project). */
 function globalRoute(method: string, path: string, body: any): unknown {
+  if (method === "GET" && path === "/api/settings/permissions") return permissionsView();
+  if (method === "PUT" && path === "/api/settings/permissions") {
+    const b = body as PermissionsPatch;
+    if (b.level && b.level !== permissions.level) permissions.categories = { ...LEVEL_PRESETS[b.level] };
+    if (b.level) permissions.level = b.level;
+    Object.assign(permissions.categories, b.categories ?? {});
+    return permissionsView();
+  }
+  if (method === "DELETE" && path === "/api/settings/permissions/rules") {
+    permissions.rules = permissions.rules.filter((r) => r.rule !== body.rule);
+    return permissionsView();
+  }
   if (method === "GET" && path === "/api/projects") return summaries();
   if (method === "GET" && path === "/api/jobs") {
     const jobs = [...projects.values()].flatMap((p) => p.state.jobs);
@@ -434,7 +458,10 @@ export async function mockFetch(method: string, rawPath: string, body: any): Pro
     return { ok: true };
   }
   if (method === "POST" && (r = m(/^\/api\/claude\/permission\/(\w+)$/))) {
-    pushClaude({ kind: "permission_done", permissionId: r[1], ok: body.allow });
+    const asked = claudeLog.find((e) => e.kind === "permission" && e.permissionId === r![1]);
+    const rules = body.allow && body.always && !asked?.paid ? (asked?.alwaysRules ?? []) : [];
+    for (const rule of rules) if (!permissions.rules.some((x) => x.rule === rule)) permissions.rules.push({ rule, addedAt: now() });
+    pushClaude({ kind: "permission_done", permissionId: r[1], ok: body.allow, text: rules.length ? `Toujours autorisé : ${rules.join(", ")}` : undefined });
     return { ok: true };
   }
   if (method === "POST" && path === "/api/render") {

@@ -39,8 +39,11 @@ Style (TikTok codes, 1080x1920):
 - Color: a montage grade (set_settings grade) gives footage a look; "drame" for dramatic, "film" for soft, "provence" for warm. Text and graphics are never graded.
 - Screenshots for docs/onboarding/help: ScreenshotShowcase with label + caption + muted, a Figma cursor on what to click, a loupe on small details.`;
 
-/** mcpUrl: the project's MCP endpoint (http://127.0.0.1:<port>/api/p/<projectId>/mcp). */
-type Opts = { dir: string; mcpUrl: string; model: string; onEvent: (e: ClaudeEvent) => void; onEnd: (ok: boolean) => void };
+/**
+ * mcpUrl: the project's MCP endpoint (http://127.0.0.1:<port>/api/p/<projectId>/mcp).
+ * settings: Claude Code settings of the session (permission rules from ~/Cezane/settings.json), passed with --settings.
+ */
+type Opts = { dir: string; mcpUrl: string; model: string; onEvent: (e: ClaudeEvent) => void; onEnd: (ok: boolean) => void; settings?: () => unknown };
 
 const short = (v: unknown, n = 300) => {
   const s = typeof v === "string" ? v : JSON.stringify(v);
@@ -73,6 +76,9 @@ export class ClaudeRunner {
     if (this.running) throw new Error("Claude is already working");
     const cfg = join(this.o.dir, ".cezane/mcp.json");
     writeFileSync(cfg, JSON.stringify({ mcpServers: { cezane: { type: "http", url: mcpUrl } } }));
+    // What Claude may do without asking, read when the session starts; the approve tool covers later changes.
+    const settings = join(this.o.dir, ".cezane/claude-settings.json");
+    if (this.o.settings) writeFileSync(settings, JSON.stringify(this.o.settings(), null, 2));
     const args = [
       "claude",
       "-p",
@@ -88,6 +94,7 @@ export class ClaudeRunner {
       "mcp__cezane__approve",
       "--allowedTools",
       TOOL_NAMES.map((t) => `mcp__cezane__${t}`).join(","),
+      ...(this.o.settings ? ["--settings", settings] : []),
       "--append-system-prompt",
       GUIDE,
       prompt,
@@ -97,7 +104,9 @@ export class ClaudeRunner {
     this.startedAt = new Date().toISOString();
     this.emit({ kind: "start", text: task });
     // Tool search would defer the Cezane tools and cost extra turns: load them upfront.
-    const proc = Bun.spawn(args, { cwd: this.o.dir, stdout: "pipe", stderr: "pipe", stdin: "ignore", env: { ...process.env, ENABLE_TOOL_SEARCH: "false" } });
+    // MCP calls time out after 60 s by default, and a permission card waits for the user up to 10 min.
+    const env = { ...process.env, ENABLE_TOOL_SEARCH: "false", MCP_TOOL_TIMEOUT: process.env.MCP_TOOL_TIMEOUT ?? String(11 * 60_000) };
+    const proc = Bun.spawn(args, { cwd: this.o.dir, stdout: "pipe", stderr: "pipe", stdin: "ignore", env });
     this.proc = proc;
     void this.read(proc.stdout as ReadableStream<Uint8Array>);
     void (async () => {

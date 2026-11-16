@@ -6,6 +6,7 @@ import { playhead, useApp, useFrame, useVersionMontage } from "../store";
 import { clock, clockShort } from "../ui/format";
 import { usePopover, versionWhen } from "../ui/Pickers";
 import { Resizer, usePanelSize } from "../ui/Resizer";
+import { FailureCard } from "../ui/RenderFailure";
 import { attempt } from "../ui/toast";
 import { commentAvatar, shotsOf } from "./clips";
 import { Timeline } from "./Timeline";
@@ -185,7 +186,11 @@ export function MontageView() {
   return (
     <>
       <div className="cv" ref={stage}>
-        {noVersion ? (
+        {version?.status === "error" ? (
+          <div className="no-version fail-stage-wrap">
+            <FailureCard version={version} variant="stage" />
+          </div>
+        ) : noVersion ? (
           <div className="no-version">
             <img src={brandUrl("mood-montage.png")} alt="" onError={(e) => (e.currentTarget.style.display = "none")} />
             <div className="t13 s">

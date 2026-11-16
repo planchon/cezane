@@ -91,6 +91,10 @@ export type ClaudeEvent = {
   ok?: boolean;
   permissionId?: string;
   costUsd?: number;
+  /** permission: the rules "Toujours autoriser" would add (absent: no such choice, e.g. a paid generation). */
+  alwaysRules?: string[];
+  /** permission: it spends money (paid generation): asks at every level, never "toujours". */
+  paid?: boolean;
 };
 
 export type ClaudeStatus = {
@@ -99,6 +103,7 @@ export type ClaudeStatus = {
   startedAt?: string;
   model: string;
   montageId?: string; // the reel the running session edits (pinned when it started)
+  repairing?: string; // the failed version the running session repairs (POST /api/versions/:id/repair)
 };
 
 export type ServerState = {
@@ -248,6 +253,10 @@ export type GraphicInfo = { name: string; description: string; props: Record<str
  * POST   /api/projects/open {path, init?} remember an existing folder (init: create cezane.json if absent) → ProjectSummary
  * DELETE /api/projects/:id                forget (close) a project; its folder is left untouched
  * GET    /api/jobs                        SchedulerState (every project)
+ * GET    /api/settings/permissions        PermissionsView: what Claude may do without asking (global, ~/Cezane/settings.json)
+ * PUT    /api/settings/permissions {level?, categories?}  → PermissionsView (a new level resets the switches to its preset)
+ * POST   /api/settings/permissions/rules {rule}           add a rule → PermissionsView
+ * DELETE /api/settings/permissions/rules {rule}           remove a rule → PermissionsView
  *
  * Project routes: each one exists as /api/p/:projectId/<route> and, for the default project
  * (the folder given to `cezane serve`), as the unscoped /api/<route>.
@@ -257,7 +266,7 @@ export type GraphicInfo = { name: string; description: string; props: Record<str
  * POST   /api/claude/send   {commentIds?} send draft comments to Claude (all drafts when omitted)
  * POST   /api/claude/ask    {text}        free instruction to Claude
  * POST   /api/claude/stop
- * POST   /api/claude/permission/:id {allow, message?}
+ * POST   /api/claude/permission/:id {allow, message?, always?}  always: also save the request's alwaysRules
  * POST   /api/comments      {anchor, text, snapshot?: dataURL jpeg}  → Comment (draft)
  * POST   /api/comments/:id/reply {text}   user message; a fixed comment becomes reopened
  * POST   /api/comments/:id/status {status: "validated" | "reopened" | "draft"}
@@ -288,6 +297,11 @@ export type GraphicInfo = { name: string; description: string; props: Record<str
  * POST   /api/reveal        {path? | assetId? | versionId?}  show in the Finder (`open -R`); nothing = the project folder
  * POST   /api/capture       {target: "web"|"ios", mode?, url?, …} → Job (one capture at a time, all projects)
  * POST   /api/versions/:id/export         (re)link a ready render into Exports/ → Version
+ *   A failed version has `failure` (missing | interrupted | technical, see RenderFailure):
+ * POST   /api/versions/:id/retry          render the failed version again, in place (same number, same montage) → Version
+ * POST   /api/versions/:id/remove-clips {assetIds?}  remove the clips using these assets (default: failure.assetIds) from the reel → {removed, revision}
+ * POST   /api/versions/:id/repair         Claude session on the reel: find and fix the cause, then the reel is rendered again → {ok}
+ * GET    /api/versions/:id/log            end of the render log (.cezane/renders/<id>.log), text/plain
  * POST   /api/mcp[?reel=<id>]             MCP endpoint of the project (Claude), on the selected reel or `reel`; the default project is also on /mcp
  * GET    /files/p/:projectId/<path>       project files (Range supported); /files/project/<path> = default project
  * GET    /files/cache/<hash>/<file>       ingestion derivatives (Range supported, shared by all projects)

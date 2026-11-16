@@ -1,6 +1,6 @@
 import type { FilesListing, FolderNode, ProjectFile } from "@cezane/core";
 import { AudioLines, ChevronDown, ChevronRight, FileX2, Folder, FolderOpen, LayoutGrid, List, Loader2, Play, Plus, SquareArrowOutUpRight, TriangleAlert } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "../store";
 import { importFiles } from "../ui/actions";
 import { Resizer, usePanelSize } from "../ui/Resizer";
@@ -39,6 +39,13 @@ export function FileViewer() {
   const node = L ? (findNode(L.folders, m.folder) ?? L.folders.find((f) => f.name === "Générés") ?? L.folders[0]) : undefined;
   const missing = useMemo(() => L?.missing.filter((x) => dirOf(x.path) === node?.path) ?? [], [L, node?.path]);
   const files = useMemo(() => [...(node?.files ?? [])].sort(byDate), [node]);
+
+  // A file selected from elsewhere (a failed render's "Relier le fichier"): bring it into view.
+  useEffect(() => {
+    if (!m.selected) return;
+    const raf = requestAnimationFrame(() => document.querySelector(".md-fv .md-f.on, .md-fv .row.sel")?.scrollIntoView({ block: "nearest" }));
+    return () => cancelAnimationFrame(raf);
+  }, [m.selected, node?.path, L]);
 
   const setMode = (v: "grid" | "list") => {
     setModeState(v);

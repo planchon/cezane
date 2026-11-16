@@ -372,7 +372,7 @@ function buildServer(app: Cezane, reelParam?: string): McpServer {
     "approve",
     { description: "Permission prompt (internal).", inputSchema: { tool_name: z.string(), input: z.record(z.string(), z.unknown()), tool_use_id: z.string().optional() } },
     async ({ tool_name, input }) => {
-      const r = await app.requestPermission(`Claude veut utiliser ${tool_name}`, tool_name, input);
+      const r = await app.approve(tool_name, input);
       return text(JSON.stringify(r.allow ? { behavior: "allow", updatedInput: input } : { behavior: "deny", message: r.message ?? "refused by the user" }));
     },
   );

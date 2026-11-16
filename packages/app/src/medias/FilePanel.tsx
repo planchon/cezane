@@ -228,6 +228,8 @@ function MissingInfo({ assetId }: { assetId: string }) {
   if (!x) return <div className="empty" style={{ paddingTop: 12 }}>Fichier introuvable.</div>;
   const montages = state?.project.montages ?? [];
   const used = x.usedIn.map((id) => montages.find((y) => y.id === id)?.name ?? id);
+  // A render failed for it: its cache is gone too, the reel cannot render without it.
+  const blocked = state?.versions.find((v) => v.status === "error" && v.failure?.kind === "missing" && v.failure.assetIds?.includes(assetId));
   return (
     <div className="rp-body scroll md-info">
       <div className="md-pvw">
@@ -254,7 +256,7 @@ function MissingInfo({ assetId }: { assetId: string }) {
       </div>
       <div className="sec last">
         <div className="pad c2" style={{ paddingTop: 12 }}>
-          Les rendus continuent depuis le cache. Remets le fichier dans {dirOf(x.path)}/ (ou sors-le de la Corbeille) : Cezane le retrouve tout seul.
+          {blocked ? `Son cache a disparu aussi : V${blocked.n} n'a pas pu être rendue sans lui.` : "Les rendus continuent depuis le cache."} Remets le fichier dans {dirOf(x.path)}/ (ou sors-le de la Corbeille) : Cezane le retrouve tout seul.
         </div>
       </div>
     </div>

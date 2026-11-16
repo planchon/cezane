@@ -1,9 +1,10 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { basename, join } from "node:path";
-import type { Job, Project, ProjectsEvent, ProjectSummary, ReelSummary, Version } from "@cezane/core";
+import type { Comment, Job, Project, ProjectsEvent, ProjectSummary, Version } from "@cezane/core";
 import { REPO_DIR, RenderWorker } from "@cezane/engine";
 import { Cezane } from "./app";
 import { Scheduler } from "./jobs";
+import { projectFileUrl, readMontage, reelSummaries } from "./reels";
 import { ProjectRegistry, type RegistryEntry } from "./registry";
 import { ProjectStore } from "./store";
 
@@ -34,7 +35,6 @@ export function demoDirs(): string[] {
     .map((e) => join(root, e.name));
 }
 
-const enc = (p: string) => p.split("/").map(encodeURIComponent).join("/");
 const readJson = <T>(p: string, fallback: T): T => {
   try {
     return existsSync(p) ? (JSON.parse(readFileSync(p, "utf8")) as T) : fallback;
@@ -161,23 +161,18 @@ export class Hub {
     const projectFile = join(e.path, "cezane.json");
     if (!existsSync(projectFile)) return { ...base, name: basename(e.path), missing: true, modifiedAt: e.addedAt, reels: [], assets: 0 };
     const project = app?.store.project ?? readJson<Partial<Project>>(projectFile, {});
-    const versions = app?.store.versions ?? readJson<Version[]>(join(e.path, "versions.json"), []);
-    const url = (rel?: string) => (rel ? `/files/p/${encodeURIComponent(e.id)}/${enc(rel)}` : undefined);
-    const reels: ReelSummary[] = (project.montages ?? []).map((m) => {
-      const vs = versions.filter((v) => v.montageId === m.id);
-      const last = vs.at(-1);
-      const ready = [...vs].reverse().find((v) => v.status === "ready" && v.file);
-      return {
-        id: m.id,
-        name: m.name,
-        status: last?.status ?? "draft",
-        versions: vs.length,
-        lastVersion: last && { id: last.id, n: last.n, status: last.status, createdAt: last.createdAt, durationSeconds: +(last.durationFrames / last.fps).toFixed(2) },
-        thumbUrl: url(ready?.poster),
-        videoUrl: url(ready?.file),
-        exportUrl: ready?.exportFile && existsSync(join(e.path, ready.exportFile)) ? url(ready.exportFile) : undefined,
-      };
-    });
+    const reels = app
+      ? app.reels()
+      : reelSummaries({
+          projectId: e.id,
+          dir: e.path,
+          project,
+          versions: readJson<Version[]>(join(e.path, "versions.json"), []),
+          comments: readJson<Comment[]>(join(e.path, "comments.json"), []),
+          montage: (id) => readMontage(e.path, id),
+          activeId: readJson<{ id?: string }>(join(e.path, ".cezane/active-reel.json"), {}).id,
+        });
+    const icon = ["icon.png", "icon.jpg", "icon.jpeg", "icon.webp"].find((f) => existsSync(join(e.path, f)));
     const montagesDir = join(e.path, "montages");
     const stamps = [projectFile, join(e.path, "versions.json"), join(e.path, "comments.json")].map(mtime);
     if (existsSync(montagesDir)) for (const f of readdirSync(montagesDir)) if (f.endsWith(".json")) stamps.push(mtime(join(montagesDir, f)));
@@ -191,6 +186,7 @@ export class Hub {
       assets: project.assets?.length ?? 0,
       claudeRunning: app?.claude.running,
       jobs: app ? { running: jobs.filter((j) => j.status === "running").length, queued: jobs.filter((j) => j.status === "queued").length } : undefined,
+      iconUrl: projectFileUrl(e.id, icon),
     };
   }
 

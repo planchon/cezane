@@ -1,11 +1,12 @@
-import type { Version } from "@cezane/core";
-import { ChartGantt, Check, ChevronDown, Images, Loader2, Send } from "lucide-react";
+import type { ReelSummary, Version } from "@cezane/core";
+import { ChartGantt, Check, ChevronDown, Images, Loader2, Pencil, Plus, Send } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useApp, type View } from "../store";
 import { clockShort, relTime } from "./format";
+import { newReel, renameReel, selectReel } from "./projectActions";
 
 /** Open state of a popover that closes on an outside click or Escape. */
-function usePopover() {
+export function usePopover() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -48,17 +49,24 @@ export function ViewSwitcher() {
 // ───────────────────────── reel (montage) ─────────────────────────
 
 /**
- * Floating pill at the top-left of the work area: the current montage and how many the project has.
- * The server serves one montage (project.montages[0]) and has no route to open or create another, so
- * the menu lists the reels and marks the open one; switching arrives with the multi-project backend.
+ * Floating pill at the top-left of the work area: the selected reel and how many the project has.
+ * The menu switches reel (the server selects it for the project: state, edits, renders, comments and
+ * new Claude sessions follow), creates one or renames the current one.
  */
 export function ReelPicker() {
   const { state } = useApp();
   const { open, setOpen, ref } = usePopover();
   if (!state) return null;
-  const reels = state.project.montages.length ? state.project.montages : [{ id: state.montage.id, name: state.montage.name }];
+  const reels: Pick<ReelSummary, "id" | "name" | "lastVersion" | "versions">[] = state.reels?.length
+    ? state.reels
+    : (state.project.montages.length ? state.project.montages : [state.montage]).map((m) => ({ id: m.id, name: m.name, versions: -1 }));
   const current = state.montage;
   const n = reels.length;
+  const claudeOn = state.claude.running ? (state.claude.montageId ?? current.id) : undefined;
+  const run = (fn: () => unknown) => {
+    setOpen(false);
+    void fn();
+  };
   return (
     <div className="reel" ref={ref}>
       <button className={`reel-btn ${open ? "on" : ""}`} onClick={() => setOpen(!open)} aria-haspopup="menu" aria-expanded={open}>
@@ -69,24 +77,32 @@ export function ReelPicker() {
         </span>
       </button>
       {open && (
-        <div className="pop menu" role="menu" style={{ top: 44, left: 0 }}>
+        <div className="pop menu reelmenu" role="menu" style={{ top: 44, left: 0 }}>
           {reels.map((r) => {
             const on = r.id === current.id;
+            const info = r.versions < 0 ? "" : r.lastVersion ? `V${r.lastVersion.n}` : "Rushes";
             return (
-              <button
-                key={r.id}
-                role="menuitemradio"
-                aria-checked={on}
-                className="menu-item"
-                disabled={!on}
-                title={on ? undefined : "Le serveur n'ouvre qu'un reel à la fois pour l'instant"}
-                onClick={() => setOpen(false)}
-              >
+              <button key={r.id} role="menuitemradio" aria-checked={on} className="menu-item" onClick={() => run(() => !on && selectReel(r.id))}>
                 <span className="chk">{on && <Check size={12} />}</span>
                 <span className="ell">{r.name}</span>
+                {r.id === claudeOn && <span className="cl-dot" title="Claude travaille sur ce reel" />}
+                <span className="c2 r">{info}</span>
               </button>
             );
           })}
+          <div className="menu-sep" />
+          <button role="menuitem" className="menu-item" onClick={() => run(() => newReel())}>
+            <span className="chk">
+              <Plus size={12} />
+            </span>
+            Nouveau reel…
+          </button>
+          <button role="menuitem" className="menu-item" onClick={() => run(() => renameReel({ id: current.id, name: current.name }))}>
+            <span className="chk">
+              <Pencil size={12} />
+            </span>
+            Renommer « {current.name} »…
+          </button>
         </div>
       )}
     </div>

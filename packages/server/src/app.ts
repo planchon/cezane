@@ -7,6 +7,8 @@ import {
   type Comment,
   type GenerateRequest,
   type Job,
+  type Montage,
+  type ReelSummary,
   type ServerEvent,
   type ServerState,
   type Version,
@@ -47,6 +49,7 @@ import { ClaudeRunner } from "./claude";
 import { Jobs, type Scheduler } from "./jobs";
 import { exportRender, fileNameFor, folderFor, linkOrCopy, readableName, reelSlug } from "./layout";
 import { FolderSync } from "./library";
+import { reelSummaries } from "./reels";
 import { now, type ProjectStore } from "./store";
 import { FolderWatcher } from "./watcher";
 
@@ -94,8 +97,8 @@ export class Cezane {
   /** Files being imported in place right now (lowercase). */
   private importing = new Set<string>();
   private ingests = new Map<string, Promise<Job>>();
-  /** Comments handled by the running Claude session, and the revision it started from. */
-  private session?: { comments: string[]; fromRevision: number; render: boolean };
+  /** The running Claude session: its reel (pinned when it started), the comments it handles, the revision it started from. */
+  private session?: { montageId: string; comments: string[]; fromRevision: number; render: boolean };
 
   constructor(
     readonly store: ProjectStore,
@@ -219,19 +222,67 @@ export class Cezane {
     this.broadcast({ type: "files", projectId: this.id });
   }
 
+  /** The project as the UI sees it: the selected reel (montage, revision, versions, comments) and the list of reels. */
   state(): ServerState {
     const s = this.store;
+    const running = this.claude.running;
     return {
       projectId: this.id,
       dir: s.dir,
       project: s.project,
       montage: s.montage,
       revision: s.revision,
-      comments: s.comments,
-      versions: s.versions,
+      comments: s.reelComments(),
+      versions: s.reelVersions(),
       jobs: this.jobs.list,
-      claude: { running: this.claude.running, task: this.claude.task, startedAt: this.claude.startedAt, model: s.project.settings.claudeModel },
+      claude: {
+        running,
+        task: this.claude.task,
+        startedAt: this.claude.startedAt,
+        model: s.project.settings.claudeModel,
+        montageId: running ? this.session?.montageId : undefined,
+      },
+      reels: this.reels(),
     };
+  }
+
+  reels(): ReelSummary[] {
+    const s = this.store;
+    return reelSummaries({
+      projectId: this.id,
+      dir: s.dir,
+      project: s.project,
+      versions: s.versions,
+      comments: s.comments,
+      montage: (id) => s.montages().find((m) => m.id === id),
+      activeId: s.activeId,
+      claudeOn: this.claude.running ? this.session?.montageId : undefined,
+    });
+  }
+
+  // ───── reels ─────
+
+  /** Selects the reel the UI, the unscoped routes and new Claude sessions act on. */
+  selectReel(id: string) {
+    this.store.select(id);
+    this.changed();
+  }
+
+  createReel(name: string, select = true): ReelSummary {
+    const n = name.trim();
+    if (!n) throw Object.assign(new Error("name required"), { status: 400 });
+    const r = this.store.createReel(n);
+    if (select) this.store.select(r.id);
+    this.changed();
+    return this.reels().find((x) => x.id === r.id)!;
+  }
+
+  renameReel(id: string, name: string): ReelSummary {
+    const n = name.trim();
+    if (!n) throw Object.assign(new Error("name required"), { status: 400 });
+    this.store.renameReel(id, n);
+    this.changed();
+    return this.reels().find((x) => x.id === id)!;
   }
 
   // ───── import & ingestion ─────
@@ -380,8 +431,8 @@ export class Cezane {
    * Makes sure the person cutouts used by the montage exist (cutout clips and the main track under
    * `behind` graphics), with their subject track. Computed once per source.
    */
-  async ensureCutouts(update: (p: number, label?: string) => void = () => {}) {
-    for (const id of cutoutAssets(this.store.montage)) {
+  async ensureCutouts(update: (p: number, label?: string) => void = () => {}, montage: Montage = this.store.montage) {
+    for (const id of cutoutAssets(montage)) {
       const a = this.store.asset(id);
       if (!a || a.kind !== "video" || (a.derived.cutout?.startsWith(`cutout-v${CUTOUT_VERSION}-`) && a.derived.subject)) continue;
       const r = await cutout(a, (p) => update(p * 0.3, `Détourage · ${a.name}`));
@@ -390,8 +441,8 @@ export class Cezane {
   }
 
   /** Makes sure the graded copies (LUT) of the footage used by the montage exist, video and cutout. */
-  async ensureGrades(update: (p: number, label?: string) => void = () => {}) {
-    const m = this.store.montage;
+  async ensureGrades(update: (p: number, label?: string) => void = () => {}, montage: Montage = this.store.montage) {
+    const m = montage;
     for (const t of m.tracks)
       for (const c of t.clips) {
         if (c.type !== "media") continue;
@@ -409,25 +460,28 @@ export class Cezane {
       }
   }
 
-  /** Renders the current montage as a new version (V1, V2…). Only changed segments are rendered. */
-  renderVersion(author: Version["author"], summary: string, commentIds: string[] = []): Version {
+  /**
+   * Renders a reel (the selected one by default) as a new version (V1, V2… per reel; ids stay unique
+   * in the project). Only changed segments are rendered.
+   */
+  renderVersion(author: Version["author"], summary: string, commentIds: string[] = [], reelId = this.store.activeId): Version {
     const s = this.store;
-    const n = (s.versions.at(-1)?.n ?? 0) + 1;
-    const id = `v${n}`;
+    const reel = s.reel(reelId);
+    const { id, n } = s.nextVersion(reelId);
     const montageFile = join(".cezane/versions", `${id}.montage.json`);
-    writeFileSync(s.path(montageFile), JSON.stringify(s.montage, null, 2));
+    writeFileSync(s.path(montageFile), JSON.stringify(reel.montage, null, 2));
     const version: Version = {
       id,
       n,
-      montageId: s.montage.id,
-      revision: s.revision,
+      montageId: reel.id,
+      revision: reel.revision,
       author,
       summary,
       status: "rendering",
       progress: 0,
       montageFile,
-      durationFrames: montageDuration(s.montage),
-      fps: s.montage.settings.fps,
+      durationFrames: montageDuration(reel.montage),
+      fps: reel.montage.settings.fps,
       changed: [],
       comments: commentIds,
       segmentKeys: [],
@@ -435,38 +489,43 @@ export class Cezane {
     };
     s.versions.push(version);
     s.saveVersions();
-    const prev = [...s.versions].reverse().find((v) => v.status === "ready");
-    const montage = s.montage;
-    void this.jobs.add("render", `Rendu ${id}`, async (update) => {
-      try {
-        await this.ensureCutouts(update);
-        await this.ensureGrades(update);
-        const env = this.renderEnv();
-        const file = join(".cezane/renders", `${id}.mp4`);
-        const r = await renderMontage(montage, env, s.path(file), prev?.segmentKeys ?? [], (p, label) => {
-          version.progress = p;
-          update(p, `Rendu ${id} · ${label}`);
-        });
-        const poster = join(".cezane/renders", `${id}.jpg`);
-        await ffmpeg(["-ss", "0.5", "-i", s.path(file), "-frames:v", "1", "-vf", "scale=-2:640", "-q:v", "4", s.path(poster)]).catch(() => undefined);
-        Object.assign(version, { status: "ready", progress: 1, file, poster, changed: prev ? r.changed : [], segmentKeys: r.keys, renderSeconds: +r.seconds.toFixed(1) });
+    const prev = [...s.reelVersions(reel.id)].reverse().find((v) => v.status === "ready" && v.id !== id);
+    const montage = reel.montage;
+    void this.jobs.add(
+      "render",
+      `Rendu V${n}`,
+      async (update) => {
         try {
-          version.exportFile = exportRender(s.dir, file, this.reelSlug(montage.id), n);
-          this.changedFiles();
+          await this.ensureCutouts(update, montage);
+          await this.ensureGrades(update, montage);
+          const env = this.renderEnv();
+          const file = join(".cezane/renders", `${id}.mp4`);
+          const r = await renderMontage(montage, env, s.path(file), prev?.segmentKeys ?? [], (p, label) => {
+            version.progress = p;
+            update(p, `Rendu V${n} · ${label}`);
+          });
+          const poster = join(".cezane/renders", `${id}.jpg`);
+          await ffmpeg(["-ss", "0.5", "-i", s.path(file), "-frames:v", "1", "-vf", "scale=-2:640", "-q:v", "4", s.path(poster)]).catch(() => undefined);
+          Object.assign(version, { status: "ready", progress: 1, file, poster, changed: prev ? r.changed : [], segmentKeys: r.keys, renderSeconds: +r.seconds.toFixed(1) });
+          try {
+            version.exportFile = exportRender(s.dir, file, this.reelSlug(montage.id), n);
+            this.changedFiles();
+          } catch (e) {
+            console.error(`[export] ${id}: ${e instanceof Error ? e.message : e}`);
+          }
+          for (const c of s.comments) if (c.status === "fixed" && !c.fixedIn && commentIds.includes(c.id)) c.fixedIn = id;
+          s.saveComments();
+          console.log(`[render] ${id}: ${r.rendered}/${r.total} segments in ${r.seconds.toFixed(1)}s`);
+          return { versionId: id };
         } catch (e) {
-          console.error(`[export] ${id}: ${e instanceof Error ? e.message : e}`);
+          Object.assign(version, { status: "error", error: e instanceof Error ? e.message : String(e) });
+          throw e;
+        } finally {
+          s.saveVersions();
         }
-        for (const c of s.comments) if (c.status === "fixed" && !c.fixedIn && commentIds.includes(c.id)) c.fixedIn = id;
-        s.saveComments();
-        console.log(`[render] ${id}: ${r.rendered}/${r.total} segments in ${r.seconds.toFixed(1)}s`);
-        return { versionId: id };
-      } catch (e) {
-        Object.assign(version, { status: "error", error: e instanceof Error ? e.message : String(e) });
-        throw e;
-      } finally {
-        s.saveVersions();
-      }
-    });
+      },
+      { montageId: reel.id },
+    );
     this.changed();
     return version;
   }
@@ -496,9 +555,12 @@ export class Cezane {
   addComment(anchor: Anchor, text: string, snapshotDataUrl?: string): Comment {
     const s = this.store;
     if (anchor.kind === "montage" && !anchor.content) {
-      const m = s.versionMontage(anchor.versionId) ?? s.montage;
+      const m = s.versionMontage(anchor.versionId) ?? s.reel(s.reelOf(anchor.montageId)).montage;
       anchor = { ...anchor, content: contentAnchorAt(m, anchor.frame) };
     }
+    // Numbers count per reel (#1, #2…); canvas comments have their own count.
+    const scope = (a: Anchor) => (a.kind === "canvas" ? "canvas" : s.reelOf(a.montageId));
+    const mine = scope(anchor);
     const id = newId("k");
     let snapshot: string | undefined;
     if (snapshotDataUrl?.startsWith("data:image/")) {
@@ -507,7 +569,7 @@ export class Cezane {
     }
     const c: Comment = {
       id,
-      n: (s.comments.reduce((m, x) => Math.max(m, x.n), 0) ?? 0) + 1,
+      n: s.comments.filter((x) => scope(x.anchor) === mine).reduce((m, x) => Math.max(m, x.n), 0) + 1,
       status: "draft",
       anchor,
       thread: [{ author: "user", text, at: now() }],
@@ -520,29 +582,42 @@ export class Cezane {
     return c;
   }
 
-  comment(id: string): Comment {
-    const c = this.store.comments.find((x) => x.id === id || `#${x.n}` === id || String(x.n) === id);
+  /** A comment by id, or by number (#3) among the reel's comments first (the selected reel by default). */
+  comment(id: string, reelId = this.store.activeId): Comment {
+    const s = this.store;
+    const byNumber = (x: Comment) => `#${x.n}` === id || String(x.n) === id;
+    const c = s.comments.find((x) => x.id === id) ?? s.reelComments(reelId).find(byNumber) ?? s.comments.find(byNumber);
     if (!c) throw new Error(`unknown comment ${id}`);
     return c;
   }
 
+  /** The MCP endpoint of this project, pinned to a reel. */
+  mcpUrl(reelId: string) {
+    return `${this.baseUrl}/api/p/${encodeURIComponent(this.id)}/mcp?reel=${encodeURIComponent(reelId)}`;
+  }
+
   // ───── Claude ─────
 
+  /** Sends review comments to Claude, on the selected reel (the session stays on it if the user switches reels). */
   sendToClaude(ids?: string[]) {
     const s = this.store;
-    const batch = ids?.length ? ids.map((i) => this.comment(i)) : s.comments.filter((c) => c.status === "draft" || c.status === "reopened");
+    if (this.claude.running) throw new Error("Claude is already working");
+    const reel = s.reel();
+    const batch = ids?.length ? ids.map((i) => this.comment(i)) : s.reelComments(reel.id).filter((c) => c.status === "draft" || c.status === "reopened");
     if (!batch.length) throw new Error("no comment to send");
     for (const c of batch) c.status = "sent";
     s.saveComments();
-    this.session = { comments: batch.map((c) => c.id), fromRevision: s.revision, render: true };
+    this.session = { montageId: reel.id, comments: batch.map((c) => c.id), fromRevision: reel.revision, render: true };
     const list = batch.map((c) => `${c.id} (#${c.n})`).join(", ");
-    this.claude.start(`Handle these review comments on the montage: ${list}. Get their context with comment_context, fix them, then reply to each.`, `${batch.length} commentaire(s)`);
+    this.claude.start(`Handle these review comments on the montage: ${list}. Get their context with comment_context, fix them, then reply to each.`, `${batch.length} commentaire(s)`, undefined, this.mcpUrl(reel.id));
     this.changed();
   }
 
   ask(text: string) {
-    this.session = { comments: [], fromRevision: this.store.revision, render: true };
-    this.claude.start(text, text.slice(0, 80));
+    if (this.claude.running) throw new Error("Claude is already working");
+    const reel = this.store.reel();
+    this.session = { montageId: reel.id, comments: [], fromRevision: reel.revision, render: true };
+    this.claude.start(text, text.slice(0, 80), undefined, this.mcpUrl(reel.id));
     this.changed();
   }
 
@@ -555,11 +630,12 @@ export class Cezane {
       if (c && (c.status === "sent" || c.status === "in_progress") && !ok) c.status = "draft";
     }
     s.saveComments();
-    const rendering = s.versions.some((v) => v.status === "rendering" && v.revision === s.revision);
-    if (session?.render && s.revision !== session.fromRevision && !rendering) {
-      const journal = s.journal().filter((r) => r.rev > session.fromRevision);
+    const reel = session && s.project.montages.some((m) => m.id === session.montageId) ? s.reel(session.montageId) : undefined;
+    const rendering = reel && s.reelVersions(reel.id).some((v) => v.status === "rendering" && v.revision === reel.revision);
+    if (session?.render && reel && reel.revision !== session.fromRevision && !rendering) {
+      const journal = reel.journal().filter((r) => r.rev > session.fromRevision);
       const summary = journal.map((r) => r.reason ?? r.summary.join(", ")).join(" · ").slice(0, 300);
-      this.renderVersion("claude", summary || "Modifications de Claude", session.comments);
+      this.renderVersion("claude", summary || "Modifications de Claude", session.comments, reel.id);
     }
     this.changed();
   }

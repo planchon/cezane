@@ -279,7 +279,7 @@ const summarize = (tool: string | undefined, input: unknown): string => {
   }
 };
 
-function ClaudePanel() {
+export function ClaudePanel() {
   const { log, state } = useApp();
   const [text, setText] = useState("");
   const bottom = useRef<HTMLDivElement>(null);

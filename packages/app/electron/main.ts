@@ -4,7 +4,7 @@ import type { EventEmitter } from "node:events";
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
-import { app, BrowserWindow, nativeImage, shell } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, nativeImage, shell } from "electron";
 
 const PORT = Number(process.env.CEZANE_PORT ?? 4317);
 const BASE = `http://127.0.0.1:${PORT}`;
@@ -64,6 +64,22 @@ function icon() {
   return file ? nativeImage.createFromPath(file) : undefined;
 }
 
+// "Ouvrir un dossier…" in the app: the macOS folder picker, for the Cezane page only (see preload.ts).
+ipcMain.handle("cezane:pick-folder", async (e) => {
+  const from = e.senderFrame?.url ?? "";
+  if (!from.startsWith(BASE) && !(process.env.VITE_DEV_URL && from.startsWith(process.env.VITE_DEV_URL))) return null;
+  const projets = join(process.env.CEZANE_HOME ?? join(homedir(), "Cezane"), "Projets");
+  const opts: Electron.OpenDialogOptions = {
+    title: "Ouvrir un dossier",
+    buttonLabel: "Ouvrir",
+    properties: ["openDirectory", "createDirectory"],
+    defaultPath: existsSync(projets) ? projets : homedir(),
+  };
+  const win = BrowserWindow.fromWebContents(e.sender);
+  const r = win ? await dialog.showOpenDialog(win, opts) : await dialog.showOpenDialog(opts);
+  return r.canceled ? null : (r.filePaths[0] ?? null);
+});
+
 async function createWindow() {
   const img = icon();
   if (img && process.platform === "darwin") app.dock?.setIcon(img);
@@ -79,7 +95,7 @@ async function createWindow() {
     backgroundColor: "#EFEFEE",
     icon: img,
     show: false,
-    webPreferences: { contextIsolation: true, sandbox: true },
+    webPreferences: { contextIsolation: true, sandbox: true, preload: join(__dirname, "preload.cjs") },
   });
   win.once("ready-to-show", () => win.show());
   win.webContents.setWindowOpenHandler(({ url }) => {

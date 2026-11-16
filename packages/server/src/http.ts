@@ -81,6 +81,25 @@ const projectRoutes: ProjectRoute[] = [
     ["GET", /^\/api\/state$/, (_r, _m, app) => json(app.state())],
     ["GET", /^\/api\/events$/, (req, _m, app) => sse(req, (send) => (send({ type: "state", state: app.state() } satisfies ServerEvent), app.subscribe(send)))],
     ["GET", /^\/api\/claude\/log$/, (_r, _m, app) => json(app.claude.events)],
+    // Reels (montages) of the project: list, create, select, rename.
+    ["GET", /^\/api\/reels$/, (_r, _m, app) => json(app.reels())],
+    [
+      "POST",
+      /^\/api\/reels$/,
+      async (req, _m, app) => {
+        const b = (await req.json().catch(() => ({}))) as { name?: string; select?: boolean };
+        return json(app.createReel(b.name ?? "", b.select !== false));
+      },
+    ],
+    ["POST", /^\/api\/reels\/([\w-]+)\/select$/, (_r, m, app) => (app.selectReel(m[1]!), json(app.state()))],
+    [
+      "PATCH",
+      /^\/api\/reels\/([\w-]+)$/,
+      async (req, m, app) => {
+        const b = (await req.json().catch(() => ({}))) as { name?: string };
+        return json(app.renameReel(m[1]!, b.name ?? ""));
+      },
+    ],
     [
       "POST",
       /^\/api\/claude\/send$/,

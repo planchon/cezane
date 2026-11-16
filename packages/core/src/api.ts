@@ -71,6 +71,7 @@ export type WorkerResponse =
 export type Job = {
   id: string;
   projectId?: string; // owner project (jobs share one scheduler across projects)
+  montageId?: string; // the reel a render belongs to
   kind: "ingest" | "render" | "generate" | "capture" | "cutout";
   label: string;
   status: "queued" | "running" | "done" | "error";
@@ -92,18 +93,26 @@ export type ClaudeEvent = {
   costUsd?: number;
 };
 
-export type ClaudeStatus = { running: boolean; task?: string; startedAt?: string; model: string };
+export type ClaudeStatus = {
+  running: boolean;
+  task?: string;
+  startedAt?: string;
+  model: string;
+  montageId?: string; // the reel the running session edits (pinned when it started)
+};
 
 export type ServerState = {
   projectId: string; // registry id: /api/p/<projectId>/… targets this project
   dir: string;
   project: Project;
   montage: Montage;
-  revision: number;
-  comments: Comment[];
-  versions: Version[];
+  revision: number; // of the selected reel
+  comments: Comment[]; // the selected reel's comments, plus the canvas comments
+  versions: Version[]; // the selected reel's versions
   jobs: Job[];
   claude: ClaudeStatus;
+  /** Every reel of the project (the selected one has `active`). `montage` is the selected reel. */
+  reels?: ReelSummary[];
 };
 
 /** Server-sent events on GET /api/events and GET /api/p/:projectId/events. */
@@ -121,10 +130,16 @@ export type ReelSummary = {
   name: string;
   status: "draft" | "rendering" | "ready" | "error"; // draft: never rendered
   versions: number;
-  lastVersion?: { id: string; n: number; status: Version["status"]; createdAt: string; durationSeconds: number };
+  lastVersion?: { id: string; n: number; status: Version["status"]; createdAt: string; durationSeconds: number; author?: Version["author"] };
   thumbUrl?: string; // poster of the latest ready version
   videoUrl?: string; // latest ready render
   exportUrl?: string; // the same render in Exports/
+  active?: boolean; // the project's selected reel (what its unscoped routes and Claude act on)
+  claude?: boolean; // Claude is working on this reel now
+  frames?: string[]; // up to 3 stills across the reel (asset posters in timeline order, else the render poster)
+  comments?: { open: number; toReview: number }; // open: draft/sent/in progress/reopened; toReview: fixed by Claude, not validated yet
+  rushes?: { aroll: number; broll: number }; // distinct media on the main track and on the B-roll tracks
+  modifiedAt?: string; // latest change of the reel (montage file, version)
 };
 
 export type ProjectSummary = {
@@ -141,6 +156,7 @@ export type ProjectSummary = {
   assets: number;
   claudeRunning?: boolean;
   jobs?: { running: number; queued: number };
+  iconUrl?: string; // icon.png / icon.jpg at the root of the project folder
 };
 
 /** Server-sent events on GET /api/projects/events (home tab). */
@@ -246,6 +262,12 @@ export type GraphicInfo = { name: string; description: string; props: Record<str
  * POST   /api/comments/:id/reply {text}   user message; a fixed comment becomes reopened
  * POST   /api/comments/:id/status {status: "validated" | "reopened" | "draft"}
  * DELETE /api/comments/:id
+ * GET    /api/reels                       ReelSummary[] (the project's montages)
+ * POST   /api/reels         {name, select?}  create a reel (empty montage, same format as the selected one) → ReelSummary; selected unless select:false
+ * POST   /api/reels/:id/select            make it the project's selected reel → ServerState
+ * PATCH  /api/reels/:id     {name}        rename a reel → ReelSummary
+ *   Every montage route (state, events, edit, undo, render, versions, comments, claude, mcp) acts on the
+ *   selected reel. A Claude session stays on the reel it started on (its MCP URL carries ?reel=<id>).
  * POST   /api/render        {summary?}    render a new version → Job
  * POST   /api/versions/:id/restore        restore a version's montage as a new revision
  * POST   /api/undo                        revert the last montage revision
@@ -266,7 +288,7 @@ export type GraphicInfo = { name: string; description: string; props: Record<str
  * POST   /api/reveal        {path? | assetId? | versionId?}  show in the Finder (`open -R`); nothing = the project folder
  * POST   /api/capture       {target: "web"|"ios", mode?, url?, …} → Job (one capture at a time, all projects)
  * POST   /api/versions/:id/export         (re)link a ready render into Exports/ → Version
- * POST   /api/mcp                         MCP endpoint of the project (Claude); the default project is also on /mcp
+ * POST   /api/mcp[?reel=<id>]             MCP endpoint of the project (Claude), on the selected reel or `reel`; the default project is also on /mcp
  * GET    /files/p/:projectId/<path>       project files (Range supported); /files/project/<path> = default project
  * GET    /files/cache/<hash>/<file>       ingestion derivatives (Range supported, shared by all projects)
  */

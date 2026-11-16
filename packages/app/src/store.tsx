@@ -1,10 +1,10 @@
 import type { ClaudeEvent, Montage, ServerEvent, ServerState, Version } from "@cezane/core";
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { get, subscribe } from "./api";
+import { activeProject, get, post, scopedPath, subscribe } from "./api";
+import { useProjects, type View } from "./projects";
 
+export type { View } from "./projects";
 export type Tool = "select" | "comment";
-/** The work area's views, picked in the floating switcher. */
-export type View = "timeline" | "medias" | "export";
 export type Selection = { kind: "clip"; id: string } | { kind: "asset"; id: string } | undefined;
 
 export type UI = {
@@ -37,21 +37,65 @@ export function useApp(): Ctx {
   return c;
 }
 
+/** What belongs to the reel on screen: forgotten when the tab or the reel changes. */
+const perReel = { versionId: undefined, compare: false, compareId: undefined, commentId: undefined, selection: undefined, tool: "select" } as const;
+
+/**
+ * The live state of the active tab's project (only that one streams its full state; the tabs and
+ * the home tab use the light /api/projects stream). Each project's last state is kept, so switching
+ * tabs shows it at once while the stream reconnects.
+ */
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<ServerState | null>(null);
+  const { active: pid, tabs, patchTab } = useProjects();
+  const tab = tabs.find((t) => t.id === pid);
+  const tabRef = useRef(tab);
+  tabRef.current = tab;
+  const cache = useRef(new Map<string, ServerState>());
+  const [state, setState] = useState<ServerState | null>(() => (pid ? (cache.current.get(pid) ?? null) : null));
   const [log, setLog] = useState<ClaudeEvent[]>([]);
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState<string>();
-  const [ui, setUiState] = useState<UI>({ view: "timeline", compare: false, tool: "select", panel: "comments", selection: undefined });
+  const [ui, setUiState] = useState<UI>({ view: tab?.view ?? "timeline", compare: false, tool: "select", panel: "comments", selection: undefined });
   const canvasListeners = useRef(new Set<(e: Extract<ServerEvent, { type: "canvas" }>) => void>());
 
+  // Another tab: its cached state at once, its view, nothing selected.
+  const [shown, setShown] = useState({ pid, reel: state?.montage.id });
+  if (shown.pid !== pid) {
+    const cached = pid ? (cache.current.get(pid) ?? null) : null;
+    setShown({ pid, reel: cached?.montage.id });
+    setState(cached);
+    setLog([]);
+    setError(undefined);
+    setUiState((u) => ({ ...u, ...perReel, view: tab?.view ?? "timeline" }));
+  } else if (state && shown.reel !== state.montage.id) {
+    // Another reel of the same project.
+    setShown({ pid, reel: state.montage.id });
+    if (shown.reel) setUiState((u) => ({ ...u, ...perReel }));
+  }
+
   useEffect(() => {
+    if (!pid) return;
     let alive = true;
+    // The reel this tab remembers (or was just opened on), checked against the first fresh state.
+    let want = tabRef.current?.reel;
+    const accept = (s: ServerState) => {
+      if (!alive || s.projectId !== pid) return;
+      cache.current.set(pid, s);
+      setState(s);
+      if (want && want !== s.montage.id && s.project.montages.some((m) => m.id === want)) {
+        // The server has another reel selected (changed elsewhere): select the tab's one again, once.
+        void post(scopedPath(`/api/reels/${encodeURIComponent(want)}/select`, pid)).catch(() => {});
+        want = undefined;
+        return;
+      }
+      want = undefined;
+      patchTab(pid, { reel: s.montage.id }); // only fresh states: the tab follows the server's selection
+    };
     const load = () =>
-      Promise.all([get<ServerState>("/api/state"), get<ClaudeEvent[]>("/api/claude/log")])
+      Promise.all([get<ServerState>(scopedPath("/api/state", pid)), get<ClaudeEvent[]>(scopedPath("/api/claude/log", pid))])
         .then(([s, l]) => {
           if (!alive) return;
-          setState(s);
+          accept(s);
           setLog(l ?? []);
           setError(undefined);
         })
@@ -59,21 +103,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
     load();
     const off = subscribe(
       (e) => {
-        if (e.type === "state") setState(e.state);
-        else if (e.type === "claude")
-          setLog((l) => (l.some((x) => x.id === e.event.id) ? l : [...l.slice(-499), e.event]));
+        if (!alive) return;
+        if (e.type === "state") accept(e.state);
+        else if (e.type === "claude") setLog((l) => (l.some((x) => x.id === e.event.id) ? l : [...l.slice(-499), e.event]));
         else if (e.type === "canvas") canvasListeners.current.forEach((fn) => fn(e));
       },
       (ok) => {
         setConnected(ok);
         if (ok) load();
       },
+      pid,
     );
     return () => {
       alive = false;
       off();
     };
-  }, []);
+  }, [pid]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // The tab remembers its view (its reel: in accept, from fresh states only).
+  useEffect(() => {
+    if (pid) patchTab(pid, { view: ui.view });
+  }, [pid, ui.view, patchTab]);
 
   const setUi = useCallback((patch: Partial<UI> | ((u: UI) => Partial<UI>)) => {
     setUiState((u) => ({ ...u, ...(typeof patch === "function" ? patch(u) : patch) }));
@@ -98,12 +148,14 @@ const montageCache = new Map<string, Promise<Montage>>();
 
 export function useVersionMontage(version: Version | undefined, fallback: Montage | undefined): Montage | undefined {
   const [m, setM] = useState<Montage | undefined>();
+  const project = activeProject();
   useEffect(() => {
     if (!version) return setM(undefined);
-    const key = `${version.id}@${version.revision}`;
+    // Version ids are per project: the key carries the project.
+    const key = `${project ?? ""}/${version.id}@${version.revision}`;
     let p = montageCache.get(key);
     if (!p) {
-      p = get<Montage>(`/api/versions/${version.id}/montage`);
+      p = get<Montage>(scopedPath(`/api/versions/${version.id}/montage`, project));
       montageCache.set(key, p);
       p.catch(() => montageCache.delete(key));
     }
@@ -112,7 +164,7 @@ export function useVersionMontage(version: Version | undefined, fallback: Montag
     return () => {
       alive = false;
     };
-  }, [version?.id, version?.revision]);
+  }, [project, version?.id, version?.revision]);
   return version ? (m ?? fallback) : fallback;
 }
 

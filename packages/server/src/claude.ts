@@ -68,10 +68,11 @@ export class ClaudeRunner {
     this.o.onEvent(ev);
   }
 
-  start(prompt: string, task: string, model = this.o.model) {
+  /** `mcpUrl`: this session's MCP endpoint (default: the project's), e.g. pinned to a reel with ?reel=<id>. */
+  start(prompt: string, task: string, model = this.o.model, mcpUrl = this.o.mcpUrl) {
     if (this.running) throw new Error("Claude is already working");
     const cfg = join(this.o.dir, ".cezane/mcp.json");
-    writeFileSync(cfg, JSON.stringify({ mcpServers: { cezane: { type: "http", url: this.o.mcpUrl } } }));
+    writeFileSync(cfg, JSON.stringify({ mcpServers: { cezane: { type: "http", url: mcpUrl } } }));
     const args = [
       "claude",
       "-p",

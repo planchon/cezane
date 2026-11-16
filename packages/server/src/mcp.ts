@@ -23,18 +23,23 @@ add_track {kind:"video"|"overlay"|"audio", role?:"broll"|"graphics"|"captions"|"
 set_settings {set:{width,height,fps,background,grade:{lut,intensity?,vignette?}}} (grade = color look of all imported footage; LUTs: drame, film, provence, nuit, pastel, noir, or a .cube in the project luts/ folder; captures and generated images are not graded) · set_audio {set:{targetLufs, voice:"none"|"clean"|"podcast", duck, duckDb}}
 Tracks stack bottom→top; refer to them by id or name. Text behind the person: give the graphic behind:true (BigText or Title); it is placed from the person automatically and stays in front on close-ups (head > 35% of the frame). Green screen: use the green_screen tool.`;
 
-/** One MCP server per request (stateless Streamable HTTP). */
+/**
+ * One MCP server per request (stateless Streamable HTTP). It acts on the reel given as ?reel=<id>
+ * (Claude sessions are pinned to the reel they started on), else on the project's selected reel.
+ */
 export function mcpHandler(app: Cezane) {
   return async (req: Request): Promise<Response> => {
-    const server = buildServer(app);
+    const server = buildServer(app, new URL(req.url).searchParams.get("reel") ?? undefined);
     const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
     await server.connect(transport);
     return transport.handleRequest(req);
   };
 }
 
-function buildServer(app: Cezane): McpServer {
+function buildServer(app: Cezane, reelParam?: string): McpServer {
   const s = app.store;
+  const reelId = reelParam && s.project.montages.some((m) => m.id === reelParam) ? reelParam : s.activeId;
+  const reel = () => s.reel(reelId);
   const server = new McpServer({ name: "cezane", version: "0.1.0" });
   const tmp = (name: string) => {
     const d = s.path(".cezane/tmp");
@@ -44,7 +49,7 @@ function buildServer(app: Cezane): McpServer {
   const env = () => ({ worker: app.worker, projectDir: s.dir, assets: s.assetMap(), baseUrl: app.baseUrl });
 
   server.registerTool("overview", { description: "Compact summary: tracks, clips (ids, frames), assets, open comments." }, async () =>
-    text(overview(s.project, s.montage, s.comments, s.versions, s.revision)),
+    text(overview(s.project, reel().montage, s.reelComments(reelId), s.reelVersions(reelId), reel().revision)),
   );
 
   server.registerTool(
@@ -58,8 +63,8 @@ function buildServer(app: Cezane): McpServer {
         const t = s.transcript(assetId);
         return t ? text(`lang=${t.language}\n${transcriptLines(t.words, "s")}`) : fail("no transcript for this asset");
       }
-      const words = timelineWords(s.montage, s.transcript).filter((w) => (from === undefined || w.end > from) && (to === undefined || w.start < to));
-      return text(transcriptLines(words, "f", s.montage.settings.fps) || "(no speech in range)");
+      const words = timelineWords(reel().montage, s.transcript).filter((w) => (from === undefined || w.end > from) && (to === undefined || w.start < to));
+      return text(transcriptLines(words, "f", reel().montage.settings.fps) || "(no speech in range)");
     },
   );
 
@@ -75,9 +80,9 @@ function buildServer(app: Cezane): McpServer {
       },
     },
     async ({ frames, region, compare }) => {
-      const m = s.montage;
+      const m = reel().montage;
       let other = undefined;
-      if (compare) other = compare === "previous" ? s.montageAt(s.revision - 1) : s.versionMontage(compare);
+      if (compare) other = compare === "previous" ? reel().montageAt(reel().revision - 1) : s.versionMontage(compare);
       const items: LookItem[] = frames.flatMap((f) =>
         other
           ? [
@@ -87,8 +92,8 @@ function buildServer(app: Cezane): McpServer {
           : [{ label: `f${f}`, frame: f, region }],
       );
       const out = tmp(`look-${newId("l")}.jpg`);
-      await app.ensureCutouts();
-      await app.ensureGrades();
+      await app.ensureCutouts(undefined, m);
+      await app.ensureGrades(undefined, m);
       await look(m, env(), items, out, other ? 2 : undefined);
       const small = out.replace(/\.jpg$/, ".s.jpg");
       await ffmpeg(["-i", out, "-vf", "scale='min(720,iw)':-2", "-q:v", "5", small]);
@@ -102,23 +107,23 @@ function buildServer(app: Cezane): McpServer {
     async ({ ids }) => {
       const lines: string[] = [];
       const snaps: { path: string; region?: { x: number; y: number; w: number; h: number }; pin?: { x: number; y: number } }[] = [];
-      const fps = s.montage.settings.fps;
+      const fps = reel().montage.settings.fps;
       for (const id of ids) {
-        const c = app.comment(id);
+        const c = app.comment(id, reelId);
         if (c.status === "sent") c.status = "in_progress";
         lines.push(`## ${c.id} #${c.n} [${c.status}]`);
         for (const m of c.thread) lines.push(`${m.author}: ${m.text}`);
         const a = c.anchor;
         if (a.kind === "montage") {
-          const r = resolveAnchor(a, s.montage);
+          const r = resolveAnchor(a, reel().montage);
           lines.push(`made on ${a.versionId} at f${a.frame}${a.frameEnd ? `-${a.frameEnd}` : ""}; now at f${r.frame}${r.frameEnd ? `-${r.frameEnd}` : ""} (${r.status})`);
           if (a.region) lines.push(`zone x=${a.region.x.toFixed(2)} y=${a.region.y.toFixed(2)} w=${a.region.w.toFixed(2)} h=${a.region.h.toFixed(2)} (normalized)`);
           if (a.pin) lines.push(`pin x=${a.pin.x.toFixed(2)} y=${a.pin.y.toFixed(2)}`);
-          const hits = s.montage.tracks.flatMap((t) => t.clips.filter((cl) => r.frame >= cl.start && r.frame < clipEnd(cl)).map((cl) => `${cl.id}@${t.name}`));
+          const hits = reel().montage.tracks.flatMap((t) => t.clips.filter((cl) => r.frame >= cl.start && r.frame < clipEnd(cl)).map((cl) => `${cl.id}@${t.name}`));
           if (hits.length) lines.push(`clips there: ${hits.join(", ")}`);
           const from = r.frame - 3 * fps;
           const to = (r.frameEnd ?? r.frame) + 3 * fps;
-          const words = timelineWords(s.montage, s.transcript).filter((w) => w.end > from && w.start < to);
+          const words = timelineWords(reel().montage, s.transcript).filter((w) => w.end > from && w.start < to);
           if (words.length) lines.push(`speech: ${transcriptLines(words, "f", fps)}`);
         } else {
           lines.push(`canvas ${a.canvasId}${a.shapeId ? ` shape ${a.shapeId}` : ""}`);
@@ -155,7 +160,7 @@ function buildServer(app: Cezane): McpServer {
     { description: EDIT_DOC, inputSchema: { ops: z.array(z.record(z.string(), z.unknown())).min(1), reason: z.string().optional().describe("one line, shown in the version summary") } },
     async ({ ops, reason }) => {
       try {
-        const r = s.edit(ops as Op[], "claude", reason);
+        const r = reel().edit(ops as Op[], "claude", reason);
         app.changed();
         return text(`rev ${r.revision}: ${r.summary.join("; ")}`);
       } catch (e) {
@@ -171,11 +176,11 @@ function buildServer(app: Cezane): McpServer {
       inputSchema: { minSilence: z.number().optional().describe("seconds, default 0.4"), padding: z.number().optional().describe("seconds kept around speech, default 0.1"), fillers: z.boolean().optional(), clipIds: z.array(z.string()).optional() },
     },
     async (o) => {
-      const { ops, removedFrames } = cutSilencesOps(s.montage, s.analysis, s.transcript, o);
+      const { ops, removedFrames } = cutSilencesOps(reel().montage, s.analysis, s.transcript, o);
       if (!ops.length) return text("nothing to cut");
-      const r = s.edit(ops, "claude", `silences coupés (${(removedFrames / s.montage.settings.fps).toFixed(1)} s)`);
+      const r = reel().edit(ops, "claude", `silences coupés (${(removedFrames / reel().montage.settings.fps).toFixed(1)} s)`);
       app.changed();
-      return text(`rev ${r.revision}: ${ops.length} cuts, ${(removedFrames / s.montage.settings.fps).toFixed(1)}s removed`);
+      return text(`rev ${r.revision}: ${ops.length} cuts, ${(removedFrames / reel().montage.settings.fps).toFixed(1)}s removed`);
     },
   );
 
@@ -193,9 +198,9 @@ function buildServer(app: Cezane): McpServer {
       },
     },
     async (o) => {
-      const { ops, words } = captionsOps(s.montage, s.transcript, o);
+      const { ops, words } = captionsOps(reel().montage, s.transcript, o);
       if (!words) return fail("no transcribed speech on the main track");
-      const r = s.edit(ops, "claude", `sous-titres ${o.style ?? "clean"}`);
+      const r = reel().edit(ops, "claude", `sous-titres ${o.style ?? "clean"}`);
       app.changed();
       return text(`rev ${r.revision}: captions with ${words} words`);
     },
@@ -218,7 +223,7 @@ function buildServer(app: Cezane): McpServer {
     async (o) => {
       const missing = o.backgrounds.filter((id) => !s.asset(id));
       if (missing.length) return fail(`unknown assets: ${missing.join(", ")}`);
-      const r = s.edit(greenScreenOps(s.montage, o), "claude", "green screen");
+      const r = reel().edit(greenScreenOps(reel().montage, o), "claude", "green screen");
       app.changed();
       return text(`rev ${r.revision}: ${r.summary.join("; ")}`);
     },
@@ -238,7 +243,7 @@ function buildServer(app: Cezane): McpServer {
       },
     },
     async (set) => {
-      const r = s.edit([{ op: "set_audio", set }], "claude", "réglages audio");
+      const r = reel().edit([{ op: "set_audio", set }], "claude", "réglages audio");
       app.changed();
       return text(`rev ${r.revision}: audio ${JSON.stringify(set)}`);
     },
@@ -346,15 +351,15 @@ function buildServer(app: Cezane): McpServer {
   );
 
   server.registerTool("render", { description: "Render a new version now (normally the server does it when you finish).", inputSchema: { summary: z.string() } }, async ({ summary }) => {
-    const v = app.renderVersion("claude", summary);
-    return text(`rendering ${v.id}`);
+    const v = app.renderVersion("claude", summary, [], reelId);
+    return text(`rendering V${v.n} (${v.id})`);
   });
 
   server.registerTool(
     "reply",
     { description: "Reply to a comment thread; status 'fixed' marks it fixed (the user validates), 'in_progress' to ask a question.", inputSchema: { commentId: z.string(), text: z.string(), status: z.enum(["fixed", "in_progress"]).default("fixed") } },
     async ({ commentId, text: t, status }) => {
-      const c = app.comment(commentId);
+      const c = app.comment(commentId, reelId);
       c.thread.push({ author: "claude", text: t, at: new Date().toISOString() });
       c.status = status;
       s.saveComments();

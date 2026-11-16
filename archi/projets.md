@@ -51,6 +51,10 @@ Toutes en JSON, types dans `packages/core/src/api.ts`.
 | `DELETE /api/projects/:id` | oublie le projet |
 | `GET /api/jobs` | `SchedulerState` : limites et jobs de tous les projets |
 | `/api/p/:id/<route>` | toutes les routes de projet : `state`, `events`, `edit`, `undo`, `import`, `upload`, `render`, `versions/…`, `comments/…`, `claude/…`, `canvas…`, `generate`, `transcript`, `waveform`… |
+| `GET /api/p/:id/reels` | `ReelSummary[]` : les reels du projet (`active` = le reel sélectionné) |
+| `POST /api/p/:id/reels {name, select?}` | crée un reel vide au format du reel sélectionné, et le sélectionne (sauf `select: false`) |
+| `POST /api/p/:id/reels/:reel/select` | sélectionne un reel → `ServerState` |
+| `PATCH /api/p/:id/reels/:reel {name}` | renomme un reel |
 | `GET /api/p/:id/files` | `FilesListing` : l'arbre des quatre dossiers, chaque fichier avec ses métadonnées |
 | `POST /api/p/:id/reveal {path \| assetId \| versionId}` | `open -R` : montre le fichier dans le Finder (rien = le dossier du projet) |
 | `POST /api/p/:id/capture {target, mode, url…}` | capture → Captures/, renvoie le job |
@@ -65,6 +69,41 @@ Pour la vue « Médias » : `ProjectFile` donne type, durée, dimensions, taille
 pour un généré ; source et cible pour une capture ; version pour un export), les montages qui
 l'utilisent, et `duplicateOf` pour un doublon non importé. `missing` liste les assets utilisés dont
 le fichier a disparu. L'événement SSE `{type: "files"}` dit quand recharger la liste.
+
+## Les reels
+
+Un projet contient un ou plusieurs reels (montages). Un seul est **sélectionné** par projet
+(`.cezane/active-reel.json`, le premier par défaut) : `state`, `events`, `edit`, `undo`, `render`,
+`versions`, `comments`, Claude et le MCP agissent sur lui, y compris par les routes sans projet.
+
+- `ServerState.montage`, `revision`, `versions` et `comments` sont ceux du reel sélectionné (plus les
+  commentaires du canvas, commun au projet) ; `ServerState.reels` les liste tous.
+- Historique par reel : le premier montage garde `.cezane/history/` (comme avant), les autres
+  `.cezane/history/<montageId>/`. Les numéros de révision comptent par reel.
+- Versions : l'id reste unique dans le projet (`v7`, fichiers `.cezane/renders/v7.mp4`), le numéro
+  affiché `n` compte par reel (V1, V2…), et l'export suit : `<slug du reel>-v1.mp4`. Les commentaires
+  sont numérotés par reel (#1, #2…).
+- Une session Claude reste sur le reel où elle a commencé : son URL MCP porte `?reel=<id>`
+  (`ClaudeStatus.montageId`). L'utilisateur peut changer de reel pendant qu'elle travaille.
+- Renommer ne crée pas de révision (le nom survit à un undo). Un nouveau reel reprend le format,
+  l'étalonnage et l'audio du reel sélectionné, sans clips.
+- Les rendus portent `Job.montageId`. `ReelSummary` donne aussi `frames` (3 images dans l'ordre du
+  montage), `comments {open, toReview}`, `rushes {aroll, broll}`, `claude`.
+
+## L'app : onglets et Atelier
+
+- Un onglet par projet ouvert, plus l'onglet d'accueil (grille). Fermer un onglet (×, clic milieu)
+  ne touche pas au projet. Onglets, onglet actif, vue et reel de chaque onglet : `localStorage`
+  (`cezane.tabs.v1`).
+- Le client API (`src/api.ts`) préfixe `/api/p/<id>` et `/files/p/<id>` selon l'onglet actif ; seul
+  l'onglet actif suit le flux complet (`/api/p/<id>/events`), les onglets et l'Atelier utilisent
+  `/api/projects/events` et `/api/jobs` (interrogé chaque seconde sur l'Atelier).
+- « Ouvrir un dossier… » : le sélecteur macOS via le preload Electron (`window.cezane.pickFolder()`),
+  un champ de chemin dans un navigateur. Un dossier sans cezane.json devient un projet après
+  confirmation (`init: true`).
+- Atelier : reels groupés En cours / Prêts. Pastilles : Claude monte (Claude sur ce reel, avec la
+  progression de son rendu ou de son job), Rendu, Échec, Rushes (jamais rendu), À relire (commentaires
+  ouverts ou corrigés à valider), Prêt. « Publiés » n'existe pas : le serveur ne le sait pas.
 
 ## Le watcher
 

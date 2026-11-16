@@ -1,20 +1,25 @@
 import { useEffect, useState } from "react";
 import { brandUrl } from "./api";
-import { CanvasView } from "./canvas/CanvasView";
 import { ExportView } from "./export/ExportView";
+import { Home } from "./home/Home";
+import { MediasView } from "./medias/MediasView";
 import { MontageView } from "./montage/MontageView";
 import { RightPanel } from "./panels/RightPanel";
+import { useProjects } from "./projects";
 import { useApp } from "./store";
 import { importFiles } from "./ui/actions";
-import { AssetsPane } from "./ui/AssetsPanel";
+import { DialogHost } from "./ui/Dialog";
 import { ReelPicker, ViewSwitcher } from "./ui/Pickers";
 import { Toaster } from "./ui/toast";
 import { TopBar } from "./ui/TopBar";
 
 export function App() {
   const { state, error, connected, ui, setUi } = useApp();
+  const projects = useProjects();
+  const home = projects.active === null;
   const [dragging, setDragging] = useState(false);
-  const timeline = ui.view === "timeline";
+  // Shortcuts and file drops belong to an open project's timeline (not to the home tab).
+  const timeline = ui.view === "timeline" && !home && Boolean(state);
 
   // Global shortcuts of the timeline (the canvas handles its own keys).
   useEffect(() => {
@@ -66,32 +71,53 @@ export function App() {
     };
   }, [timeline]);
 
-  if (!state)
+  // The home tab, or a project tab still loading: the tab strip stays.
+  if (home || !state)
     return (
-      <div className="boot">
-        <img src={brandUrl("loading.gif")} alt="" onError={(e) => (e.currentTarget.style.display = "none")} />
-        <div>{error ? `Serveur Cezane injoignable (${error}). Lance \`cezane serve <projet>\`.` : "Chargement du projet…"}</div>
+      <div className="app">
+        <TopBar />
+        {home ? (
+          <Home />
+        ) : (
+          <div className="boot">
+            <img src={brandUrl("loading.gif")} alt="" onError={(e) => (e.currentTarget.style.display = "none")} />
+            <div>
+              {!error
+                ? "Chargement du projet…"
+                : !projects.connected
+                  ? `Serveur Cezane injoignable (${error}). Lance \`cezane serve\`.`
+                  : `Impossible d'ouvrir ce projet : ${error}`}
+            </div>
+          </div>
+        )}
         <Toaster />
+        <DialogHost />
       </div>
     );
 
-  // Top strip (future project tabs), then the work area: the view with its floating switcher, and the
+  // Top strip (project tabs), then the work area: the view with its floating switcher, and the
   // right panel (not in Export). No left panel: versions live in the right panel's header.
   return (
     <div className="app">
       <TopBar />
       <div className="work">
-        {ui.view === "medias" && <AssetsPane />}
-        <div className="mid">
-          {timeline ? <MontageView /> : ui.view === "medias" ? <CanvasView /> : <ExportView />}
-          {timeline && <ReelPicker />}
-          <ViewSwitcher />
-        </div>
-        {ui.view !== "export" && <RightPanel />}
+        {ui.view === "medias" ? (
+          <MediasView />
+        ) : (
+          <>
+            <div className="mid">
+              {timeline ? <MontageView /> : <ExportView />}
+              {timeline && <ReelPicker />}
+              <ViewSwitcher />
+            </div>
+            {timeline && <RightPanel />}
+          </>
+        )}
       </div>
       {!connected && <div className="offline">Connexion au serveur perdue — reconnexion…</div>}
       {dragging && <div className="global-drop">Déposer pour importer dans le projet</div>}
       <Toaster />
+      <DialogHost />
     </div>
   );
 }

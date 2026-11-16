@@ -13,7 +13,7 @@ const electron = join(dirname(Bun.resolveSync("electron/package.json", appDir)),
 if (!existsSync(electron)) throw new Error(`Electron.app not found at ${electron}; run bun install`);
 
 await $`bun run build`.cwd(appDir).quiet();
-await $`bun build ./electron/main.ts --target=node --format=cjs -e electron --outfile dist-electron/main.cjs`.cwd(appDir).quiet();
+await $`bun run build:electron`.cwd(appDir).quiet();
 
 rmSync(dest, { recursive: true, force: true });
 await $`ditto ${electron} ${dest}`;
@@ -23,6 +23,7 @@ rmSync(join(res, "default_app.asar"), { force: true });
 const code = join(res, "app");
 mkdirSync(code, { recursive: true });
 await $`cp ${join(appDir, "dist-electron/main.cjs")} ${join(code, "main.cjs")}`;
+await $`cp ${join(appDir, "dist-electron/preload.cjs")} ${join(code, "preload.cjs")}`;
 writeFileSync(join(code, "package.json"), JSON.stringify({ name: "cezane", productName: "Cezane", version: "0.1.0", main: "main.cjs" }, null, 2));
 writeFileSync(join(code, "repo.json"), JSON.stringify({ repo }, null, 2));
 

@@ -9,6 +9,10 @@ import type {
   Job,
   ModelInfo,
   Montage,
+  ProjectsEvent,
+  ProjectSummary,
+  ReelSummary,
+  SchedulerState,
   ServerEvent,
   ServerState,
   Version,
@@ -118,10 +122,11 @@ const comments: Comment[] = [
 ];
 
 const jobs: Job[] = [
-  { id: "j_1", kind: "ingest", label: "Import iphone-hevc-test.mov", status: "running", progress: 0.45, createdAt: ago(1) },
+  { id: "j_0", projectId: "demo", montageId: "m_demo", kind: "render", label: "Rendu V3 · segments 4/9", status: "running", progress: 0.62, createdAt: ago(1) },
+  { id: "j_1", projectId: "demo", kind: "ingest", label: "Import iphone-hevc-test.mov", status: "running", progress: 0.45, createdAt: ago(1) },
 ];
 
-const state: ServerState = {
+let state: ServerState = {
   projectId: "demo",
   dir: "/Users/paul/Cezane/projects/demo",
   project: { name: "Démo Cezane", createdAt: ago(300), settings: { claudeModel: "sonnet", budgetEur: 5, spentEur: 0.35 }, assets, montages: [{ id: "m_demo", name: "Démo" }], canvases: [{ id: "cv_1", name: "Idées" }] },
@@ -134,7 +139,7 @@ const state: ServerState = {
 };
 
 const ev = (e: Omit<ClaudeEvent, "id" | "at">, min: number): ClaudeEvent => ({ id: id("e"), at: ago(min), ...e });
-const claudeLog: ClaudeEvent[] = [
+let claudeLog: ClaudeEvent[] = [
   ev({ kind: "start", text: "Traite 2 commentaires (#3, #4)" }, 1.2),
   ev({ kind: "tool", tool: "mcp__cezane__overview", input: {} }, 1.1),
   ev({ kind: "tool_result", tool: "mcp__cezane__overview", ok: true, text: "Montage m_demo 600f, 5 pistes, 7 commentaires" }, 1.1),
@@ -163,23 +168,119 @@ const graphics: GraphicInfo[] = [
 const canvases: CanvasDoc[] = [{ id: "cv_1", name: "Idées", pending: [], updatedAt: ago(20) }];
 const workflows: Workflow[] = [];
 
-const listeners = new Set<(e: ServerEvent) => void>();
-const emit = (e: ServerEvent) => listeners.forEach((l) => l(e));
-const emitState = () => emit({ type: "state", state: structuredClone(state) });
-const pushClaude = (e: Omit<ClaudeEvent, "id" | "at">) => {
+// ───────── several projects (tabs, home): the demo above, plus two lighter ones ─────────
+
+type MockProject = { state: ServerState; log: ClaudeEvent[]; reels: Montage[]; location: ProjectSummary["location"] };
+
+const reelOf = (base: Montage, rid: string, name: string, keep = true): Montage => ({
+  ...structuredClone(base),
+  id: rid,
+  name,
+  tracks: keep ? structuredClone(base.tracks) : base.tracks.map((t) => ({ ...structuredClone(t), clips: t.role === "main" ? structuredClone(t.clips.slice(0, 2)) : [] })),
+});
+const versionOf = (pid: string, mid: string, n: number, extra: Partial<Version> = {}): Version => ({ ...version(n, 3, extra), id: `v${n}`, montageId: mid, file: `mock/v2.mp4`, createdAt: ago(60 * 24 * (3 - n)) });
+const projectState = (pid: string, name: string, reels: Montage[], versions: Version[], comments: Comment[] = []): ServerState => ({
+  projectId: pid,
+  dir: `/Users/paul/Cezane/Projets/${name}`,
+  project: { name, createdAt: ago(60 * 24 * 7), settings: { claudeModel: "sonnet", budgetEur: 5, spentEur: 0 }, assets, montages: reels.map((m) => ({ id: m.id, name: m.name })), canvases: [] },
+  montage: reels[0]!,
+  revision: 3,
+  comments,
+  versions,
+  jobs: [],
+  claude: { running: false, model: "sonnet" },
+});
+
+state.project.name = "Démo Cezane";
+const daxReels = [reelOf(montage, "m_dax1", "Un coach codé en 72 h"), reelOf(montage, "m_dax2", "L'onboarding refait", false)];
+const daxComments: Comment[] = [
+  { ...structuredClone(comments[1]!), id: "k_d1", n: 1, anchor: { kind: "montage", montageId: "m_dax1", versionId: "v2", frame: 260 } },
+  { ...structuredClone(comments[6]!), id: "k_d2", n: 2, status: "fixed", anchor: { kind: "montage", montageId: "m_dax1", versionId: "v2", frame: 30 } },
+];
+const rewindReels = [reelOf(montage, "m_rw1", "Rewind retrouve tout")];
+const projects = new Map<string, MockProject>([
+  ["demo", { state, log: claudeLog, reels: [montage], location: "demo" }],
+  ["dax", { state: projectState("dax", "Dax", daxReels, [versionOf("dax", "m_dax1", 1), versionOf("dax", "m_dax1", 2)], daxComments), log: [], reels: daxReels, location: "projets" }],
+  ["rewind", { state: projectState("rewind", "Rewind", rewindReels, [versionOf("rewind", "m_rw1", 1, { author: "user" })]), log: [], reels: rewindReels, location: "projets" }],
+]);
+const DEFAULT = "demo";
+
+const OPEN = new Set(["draft", "sent", "in_progress", "reopened"]);
+function reelsOf(p: MockProject): ReelSummary[] {
+  const st = p.state;
+  return p.reels.map((m) => {
+    const vs = st.versions.filter((v) => v.montageId === m.id);
+    const last = vs.at(-1);
+    const cs = st.comments.filter((c) => c.anchor.kind === "montage" && c.anchor.montageId === m.id);
+    const posters = m.tracks.flatMap((t) => t.clips).flatMap((c) => (c.type === "media" ? [((a) => a?.derived.poster ?? (a?.kind === "image" ? a.derived.normalized : undefined))(assets.find((a) => a.id === c.assetId))] : [])).filter((x): x is string => Boolean(x));
+    return {
+      id: m.id,
+      name: m.name,
+      status: last?.status ?? "draft",
+      versions: vs.length,
+      lastVersion: last && { id: last.id, n: last.n, status: last.status, createdAt: last.createdAt, durationSeconds: last.durationFrames / last.fps, author: last.author },
+      thumbUrl: last ? "/mock-media/poster-rush1.jpg" : undefined,
+      active: m.id === st.montage.id,
+      claude: st.claude.running && (st.claude.montageId ?? st.montage.id) === m.id ? true : undefined,
+      frames: [...new Set(posters)].slice(0, 3).map((f) => `/mock-media/${f}`),
+      comments: { open: cs.filter((c) => OPEN.has(c.status)).length, toReview: cs.filter((c) => c.status === "fixed").length },
+      rushes: { aroll: new Set(m.tracks[0]!.clips.map((c) => (c.type === "media" ? c.assetId : ""))).size, broll: new Set(m.tracks[1]?.clips.map((c) => (c.type === "media" ? c.assetId : ""))).size },
+    };
+  });
+}
+function summary(pid: string, p: MockProject): ProjectSummary {
+  const jobs = p.state.jobs;
+  return {
+    id: pid,
+    name: p.state.project.name,
+    path: p.state.dir,
+    location: p.location,
+    loaded: true,
+    isDefault: pid === DEFAULT,
+    createdAt: p.state.project.createdAt,
+    modifiedAt: p.state.versions.at(-1)?.createdAt ?? p.state.project.createdAt,
+    reels: reelsOf(p),
+    assets: p.state.project.assets.length,
+    claudeRunning: p.state.claude.running,
+    jobs: { running: jobs.filter((j) => j.status === "running").length, queued: jobs.filter((j) => j.status === "queued").length },
+  };
+}
+const summaries = () => [...projects].map(([pid, p]) => summary(pid, p)).sort((a, b) => b.modifiedAt.localeCompare(a.modifiedAt));
+
+const listeners = new Map<string, Set<(e: ServerEvent) => void>>();
+const projectListeners = new Set<(e: ProjectsEvent) => void>();
+const emit = (e: ServerEvent, pid = state.projectId) => listeners.get(pid)?.forEach((l) => l(e));
+/** The state of `st`'s project to its listeners (the current request's project by default), and the home its summary. */
+const emitState = (st = state) => {
+  const p = projects.get(st.projectId);
+  if (p) st.reels = reelsOf(p);
+  emit({ type: "state", state: structuredClone(st) }, st.projectId);
+  const all = summaries();
+  projectListeners.forEach((l) => l({ type: "projects", projects: all }));
+};
+const pushClaude = (e: Omit<ClaudeEvent, "id" | "at">, log = claudeLog, pid = state.projectId) => {
   const full = { id: id("e"), at: now(), ...e };
-  claudeLog.push(full);
-  emit({ type: "claude", event: full });
+  log.push(full);
+  emit({ type: "claude", event: full }, pid);
 };
 
-export function mockSubscribe(on: (e: ServerEvent) => void) {
-  listeners.add(on);
-  return () => listeners.delete(on);
+export function mockSubscribe(on: (e: ServerEvent) => void, pid = DEFAULT) {
+  if (!listeners.has(pid)) listeners.set(pid, new Set());
+  listeners.get(pid)!.add(on);
+  return () => listeners.get(pid)?.delete(on);
+}
+
+export function mockSubscribeProjects(on: (e: ProjectsEvent) => void) {
+  projectListeners.add(on);
+  setTimeout(() => on({ type: "projects", projects: summaries() }), 30);
+  return () => projectListeners.delete(on);
 }
 
 function runJob(job: Job, done: () => void) {
-  state.jobs.push(job);
-  emitState();
+  const st = state;
+  job.projectId = st.projectId;
+  st.jobs.push(job);
+  emitState(st);
   const t = setInterval(() => {
     job.status = "running";
     job.progress = Math.min(1, job.progress + 0.25);
@@ -188,15 +289,77 @@ function runJob(job: Job, done: () => void) {
       job.status = "done";
       done();
     }
-    emitState();
+    emitState(st);
   }, 600);
 }
 
-export async function mockFetch(method: string, path: string, body: any): Promise<unknown> {
+/** Global routes (every project). */
+function globalRoute(method: string, path: string, body: any): unknown {
+  if (method === "GET" && path === "/api/projects") return summaries();
+  if (method === "GET" && path === "/api/jobs") {
+    const jobs = [...projects.values()].flatMap((p) => p.state.jobs);
+    return { limits: { render: 2, capture: 1, ingest: 2, generate: 3, cutout: 1 }, perProject: { render: 1 }, jobs } satisfies SchedulerState;
+  }
+  if (method === "POST" && (path === "/api/projects" || path === "/api/projects/open")) {
+    const name = path.endsWith("/open") ? String(body.path ?? "").split("/").filter(Boolean).at(-1) ?? "Dossier" : String(body.name ?? "").trim();
+    if (!name) throw new Error("name required");
+    const pid = name.toLowerCase().normalize("NFD").replace(/[^\w]+/g, "-").replace(/^-|-$/g, "") || "projet";
+    const reels = [{ ...structuredClone(montage), id: id("m"), name: "Montage", tracks: montage.tracks.map((t) => ({ ...structuredClone(t), clips: [] })) }];
+    const st = projectState(pid, name, reels, []);
+    st.project.assets = [];
+    if (path.endsWith("/open")) st.dir = body.path;
+    projects.set(pid, { state: st, log: [], reels, location: path.endsWith("/open") ? "external" : "projets" });
+    emitState(st);
+    return summary(pid, projects.get(pid)!);
+  }
+  let r: RegExpExecArray | null;
+  if (method === "GET" && (r = /^\/api\/projects\/([\w.-]+)$/.exec(path))) return summary(r[1]!, projects.get(r[1]!)!);
+  return undefined;
+}
+
+export async function mockFetch(method: string, rawPath: string, body: any): Promise<unknown> {
   await new Promise((r) => setTimeout(r, 60));
+  const g = globalRoute(method, rawPath, body);
+  if (g !== undefined) return g;
+  const scoped = /^\/api\/p\/([\w.-]+)(\/.*)$/.exec(rawPath);
+  const pid = scoped?.[1] ?? DEFAULT;
+  const proj = projects.get(pid);
+  if (!proj) throw new Error(`unknown project ${pid}`);
+  state = proj.state;
+  claudeLog = proj.log;
+  const path = scoped ? `/api${scoped[2]}` : rawPath;
   const m = (re: RegExp) => re.exec(path);
   let r: RegExpExecArray | null;
-  if (method === "GET" && path === "/api/state") return structuredClone(state);
+  if (method === "GET" && path === "/api/state") return structuredClone({ ...state, reels: reelsOf(proj) });
+  if (method === "GET" && path === "/api/reels") return reelsOf(proj);
+  if (method === "POST" && path === "/api/reels") {
+    const name = String(body.name ?? "").trim();
+    if (!name) throw new Error("name required");
+    const reel: Montage = { ...structuredClone(state.montage), id: id("m"), name, tracks: state.montage.tracks.map((t) => ({ ...structuredClone(t), clips: [] })) };
+    proj.reels.push(reel);
+    state.project.montages.push({ id: reel.id, name });
+    if (body.select !== false) {
+      state.montage = reel;
+      state.revision = 0;
+    }
+    emitState();
+    return reelsOf(proj).find((x) => x.id === reel.id);
+  }
+  if (method === "POST" && (r = m(/^\/api\/reels\/([\w-]+)\/select$/))) {
+    const reel = proj.reels.find((x) => x.id === r![1]);
+    if (!reel) throw new Error(`unknown reel ${r[1]}`);
+    state.montage = reel;
+    emitState();
+    return structuredClone({ ...state, reels: reelsOf(proj) });
+  }
+  if (method === "PATCH" && (r = m(/^\/api\/reels\/([\w-]+)$/))) {
+    const reel = proj.reels.find((x) => x.id === r![1]);
+    const ref = state.project.montages.find((x) => x.id === r![1]);
+    if (!reel || !ref) throw new Error(`unknown reel ${r[1]}`);
+    reel.name = ref.name = String(body.name ?? "").trim() || reel.name;
+    emitState();
+    return reelsOf(proj).find((x) => x.id === reel.id);
+  }
   if (method === "GET" && path === "/api/claude/log") return claudeLog;
   if (method === "GET" && (r = m(/^\/api\/versions\/(\w+)\/montage$/))) return r[1] === "v1" ? v1Montage : montage;
   if (method === "GET" && path === "/api/models") return models;
@@ -251,15 +414,17 @@ export async function mockFetch(method: string, path: string, body: any): Promis
     state.claude = { running: true, task: `Traite ${ids.length} commentaire(s)`, startedAt: now(), model: "sonnet" };
     emitState();
     pushClaude({ kind: "start", text: state.claude.task });
-    setTimeout(() => pushClaude({ kind: "tool", tool: "mcp__cezane__comment_context", input: { ids } }), 500);
-    setTimeout(() => pushClaude({ kind: "text", text: "Je regarde les passages concernés." }), 1000);
+    const [log, pid] = [claudeLog, state.projectId];
+    setTimeout(() => pushClaude({ kind: "tool", tool: "mcp__cezane__comment_context", input: { ids } }, log, pid), 500);
+    setTimeout(() => pushClaude({ kind: "text", text: "Je regarde les passages concernés." }, log, pid), 1000);
     return { ok: true };
   }
   if (method === "POST" && path === "/api/claude/ask") {
     state.claude = { running: true, task: body.text, startedAt: now(), model: "sonnet" };
     emitState();
     pushClaude({ kind: "start", text: body.text });
-    setTimeout(() => pushClaude({ kind: "text", text: "D'accord, je m'en occupe." }), 600);
+    const [log, pid] = [claudeLog, state.projectId];
+    setTimeout(() => pushClaude({ kind: "text", text: "D'accord, je m'en occupe." }, log, pid), 600);
     return { ok: true };
   }
   if (method === "POST" && path === "/api/claude/stop") {
@@ -274,9 +439,9 @@ export async function mockFetch(method: string, path: string, body: any): Promis
   }
   if (method === "POST" && path === "/api/render") {
     const n = state.versions.length + 1;
-    const v = version(n, state.revision, { status: "rendering", progress: 0, summary: body.summary ?? "Rendu manuel", author: "user" });
+    const v = { ...version(n, state.revision, { status: "rendering", progress: 0, summary: body.summary ?? "Rendu manuel", author: "user" }), montageId: state.montage.id };
     state.versions.push(v);
-    runJob({ id: id("j"), kind: "render", label: `Rendu V${n}`, status: "queued", progress: 0, createdAt: now() }, () => {
+    runJob({ id: id("j"), montageId: state.montage.id, kind: "render", label: `Rendu V${n}`, status: "queued", progress: 0, createdAt: now() }, () => {
       Object.assign(v, { status: "ready", progress: 1, file: "mock/v2.mp4", changed: [{ start: 450, end: 540 }] });
     });
     return { ok: true };

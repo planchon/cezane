@@ -48,8 +48,8 @@ export class Scheduler {
     this.onAnyChange();
   }
 
-  add(projectId: string, kind: Kind, label: string, run: Runner): Promise<Job> {
-    const job: Job = { id: newId("j"), projectId, kind, label, status: "queued", progress: 0, createdAt: new Date().toISOString() };
+  add(projectId: string, kind: Kind, label: string, run: Runner, extra: Pick<Job, "montageId"> = {}): Promise<Job> {
+    const job: Job = { id: newId("j"), projectId, ...extra, kind, label, status: "queued", progress: 0, createdAt: new Date().toISOString() };
     this.all.push(job);
     this.trim();
     const done = new Promise<Job>((resolve) => this.waiting.push({ job, run, resolve }));
@@ -150,8 +150,8 @@ export class Jobs {
     return this.scheduler.jobs(this.projectId);
   }
 
-  add(kind: Kind, label: string, run: Runner): Promise<Job> {
-    return this.scheduler.add(this.projectId, kind, label, run);
+  add(kind: Kind, label: string, run: Runner, extra?: Pick<Job, "montageId">): Promise<Job> {
+    return this.scheduler.add(this.projectId, kind, label, run, extra);
   }
 
   cancel(id: string) {

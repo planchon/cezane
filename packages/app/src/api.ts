@@ -1,12 +1,39 @@
-import type { Asset, ServerEvent } from "@cezane/core";
-import { mockFetch, mockSubscribe } from "./mock";
+import type { Asset, ProjectsEvent, ServerEvent } from "@cezane/core";
+import { mockFetch, mockSubscribe, mockSubscribeProjects } from "./mock";
 
 export const isMock = new URLSearchParams(location.search).has("mock");
 
 export class ApiError extends Error {}
 
-/** Calls the cezane server (or the in-browser mock with ?mock=1). */
+// ───────── the active project (the selected tab) ─────────
+
+let projectId: string | undefined;
+
+/** The project the project routes go to (the active tab); undefined: the server's default project. */
+export const activeProject = () => projectId;
+
+/** Set by the tabs before they render another project, so every call and file URL follows the tab. */
+export function setActiveProject(id: string | undefined) {
+  projectId = id;
+}
+
+/** Routes about every project, never prefixed. */
+const GLOBAL = /^\/api\/(projects|jobs|p)(\/|\?|$)/;
+
+/**
+ * The URL of a project route for the active project: `/api/state` → `/api/p/<id>/state`,
+ * `/files/project/x` → `/files/p/<id>/x`. Global routes and already scoped paths are unchanged.
+ */
+export function scopedPath(path: string, id = projectId): string {
+  if (!id) return path;
+  if (path.startsWith("/files/project/")) return `/files/p/${encodeURIComponent(id)}/${path.slice("/files/project/".length)}`;
+  if (!path.startsWith("/api/") || GLOBAL.test(path)) return path;
+  return `/api/p/${encodeURIComponent(id)}${path.slice(4)}`;
+}
+
+/** Calls the cezane server (or the in-browser mock with ?mock=1). Project routes go to the active tab's project. */
 export async function api<T>(method: string, path: string, body?: unknown): Promise<T> {
+  path = scopedPath(path);
   if (isMock) return mockFetch(method, path, body) as Promise<T>;
   const res = await fetch(path, {
     method,
@@ -28,17 +55,30 @@ export async function api<T>(method: string, path: string, body?: unknown): Prom
 export const get = <T>(path: string) => api<T>("GET", path);
 export const post = <T>(path: string, body?: unknown) => api<T>("POST", path, body ?? {});
 
-/** Server-sent events; reconnects on error. Returns an unsubscribe function. */
-export function subscribe(onEvent: (e: ServerEvent) => void, onStatus?: (connected: boolean) => void): () => void {
+/** Server-sent events of the active project (or `project`); reconnects on error. Returns an unsubscribe function. */
+export function subscribe(onEvent: (e: ServerEvent) => void, onStatus?: (connected: boolean) => void, project = projectId): () => void {
   if (isMock) {
     onStatus?.(true);
-    return mockSubscribe(onEvent);
+    return mockSubscribe(onEvent, project);
   }
+  return eventSource(scopedPath("/api/events", project), onEvent, onStatus);
+}
+
+/** Server-sent events about every project (tabs, home). */
+export function subscribeProjects(onEvent: (e: ProjectsEvent) => void, onStatus?: (connected: boolean) => void): () => void {
+  if (isMock) {
+    onStatus?.(true);
+    return mockSubscribeProjects(onEvent);
+  }
+  return eventSource("/api/projects/events", onEvent, onStatus);
+}
+
+function eventSource<E>(url: string, onEvent: (e: E) => void, onStatus?: (connected: boolean) => void): () => void {
   let es: EventSource | undefined;
   let closed = false;
   let retry: ReturnType<typeof setTimeout> | undefined;
   const open = () => {
-    es = new EventSource("/api/events");
+    es = new EventSource(url);
     es.onopen = () => onStatus?.(true);
     es.onmessage = (m) => {
       try {
@@ -66,7 +106,7 @@ export async function uploadFiles(files: File[]): Promise<Asset[]> {
 }
 
 const enc = (p: string) => p.split("/").map(encodeURIComponent).join("/");
-export const fileUrl = (rel: string) => (isMock && rel.startsWith("mock/") ? `/mock-media/${enc(rel.slice(5))}` : `/files/project/${enc(rel)}`);
+export const fileUrl = (rel: string) => (isMock && rel.startsWith("mock/") ? `/mock-media/${enc(rel.slice(5))}` : scopedPath(`/files/project/${enc(rel)}`));
 export const cacheUrl = (hash: string, file: string) =>
   isMock ? `/mock-media/${enc(file)}` : `/files/cache/${encodeURIComponent(hash)}/${enc(file)}`;
 export const brandUrl = (file: string) => `/brand/${file}`;

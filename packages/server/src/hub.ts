@@ -1,12 +1,13 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { basename, join } from "node:path";
 import type { Comment, Job, Project, ProjectsEvent, ProjectSummary, Version } from "@cezane/core";
-import { REPO_DIR, RenderWorker } from "@cezane/engine";
+import { PACKAGED, REPO_DIR, RenderWorker } from "@cezane/engine";
 import { Cezane } from "./app";
 import { Scheduler } from "./jobs";
 import { projectFileUrl, readMontage, reelSummaries } from "./reels";
 import { ProjectRegistry, type RegistryEntry } from "./registry";
 import { SettingsStore } from "./permissions";
+import { Setup } from "./setup";
 import { ProjectStore } from "./store";
 
 export class HttpError extends Error {
@@ -27,10 +28,10 @@ export type HubOptions = {
   worker?: RenderWorker;
 };
 
-/** The repo's demo projects: demo/<name>/cezane.json. */
+/** The repo's demo projects: demo/<name>/cezane.json (none in the packaged app). */
 export function demoDirs(): string[] {
   const root = join(REPO_DIR, "demo");
-  if (!existsSync(root)) return [];
+  if (PACKAGED || !existsSync(root)) return [];
   return readdirSync(root, { withFileTypes: true })
     .filter((e) => e.isDirectory() && existsSync(join(root, e.name, "cezane.json")))
     .map((e) => join(root, e.name));
@@ -56,6 +57,8 @@ export class Hub {
   readonly worker: RenderWorker;
   /** ~/Cezane/settings.json: global settings (what Claude may do without asking). */
   readonly settings: SettingsStore;
+  /** « Préparer Cezane »: tool checks and the model / renderer downloads. */
+  readonly setup: Setup;
   defaultId?: string;
   private apps = new Map<string, Cezane>();
   private projectListeners = new Set<(e: ProjectsEvent) => void>();
@@ -70,6 +73,7 @@ export class Hub {
     this.scheduler = new Scheduler(opts.limits);
     this.scheduler.onAnyChange = () => this.projectsChanged();
     this.worker = opts.worker ?? new RenderWorker();
+    this.setup = new Setup(this.worker, { modelsDir: opts.home ? join(opts.home, "models") : undefined });
   }
 
   get port() {
@@ -83,10 +87,14 @@ export class Hub {
     return this.get(e.id);
   }
 
-  /** The default project: the one given to `cezane serve`, else the most recently opened one. */
+  /**
+   * The default project: the one given to `cezane serve`, else the most recently opened one.
+   * None yet (first launch of the app): 404, the app stays on the Atelier until one is created.
+   */
   default(): Cezane {
     if (this.defaultId && this.registry.get(this.defaultId)) return this.get(this.defaultId);
-    const e = this.registry.list().find((x) => existsSync(join(x.path, "cezane.json"))) ?? this.registry.create("Nouveau projet");
+    const e = this.registry.list().find((x) => existsSync(join(x.path, "cezane.json")));
+    if (!e) throw new HttpError(404, "aucun projet : crée-en un depuis l'Atelier");
     this.defaultId = e.id;
     return this.get(e.id);
   }

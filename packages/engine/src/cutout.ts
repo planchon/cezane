@@ -1,14 +1,20 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import type { Asset } from "@cezane/core";
-import { cacheDir, REPO_DIR, run, runOk } from "./proc";
+import { cacheDir, PACKAGED, REPO_DIR, run, runOk } from "./proc";
 
 const VISION_DIR = join(REPO_DIR, "native/vision");
-const VISION_BIN = join(VISION_DIR, ".build/release/cezane-vision");
+const VISION_BUILD = join(VISION_DIR, ".build/release/cezane-vision");
+/** Prebuilt by scripts/release-mac.ts into the packaged runtime (bin/cezane-vision). */
+export const VISION_PREBUILT = join(REPO_DIR, "bin/cezane-vision");
 
+/** The Apple Vision helper: the prebuilt one when shipped, else built from native/vision in the checkout. */
 async function visionBin(): Promise<string> {
-  if (!existsSync(VISION_BIN)) await runOk(["swift", "build", "-c", "release"], { cwd: VISION_DIR });
-  return VISION_BIN;
+  if (process.env.CEZANE_VISION_BIN) return process.env.CEZANE_VISION_BIN;
+  if (existsSync(VISION_PREBUILT)) return VISION_PREBUILT;
+  if (PACKAGED) throw new Error(`cezane-vision missing from the app (${VISION_PREBUILT})`);
+  if (!existsSync(VISION_BUILD)) await runOk(["swift", "build", "-c", "release"], { cwd: VISION_DIR });
+  return VISION_BUILD;
 }
 
 /** Bumped when the matte or the subject track changes (v3: edge-aware matte, subject track with hair top). */

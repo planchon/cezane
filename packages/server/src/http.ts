@@ -365,6 +365,11 @@ export function startHttp(hub: Hub, port: number) {
         return json(hub.settings.removeRule(b.rule ?? ""));
       },
     ],
+    // « Préparer Cezane »: what is installed, and the downloads Cezane does itself.
+    ["GET", /^\/api\/setup$/, async (req) => json(await hub.setup.state(new URL(req.url).searchParams.has("fresh")))],
+    ["POST", /^\/api\/setup\/model$/, async () => (hub.setup.downloadModel(), json(await hub.setup.state()))],
+    ["DELETE", /^\/api\/setup\/model$/, async () => (hub.setup.cancelModel(), json(await hub.setup.state()))],
+    ["POST", /^\/api\/setup\/renderer$/, async () => (hub.setup.downloadRenderer(), json(await hub.setup.state()))],
   ];
 
   const dispatch = async (req: Request, path: string, app: () => Cezane): Promise<Response | undefined> => {

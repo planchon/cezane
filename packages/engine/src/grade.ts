@@ -1,11 +1,10 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { homedir } from "node:os";
 import { basename, join } from "node:path";
 import type { Asset, Grade } from "@cezane/core";
-import { cacheDir, ffmpeg, REPO_DIR, sha256 } from "./proc";
+import { CEZANE_HOME, cacheDir, ffmpeg, REPO_DIR, sha256 } from "./proc";
 
 const BUILTIN = join(REPO_DIR, "assets/luts");
-const USER = join(homedir(), "Cezane", "luts");
+const USER = join(CEZANE_HOME, "luts");
 
 /** Where a LUT name points: the project's luts/, then ~/Cezane/luts, then the built-in ones. */
 export function lutPath(name: string, projectDir?: string): string | undefined {

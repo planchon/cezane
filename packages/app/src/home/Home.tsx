@@ -1,9 +1,10 @@
 import type { Job, ProjectSummary, ReelSummary } from "@cezane/core";
-import { Clapperboard, FolderOpen, Plus } from "lucide-react";
+import { Clapperboard, FolderOpen, Plus, Wrench } from "lucide-react";
 import { type ReactNode, useMemo, useState } from "react";
 import { useJobs, useProjects } from "../projects";
 import { relTime } from "../ui/format";
 import { newProject, newReel, openFolder, reelTitle } from "../ui/projectActions";
+import { openSetup, SetupCard, useSetup } from "../ui/Setup";
 import { ProjectIcon } from "../ui/TopBar";
 
 /** Where a reel stands, from what the server knows (no "published": the server does not track it). */
@@ -61,6 +62,7 @@ export function Home() {
   ].filter(Boolean);
   const visible = (list ?? []).filter((p) => !p.missing);
   const open = (c: Card) => void projects.open(c.project.id, { reel: c.reel.id, view: "timeline" });
+  const setup = useSetup();
 
   return (
     <div className="atelier">
@@ -70,6 +72,11 @@ export function Home() {
             <Clapperboard size={16} />
             Atelier
             <span className="r">{visible.reduce((n, p) => n + p.reels.length, 0)}</span>
+          </button>
+          <button className="nav" onClick={openSetup} title="Les outils dont Cezane a besoin : vérifier, installer">
+            <Wrench size={16} />
+            Préparer Cezane
+            {setup.state && !setup.state.ready && <span className="r su-dot" aria-label="Il manque des éléments" />}
           </button>
         </div>
         <div className="sh light">
@@ -158,6 +165,8 @@ export function Home() {
               </div>
             )}
           </div>
+
+          {!focus && <SetupCard setup={setup} />}
 
           {list && !visible.length && (
             <div className="hm-empty">

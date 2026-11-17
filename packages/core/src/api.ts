@@ -53,6 +53,8 @@ export type LookProps = TimelineProps & { items: LookItem[]; columns?: number };
  */
 export type WorkerRequest =
   | { id: string; cmd: "bundle"; args: { force?: boolean } }
+  /** Makes sure Remotion's headless Chrome is there (downloads it the first time; progress 0..1). */
+  | { id: string; cmd: "browser"; args: Record<string, never> }
   | {
       id: string;
       cmd: "segment";
@@ -174,6 +176,34 @@ export type SchedulerState = {
   jobs: Job[];
 };
 
+// ───────────────────────── Setup (« Préparer Cezane ») ─────────────────────────
+
+/** A download the setup runs (the whisper model, Remotion's headless Chrome). */
+export type SetupDownload = { state: "idle" | "running" | "done" | "error"; received: number; total: number; error?: string };
+
+/**
+ * One thing Cezane relies on. `need`: required (no editing without it), auto (Cezane fetches it
+ * itself when first needed), optional (unlocks one feature, said in `unlocks`).
+ */
+export type SetupItem = {
+  id: "ffmpeg" | "ffprobe" | "whisper" | "model" | "claude" | "renderer" | "codex" | "chrome" | "simulator";
+  label: string;
+  need: "required" | "auto" | "optional";
+  ok: boolean;
+  detail: string; // version, size, or what is wrong
+  unlocks?: string;
+  /** Things the setup can download itself (model, renderer). */
+  download?: SetupDownload;
+};
+
+/** GET /api/setup: every check, and the Terminal commands that fix what is missing (in order). */
+export type SetupState = {
+  ready: boolean; // every required item is ok
+  checkedAt: string;
+  items: SetupItem[];
+  commands: { label: string; command: string }[];
+};
+
 // ───────────────────────── Files (Médias view) ─────────────────────────
 
 export type MediaFolderName = "Rushes" | "Générés" | "Captures" | "Exports";
@@ -257,6 +287,10 @@ export type GraphicInfo = { name: string; description: string; props: Record<str
  * PUT    /api/settings/permissions {level?, categories?}  → PermissionsView (a new level resets the switches to its preset)
  * POST   /api/settings/permissions/rules {rule}           add a rule → PermissionsView
  * DELETE /api/settings/permissions/rules {rule}           remove a rule → PermissionsView
+ * GET    /api/setup[?fresh=1]             SetupState: the tools Cezane relies on (fresh: check again now)
+ * POST   /api/setup/model                 download the whisper model into ~/Cezane/models → SetupState (progress in later GETs)
+ * DELETE /api/setup/model                 cancel that download → SetupState
+ * POST   /api/setup/renderer              download Remotion's headless Chrome now (else at the first render) → SetupState
  *
  * Project routes: each one exists as /api/p/:projectId/<route> and, for the default project
  * (the folder given to `cezane serve`), as the unscoped /api/<route>.

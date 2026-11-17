@@ -12,6 +12,7 @@ import { DialogHost } from "./ui/Dialog";
 import { PermissionsHost } from "./ui/Permissions";
 import { ReelPicker, ViewSwitcher } from "./ui/Pickers";
 import { FailureToasts } from "./ui/RenderFailure";
+import { SetupHost } from "./ui/Setup";
 import { Toaster } from "./ui/toast";
 import { TopBar } from "./ui/TopBar";
 
@@ -95,6 +96,7 @@ export function App() {
         <Toaster />
         <DialogHost />
         <PermissionsHost />
+        <SetupHost />
       </div>
     );
 

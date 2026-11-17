@@ -120,9 +120,13 @@ switch (cmd) {
   case "serve": {
     const hub = new Hub({ port, limits: parallelFlag ? { render: Number(parallelFlag) } : undefined });
     const given = args[0] ?? process.env.CEZANE_PROJECT;
-    const app = given ? hub.setDefault(resolve(given), { name: nameFlag }) : hub.default();
+    // Without a folder, the most recent project is the default one; none yet (first launch of the
+    // app): the server starts without one, the app opens on the Atelier.
+    const anyProject = hub.registry.list().some((e) => existsSync(resolve(e.path, "cezane.json")));
+    const app = given ? hub.setDefault(resolve(given), { name: nameFlag }) : anyProject ? hub.default() : undefined;
     startHttp(hub, port);
-    console.log(`cezane on ${base}: default project "${app.store.project.name}" (${app.id}), ${hub.registry.list().length} project(s) known, MCP ${base}/api/p/<id>/mcp`);
+    const def = app ? `default project "${app.store.project.name}" (${app.id})` : "no project yet";
+    console.log(`cezane on ${base}: ${def}, ${hub.registry.list().length} project(s) known, MCP ${base}/api/p/<id>/mcp`);
     const stop = async () => {
       await hub.stop();
       process.exit(0);

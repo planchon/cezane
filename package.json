@@ -12,7 +12,8 @@
     "build:ui": "cd packages/app && bun run build",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "shot": "bun packages/engine/scripts/shot.ts",
-    "install:mac": "bun packages/app/scripts/install-mac.ts"
+    "install:mac": "bun packages/app/scripts/install-mac.ts",
+    "release:mac": "bun packages/app/scripts/release-mac.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",

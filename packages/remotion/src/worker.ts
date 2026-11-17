@@ -1,10 +1,10 @@
 // Long-lived render worker. JSON lines over stdin/stdout (WorkerRequest → WorkerResponse, see @cezane/core api.ts).
 // Logs go to stderr only: stdout carries the protocol.
 import { bundle } from "@remotion/bundler";
-import { openBrowser, renderMedia, renderStill, selectComposition, type ChromiumOptions } from "@remotion/renderer";
+import { ensureBrowser, openBrowser, renderMedia, renderStill, selectComposition, type ChromiumOptions } from "@remotion/renderer";
 import type { WorkerRequest, WorkerResponse } from "@cezane/core";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { cpus, homedir } from "node:os";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -15,6 +15,19 @@ for (const k of ["log", "info", "warn", "debug"] as const) console[k] = (...a: u
 const here = dirname(fileURLToPath(import.meta.url));
 const pkgDir = dirname(here);
 const coreSrc = join(pkgDir, "..", "core", "src");
+const home = process.env.CEZANE_HOME ?? join(homedir(), "Cezane");
+// Packaged app (see engine proc.ts PACKAGED): these sources sit in a signed, read-only bundle.
+const packaged = existsSync(join(pkgDir, "..", "..", "cezane-runtime.json"));
+
+if (packaged) {
+  // Remotion downloads its headless Chrome to <nearest package.json from cwd>/node_modules/.remotion:
+  // give it a folder of its own under ~/Cezane/cache instead of the bundle (or whatever the cwd is).
+  const dir = join(home, "cache", "remotion");
+  mkdirSync(dir, { recursive: true });
+  const pkg = join(dir, "package.json");
+  if (!existsSync(pkg)) writeFileSync(pkg, `${JSON.stringify({ name: "cezane-remotion-cache", private: true }, null, 2)}\n`);
+  process.chdir(dir);
+}
 
 const send = (msg: WorkerResponse) => process.stdout.write(`${JSON.stringify(msg)}\n`);
 
@@ -44,11 +57,12 @@ async function ensureBundle(force = false): Promise<string> {
   const hash = hashTree([here, coreSrc, join(pkgDir, "public")].filter((d) => existsSync(d)));
   if (!force && bundled?.hash === hash) return bundled.dir;
   bundling ??= (async () => {
-    const outDir = join(homedir(), "Cezane", "cache", "remotion-bundle", hash);
+    const outDir = join(home, "cache", "remotion-bundle", hash);
     if (force || !existsSync(join(outDir, "index.html"))) {
       mkdirSync(dirname(outDir), { recursive: true });
       const t = Date.now();
-      await bundle({ entryPoint: join(here, "index.ts"), outDir, rootDir: pkgDir, enableCaching: true, onProgress: () => {} });
+      // No webpack cache when packaged: it would go to <rootDir>/node_modules/.cache, inside the bundle.
+      await bundle({ entryPoint: join(here, "index.ts"), outDir, rootDir: pkgDir, enableCaching: !packaged, onProgress: () => {} });
       console.error(`[remotion-worker] bundled in ${Date.now() - t} ms → ${outDir}`);
     }
     bundled = { hash, dir: outDir };
@@ -59,8 +73,31 @@ async function ensureBundle(force = false): Promise<string> {
   return bundling;
 }
 
+/** Remotion's headless Chrome, downloaded on first use (~100 MB); `onProgress` gets 0..1 while it downloads. */
+async function ensureChrome(onProgress?: (p: number) => void) {
+  let last = -1;
+  return ensureBrowser({
+    logLevel: "error",
+    onBrowserDownload: () => {
+      console.error("[remotion-worker] downloading the headless Chrome (first render)…");
+      return {
+        version: null,
+        onProgress: ({ percent }) => {
+          if (percent - last >= 0.02 || percent === 1) {
+            last = percent;
+            onProgress?.(percent);
+          }
+        },
+      };
+    },
+  });
+}
+
 async function getBrowser() {
-  browser ??= await openBrowser("chrome", { chromiumOptions, logLevel: "error" });
+  if (!browser) {
+    await ensureChrome();
+    browser = await openBrowser("chrome", { chromiumOptions, logLevel: "error" });
+  }
   return browser;
 }
 
@@ -92,6 +129,10 @@ async function handle(req: WorkerRequest): Promise<unknown> {
   switch (req.cmd) {
     case "bundle":
       return { serveUrl: await ensureBundle(req.args.force), ms: Date.now() - t };
+    case "browser": {
+      const status = await ensureChrome((progress) => send({ id: req.id, progress }));
+      return { path: "path" in status ? status.path : undefined, ms: Date.now() - t };
+    }
     case "segment": {
       const { props, start, end, out } = req.args;
       const inputProps = props as unknown as Record<string, unknown>;

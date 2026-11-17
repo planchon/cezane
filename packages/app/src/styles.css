@@ -622,3 +622,35 @@ a.btn { text-decoration: none; cursor: default; }
 .ev-perm .rule { display: flex; gap: 4px; align-items: baseline; min-width: 0; }
 .ev-perm .rule code { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; color: var(--text); }
 .ev-perm .paid { display: flex; align-items: center; gap: 6px; color: var(--text-2); }
+
+/* « Préparer Cezane »: the Atelier card (while something required is missing) and the dialog */
+.su-card { border: 1px solid var(--border); border-radius: var(--r-l); padding: 12px 12px 12px 16px; display: flex; flex-direction: column; gap: 8px; max-width: 640px; background: var(--bg); }
+.su-head { display: flex; align-items: center; gap: 16px; }
+.su-head > .ell { flex: 1; }
+.su-list { display: flex; flex-direction: column; }
+.su-row { display: flex; align-items: center; gap: 8px; min-height: 28px; }
+.su-mark { width: 16px; height: 16px; border-radius: 50%; display: grid; place-items: center; flex: none; box-shadow: inset 0 0 0 1px var(--border-2); }
+.su-mark svg.lucide { stroke-width: 2.5; }
+.su-mark.ok { background: var(--g-200); box-shadow: none; }
+.su-mark.ok svg.lucide { color: var(--g-700); }
+.su-mark.ko { background: var(--red-100); box-shadow: none; }
+.su-mark.ko svg.lucide { color: var(--red-600); }
+.su-txt { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 8px; }
+.su-txt > .s { flex: none; max-width: 45%; }
+.su-err { color: var(--red-600); }
+.su-prog { display: flex; align-items: center; gap: 8px; width: 168px; flex: none; }
+.su-prog .c2 { width: 32px; text-align: right; flex: none; }
+.su-cmds { display: flex; flex-direction: column; gap: 4px; padding: 8px 0 4px; border-top: 1px solid var(--border); }
+.su-cmd { display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 2px 0 8px; border-radius: var(--r-m); background: var(--bg-2); }
+.su-cl { width: 112px; flex: none; }
+.su-cmd code { flex: 1; font: 450 11px/16px ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: 0; color: var(--text); user-select: text; }
+.su-opt { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding-top: 8px; border-top: 1px solid var(--border); }
+.su-chip { display: inline-flex; align-items: center; gap: 3px; height: 16px; padding: 0 4px; border-radius: 3px; background: var(--bg-2); color: var(--text-3); }
+.su-chip.ok { color: var(--text-2); }
+.su-chip svg.lucide { color: var(--g-700); stroke-width: 2.5; }
+.su-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--red-500); padding: 0; }
+.dlg.su-dlg { width: 520px; }
+.su-dlg-body { padding: 4px 16px 8px; display: flex; flex-direction: column; gap: 8px; }
+.su-dlg-body .su-sh { padding: 0; margin-top: 4px; }
+.su-foot { display: flex; align-items: center; justify-content: space-between; padding: 8px 16px 16px; border-top: 1px solid var(--border); }
+

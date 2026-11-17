@@ -4,8 +4,10 @@ import type { Analysis, Asset, Derived, Transcript } from "@cezane/core";
 import { cacheDir, ffmpeg, FFMPEG, MODELS_DIR, run, runOk } from "./proc";
 import { type Probe, probe } from "./probe";
 
-const WHISPER = Bun.which("whisper-cli") ?? "/opt/homebrew/bin/whisper-cli";
-const WHISPER_MODEL = join(MODELS_DIR, "ggml-large-v3-turbo-q5_0.bin");
+export const WHISPER = Bun.which("whisper-cli") ?? "/opt/homebrew/bin/whisper-cli";
+/** whisper.cpp model, from huggingface.co/ggerganov/whisper.cpp (downloaded by the setup, see server setup.ts). */
+export const WHISPER_MODEL_FILE = "ggml-large-v3-turbo-q5_0.bin";
+export const WHISPER_MODEL = join(MODELS_DIR, WHISPER_MODEL_FILE);
 
 /** Long side cap of normalized videos: room to zoom into a 1080x1920 frame. */
 const MAX_LONG_SIDE = 2560;
@@ -147,7 +149,7 @@ type WhisperJson = {
 
 /** Word-level transcript with whisper.cpp on the GPU (one segment per word). */
 export async function transcribeFile(wav: string, workDir: string): Promise<Transcript> {
-  if (!existsSync(WHISPER_MODEL)) throw new Error(`whisper model missing: ${WHISPER_MODEL}`);
+  if (!existsSync(WHISPER_MODEL)) throw new Error(`modèle de transcription manquant (${WHISPER_MODEL}) : télécharge-le depuis l'Atelier, « Préparer Cezane »`);
   const w16 = join(workDir, "whisper16k.wav");
   await ffmpeg(["-i", wav, "-ac", "1", "-ar", "16000", "-c:a", "pcm_s16le", w16]);
   const base = join(workDir, "whisper");

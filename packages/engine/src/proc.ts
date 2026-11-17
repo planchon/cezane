@@ -1,13 +1,19 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { mkdirSync } from "node:fs";
+import { existsSync, mkdirSync } from "node:fs";
 import { renderLog } from "./renderlog";
 
 export const CEZANE_HOME = process.env.CEZANE_HOME ?? join(homedir(), "Cezane");
 export const CACHE_DIR = join(CEZANE_HOME, "cache");
 export const LIBRARY_DIR = join(CEZANE_HOME, "library");
 export const MODELS_DIR = join(CEZANE_HOME, "models");
+/** The checkout in dev, or Cezane.app/Contents/Resources/app/runtime in the packaged app (same layout). */
 export const REPO_DIR = join(import.meta.dir, "../../..");
+/**
+ * Packaged app (scripts/release-mac.ts writes this marker): REPO_DIR is inside a signed, read-only
+ * bundle, so nothing may be written there (caches, builds, downloads go to CEZANE_HOME/cache).
+ */
+export const PACKAGED = existsSync(join(REPO_DIR, "cezane-runtime.json"));
 
 /** Global ingestion cache of one source file, keyed by its content hash. */
 export function cacheDir(hash: string): string {

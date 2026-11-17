@@ -29,7 +29,7 @@ const asset = (a: Partial<Asset> & Pick<Asset, "id" | "kind" | "name">): Asset =
   hash: a.id,
   file: `mock/${a.id}`,
   hasAudio: a.kind !== "image",
-  provenance: { type: "import", path: `/Users/paul/Movies/${a.name}` },
+  provenance: { type: "import", path: `/Users/moi/Movies/${a.name}` },
   derived: {},
   status: "ready",
   tags: [],
@@ -129,7 +129,7 @@ const jobs: Job[] = [
 
 let state: ServerState = {
   projectId: "demo",
-  dir: "/Users/paul/Cezane/projects/demo",
+  dir: "/Users/moi/Cezane/projects/demo",
   project: { name: "Démo Cezane", createdAt: ago(300), settings: { claudeModel: "sonnet", budgetEur: 5, spentEur: 0.35 }, assets, montages: [{ id: "m_demo", name: "Démo" }], canvases: [{ id: "cv_1", name: "Idées" }] },
   montage,
   revision: 14,
@@ -182,7 +182,7 @@ const reelOf = (base: Montage, rid: string, name: string, keep = true): Montage 
 const versionOf = (pid: string, mid: string, n: number, extra: Partial<Version> = {}): Version => ({ ...version(n, 3, extra), id: `v${n}`, montageId: mid, file: `mock/v2.mp4`, createdAt: ago(60 * 24 * (3 - n)) });
 const projectState = (pid: string, name: string, reels: Montage[], versions: Version[], comments: Comment[] = []): ServerState => ({
   projectId: pid,
-  dir: `/Users/paul/Cezane/Projets/${name}`,
+  dir: `/Users/moi/Cezane/Projets/${name}`,
   project: { name, createdAt: ago(60 * 24 * 7), settings: { claudeModel: "sonnet", budgetEur: 5, spentEur: 0 }, assets, montages: reels.map((m) => ({ id: m.id, name: m.name })), canvases: [] },
   montage: reels[0]!,
   revision: 3,
@@ -298,8 +298,8 @@ function runJob(job: Job, done: () => void) {
 const permissions: PermissionsView = {
   ...structuredClone(DEFAULT_PERMISSIONS),
   rules: [{ rule: "Bash(git status:*)", addedAt: ago(60 * 26), example: "git status -s" }],
-  file: "/Users/paul/Cezane/settings.json",
-  home: "/Users/paul/Cezane",
+  file: "/Users/moi/Cezane/settings.json",
+  home: "/Users/moi/Cezane",
   safeCommands: SAFE_COMMANDS,
   custom: false,
 };

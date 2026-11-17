@@ -49,7 +49,7 @@ xattr -dr com.apple.quarantine /Applications/Cezane.app
 Le script d'installation fait déjà cette étape.
 
 Au premier lancement, la carte « Préparer Cezane » de l'accueil liste ce qui manque. Elle télécharge
-aussi le modèle de transcription (550 Mo). Codex CLI, Google Chrome et Xcode sont optionnels : ils
+aussi le modèle de transcription (574 Mo). Codex CLI, Google Chrome et Xcode sont optionnels : ils
 ajoutent la génération d'images, les captures web et les captures du simulateur iOS.
 
 Tes projets sont des dossiers Finder dans `~/Cezane/Projets/<nom>/` (Rushes, Générés, Captures,

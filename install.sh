@@ -64,7 +64,7 @@ main() {
   fi
 
   say "Cezane est installé. Ouvre-le depuis Applications."
-  echo "Au premier lancement, l'app vérifie ce qui manque et télécharge le modèle de transcription (550 Mo)."
+  echo "Au premier lancement, l'app vérifie ce qui manque et télécharge le modèle de transcription (574 Mo)."
 }
 
 main "$@"

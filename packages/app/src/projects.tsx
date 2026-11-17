@@ -3,14 +3,14 @@ import { createContext, type ReactNode, useCallback, useContext, useEffect, useM
 import { ApiError, get, post, setActiveProject, subscribeProjects } from "./api";
 
 /** The work area's views, picked in the floating switcher (kept per tab). */
-export type View = "timeline" | "medias" | "export";
+export type View = "timeline" | "canvas" | "medias" | "export";
 
 /** One open project tab: its view and its reel are remembered. */
 export type TabState = { id: string; view: View; reel?: string };
 
 type Saved = { tabs: TabState[]; active: string | null };
 const KEY = "cezane.tabs.v1";
-const VIEWS = new Set<View>(["timeline", "medias", "export"]);
+const VIEWS = new Set<View>(["timeline", "canvas", "medias", "export"]);
 
 function load(): Saved | undefined {
   try {

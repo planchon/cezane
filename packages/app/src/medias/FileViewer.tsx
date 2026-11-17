@@ -1,11 +1,11 @@
 import type { FilesListing, FolderNode, ProjectFile } from "@cezane/core";
 import { AudioLines, ChevronDown, ChevronRight, FileX2, Folder, FolderOpen, LayoutGrid, List, Loader2, Play, Plus, SquareArrowOutUpRight, TriangleAlert } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "../store";
-import { importFiles } from "../ui/actions";
+import { relTime } from "../ui/format";
 import { Resizer, usePanelSize } from "../ui/Resizer";
-import { FILE_MIME, type FileDrag, findNode, flatten, missingKey, useMedias } from "./context";
-import { duration, fileSub, reveal, tildePath } from "./files";
+import { findNode, flatten, missingKey, useMedias } from "./context";
+import { duration, fileSub, formatSize, reveal, tildePath } from "./files";
 
 type Missing = FilesListing["missing"][number];
 
@@ -21,74 +21,24 @@ const loadMode = (): "grid" | "list" => {
   }
 };
 
-/**
- * Left column of the Médias view: the project folder as the Finder shows it. Folders with their
- * counts, then the files of the open folder (grid or list). Files dropped from the Finder are
- * imported into Rushes/; a file dragged onto the canvas becomes a reference.
- */
-export function FileViewer() {
+/** The open folder of the listing (Générés when the remembered one is gone). */
+function useNode() {
+  const m = useMedias();
+  const L = m.listing;
+  return L ? (findNode(L.folders, m.folder) ?? L.folders.find((f) => f.name === "Générés") ?? L.folders[0]) : undefined;
+}
+
+// ───────────────────────── sidebar: the folders ─────────────────────────
+
+/** Left column of the Médias tab: the project folder and its folders, as the Finder's sidebar. */
+export function FolderSidebar() {
   const { state } = useApp();
   const m = useMedias();
-  const panel = usePanelSize("medias-files", 300, 220, 560);
-  const [mode, setModeState] = useState(loadMode);
-  const [over, setOver] = useState(false);
-  const depth = useRef(0);
-  const input = useRef<HTMLInputElement>(null);
+  const panel = usePanelSize("medias-folders", 241, 180, 400);
   const L = m.listing;
   const root = L?.root ?? state?.dir ?? "";
-  const node = L ? (findNode(L.folders, m.folder) ?? L.folders.find((f) => f.name === "Générés") ?? L.folders[0]) : undefined;
-  const missing = useMemo(() => L?.missing.filter((x) => dirOf(x.path) === node?.path) ?? [], [L, node?.path]);
-  const files = useMemo(() => [...(node?.files ?? [])].sort(byDate), [node]);
-
-  // A file selected from elsewhere (a failed render's "Relier le fichier"): bring it into view.
-  useEffect(() => {
-    if (!m.selected) return;
-    const raf = requestAnimationFrame(() => document.querySelector(".md-fv .md-f.on, .md-fv .row.sel")?.scrollIntoView({ block: "nearest" }));
-    return () => cancelAnimationFrame(raf);
-  }, [m.selected, node?.path, L]);
-
-  const setMode = (v: "grid" | "list") => {
-    setModeState(v);
-    try {
-      localStorage.setItem("cezane.medias.mode", v);
-    } catch {}
-  };
-
-  const hasFiles = (e: React.DragEvent) => e.dataTransfer.types.includes("Files");
-  const importHere = (list: File[]) => {
-    if (!list.length) return;
-    importFiles(list);
-    m.setFolder("Rushes");
-  };
-
   return (
-    <aside
-      className={`fv md-fv ${over ? "drop" : ""}`}
-      style={{ width: panel.size }}
-      onDragEnter={(e) => {
-        if (!hasFiles(e)) return;
-        depth.current++;
-        setOver(true);
-      }}
-      onDragLeave={(e) => {
-        if (!hasFiles(e)) return;
-        depth.current = Math.max(0, depth.current - 1);
-        if (!depth.current) setOver(false);
-      }}
-      onDragOver={(e) => {
-        if (!hasFiles(e)) return;
-        e.preventDefault();
-        e.dataTransfer.dropEffect = "copy";
-      }}
-      onDrop={(e) => {
-        depth.current = 0;
-        setOver(false);
-        if (!hasFiles(e)) return;
-        e.preventDefault();
-        e.stopPropagation();
-        importHere(Array.from(e.dataTransfer.files));
-      }}
-    >
+    <aside className="fv md-side" style={{ width: panel.size }}>
       <Resizer edge="right" panel={panel} />
       <div className="fv-head" title={root}>
         <Folder size={16} />
@@ -101,81 +51,16 @@ export function FileViewer() {
           <SquareArrowOutUpRight size={16} />
         </button>
       </div>
-
-      <div className="md-tree">
+      <div className="scroll fill md-tree">
         {L?.folders.map((n) => (
           <FolderRow key={n.path} node={n} depth={0} missing={L.missing} />
         ))}
         {!L && !m.error && <div className="empty">Chargement des dossiers…</div>}
         {m.error && <div className="empty md-err">Dossiers illisibles : {m.error}</div>}
       </div>
-
-      {node && (
-        <>
-          <div className="sh md-fh">
-            <span className="ell">{node.name}</span>
-            <span className="r">
-              {node.path === "Rushes" && (
-                <button className="ib" title="Importer des fichiers dans Rushes" onClick={() => input.current?.click()}>
-                  <Plus size={16} />
-                </button>
-              )}
-              <button className={`ib ${mode === "list" ? "on" : ""}`} title="Liste" aria-pressed={mode === "list"} onClick={() => setMode("list")}>
-                <List size={16} />
-              </button>
-              <button className={`ib ${mode === "grid" ? "on" : ""}`} title="Grille" aria-pressed={mode === "grid"} onClick={() => setMode("grid")}>
-                <LayoutGrid size={16} />
-              </button>
-            </span>
-          </div>
-          <input ref={input} type="file" multiple hidden accept="video/*,image/*,audio/*" onChange={(e) => importHere(Array.from(e.target.files ?? []))} />
-          <div className="scroll fill md-files">
-            {node.folders.length > 0 && (
-              <div className="md-sub">
-                {node.folders.map((n) => (
-                  <div key={n.path} className="row" onClick={() => m.setFolder(n.path)}>
-                    <Folder size={16} />
-                    <span className="nm">{n.name}</span>
-                    <span className="r">{flatten([n]).length}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-            {mode === "grid" ? (
-              <div className="md-grid">
-                {files.map((f) => (
-                  <FileTile key={f.path} f={f} />
-                ))}
-                {missing.map((x) => (
-                  <MissingTile key={x.assetId} x={x} />
-                ))}
-              </div>
-            ) : (
-              <div className="md-list">
-                {files.map((f) => (
-                  <FileRow key={f.path} f={f} />
-                ))}
-                {missing.map((x) => (
-                  <MissingRow key={x.assetId} x={x} />
-                ))}
-              </div>
-            )}
-            {!files.length && !missing.length && !node.folders.length && (
-              <div className="drop-hint">{node.path.startsWith("Rushes") ? "Glisse des vidéos, images ou sons ici depuis le Finder" : emptyText[node.path] ?? "Dossier vide"}</div>
-            )}
-          </div>
-        </>
-      )}
-      {over && <div className="md-drop">Déposer pour importer dans Rushes</div>}
     </aside>
   );
 }
-
-const emptyText: Record<string, string> = {
-  Générés: "Les images générées sur le canvas arrivent ici",
-  Captures: "Les captures du simulateur et du web arrivent ici",
-  Exports: "Chaque rendu terminé arrive ici",
-};
 
 function FolderRow({ node, depth, missing }: { node: FolderNode; depth: number; missing: Missing[] }) {
   const m = useMedias();
@@ -225,14 +110,144 @@ function FolderRow({ node, depth, missing }: { node: FolderNode; depth: number; 
   );
 }
 
-function dragProps(f: ProjectFile) {
-  return {
-    draggable: true,
-    onDragStart: (e: React.DragEvent) => {
-      e.dataTransfer.setData(FILE_MIME, JSON.stringify({ path: f.path, assetId: f.assetId } satisfies FileDrag));
-      e.dataTransfer.effectAllowed = "copy";
-    },
+// ───────────────────────── centre: the files of the open folder ─────────────────────────
+
+const emptyText: Record<string, string> = {
+  Générés: "Les images générées sur le canvas arrivent ici",
+  Captures: "Les captures du simulateur et du web arrivent ici",
+  Exports: "Chaque rendu terminé arrive ici",
+};
+
+/**
+ * Centre of the Médias tab: the open folder (breadcrumb, grid or list) under the view switcher.
+ * Clicking the background clears the selection, as in the Finder.
+ */
+export function FileBrowser({ onImport }: { onImport: (files: File[]) => void }) {
+  const m = useMedias();
+  const node = useNode();
+  const [mode, setModeState] = useState(loadMode);
+  const input = useRef<HTMLInputElement>(null);
+  const L = m.listing;
+  const missing = useMemo(() => L?.missing.filter((x) => dirOf(x.path) === node?.path) ?? [], [L, node?.path]);
+  const files = useMemo(() => [...(node?.files ?? [])].sort(byDate), [node]);
+
+  // A file selected from elsewhere (canvas, a failed render's "Relier le fichier"): bring it into view.
+  useEffect(() => {
+    if (!m.selected) return;
+    const raf = requestAnimationFrame(() => document.querySelector(".md-browser .md-f.on, .md-browser .row.sel")?.scrollIntoView({ block: "nearest" }));
+    return () => cancelAnimationFrame(raf);
+  }, [m.selected, node?.path, L]);
+
+  const setMode = (v: "grid" | "list") => {
+    setModeState(v);
+    try {
+      localStorage.setItem("cezane.medias.mode", v);
+    } catch {}
   };
+
+  const crumbs = node ? node.path.split("/").map((name, i, all) => ({ name, path: all.slice(0, i + 1).join("/") })) : [];
+  const n = files.length + missing.length;
+  const clear = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) m.select(undefined);
+  };
+
+  return (
+    <>
+      <div className="md-bh">
+        <div className="md-crumbs">
+          {crumbs.map((c, i) => (
+            <Fragment key={c.path}>
+              {i > 0 && <ChevronRight size={12} className="sepc" />}
+              {i < crumbs.length - 1 ? (
+                <button className="md-crumb c2" onClick={() => m.setFolder(c.path)}>
+                  {c.name}
+                </button>
+              ) : (
+                <span className="t13 s ell">{c.name}</span>
+              )}
+            </Fragment>
+          ))}
+          {node && (
+            <span className="c3 nb">
+              {n} fichier{n > 1 ? "s" : ""}
+            </span>
+          )}
+        </div>
+        <span className="sp" />
+        {node?.path.startsWith("Rushes") && (
+          <button className="btn" title="Importer des fichiers dans Rushes" onClick={() => input.current?.click()}>
+            <Plus size={12} />
+            Importer
+          </button>
+        )}
+        <div className="md-seg" role="group" aria-label="Présentation">
+          <button className={`ib ${mode === "grid" ? "on" : ""}`} title="Grille" aria-pressed={mode === "grid"} onClick={() => setMode("grid")}>
+            <LayoutGrid size={16} />
+          </button>
+          <button className={`ib ${mode === "list" ? "on" : ""}`} title="Liste" aria-pressed={mode === "list"} onClick={() => setMode("list")}>
+            <List size={16} />
+          </button>
+        </div>
+        <input
+          ref={input}
+          type="file"
+          multiple
+          hidden
+          accept="video/*,image/*,audio/*"
+          onChange={(e) => {
+            onImport(Array.from(e.target.files ?? []));
+            e.target.value = "";
+          }}
+        />
+      </div>
+      <div className="scroll fill md-files" onClick={clear}>
+        {!L && !m.error && <div className="empty">Chargement…</div>}
+        {node && node.folders.length > 0 && (
+          <div className="md-sub" onClick={clear}>
+            {node.folders.map((f) => (
+              <div key={f.path} className="md-subf" onClick={() => m.setFolder(f.path)} title={f.path}>
+                <Folder size={16} />
+                <span className="ell">{f.name}</span>
+                <span className="c3">{flatten([f]).length}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        {mode === "grid" ? (
+          n > 0 && (
+            <div className="md-grid" onClick={clear}>
+              {files.map((f) => (
+                <FileTile key={f.path} f={f} />
+              ))}
+              {missing.map((x) => (
+                <MissingTile key={x.assetId} x={x} />
+              ))}
+            </div>
+          )
+        ) : (
+          n > 0 && (
+            <div className="md-list">
+              <div className="md-lrow md-lhead c2">
+                <span>Nom</span>
+                <span>Durée</span>
+                <span>Taille</span>
+                <span>Ajouté</span>
+              </div>
+              {files.map((f) => (
+                <FileRow key={f.path} f={f} />
+              ))}
+              {missing.map((x) => (
+                <MissingRow key={x.assetId} x={x} />
+              ))}
+            </div>
+          )
+        )}
+        {node && !n && !node.folders.length && (
+          <div className="drop-hint md-empty">{node.path.startsWith("Rushes") ? "Glisse des vidéos, images ou sons ici depuis le Finder" : (emptyText[node.path] ?? "Dossier vide")}</div>
+        )}
+      </div>
+    </>
+  );
 }
 
 function Thumb({ f }: { f: ProjectFile }) {
@@ -258,7 +273,7 @@ function FileTile({ f }: { f: ProjectFile }) {
   const m = useMedias();
   const on = m.selected === f.path;
   return (
-    <div className={`md-f ${on ? "on" : ""}`} onClick={() => m.select(f.path)} title={f.name} {...dragProps(f)}>
+    <div className={`md-f ${on ? "on" : ""}`} onClick={() => m.select(f.path)} title={f.name}>
       <div className="md-th">
         <Thumb f={f} />
         <Badge f={f} />
@@ -274,13 +289,17 @@ function FileRow({ f }: { f: ProjectFile }) {
   const m = useMedias();
   const on = m.selected === f.path;
   return (
-    <div className={`row ${on ? "sel" : ""}`} onClick={() => m.select(f.path)} title={f.name} {...dragProps(f)}>
-      <span className="md-lth">
-        <Thumb f={f} />
+    <div className={`md-lrow row ${on ? "sel" : ""}`} onClick={() => m.select(f.path)} title={f.name}>
+      <span className="md-lname">
+        <span className="md-lth">
+          <Thumb f={f} />
+        </span>
+        <span className="nm">{f.name}</span>
+        <Badge f={f} />
       </span>
-      <span className="nm">{f.name}</span>
-      <Badge f={f} />
-      <span className="r">{fileSub(f)}</span>
+      <span className="c2">{f.version ? `V${f.version.n}${f.duration ? ` · ${duration(f.duration)}` : ""}` : f.duration && f.kind !== "image" ? duration(f.duration) : "—"}</span>
+      <span className="c2">{formatSize(f.size)}</span>
+      <span className="c2">{relTime(f.createdAt)}</span>
     </div>
   );
 }
@@ -305,14 +324,18 @@ function MissingRow({ x }: { x: Missing }) {
   const m = useMedias();
   const on = m.selected === missingKey(x.assetId);
   return (
-    <div className={`row miss ${on ? "sel" : ""}`} onClick={() => m.select(missingKey(x.assetId))} title={`${x.path} a été supprimé du Finder`}>
-      <span className="md-lth">
-        <span className="ph">
-          <FileX2 size={12} />
+    <div className={`md-lrow row miss ${on ? "sel" : ""}`} onClick={() => m.select(missingKey(x.assetId))} title={`${x.path} a été supprimé du Finder`}>
+      <span className="md-lname">
+        <span className="md-lth">
+          <span className="ph">
+            <FileX2 size={12} />
+          </span>
         </span>
+        <span className="nm">{baseName(x.path)}</span>
       </span>
-      <span className="nm">{baseName(x.path)}</span>
-      <span className="r md-miss">Introuvable</span>
+      <span className="md-miss">Introuvable</span>
+      <span />
+      <span />
     </div>
   );
 }

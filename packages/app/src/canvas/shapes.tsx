@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { BaseBoxShapeUtil, HTMLContainer, type RecordProps, T, type TLShape, useEditor, useValue } from "tldraw";
 import { assetThumb } from "../api";
 import { useApp } from "../store";
-import { duration, formatCost } from "./files";
-import { useMedias } from "./context";
+import { duration, formatCost } from "../medias/files";
+import { useMedias } from "../medias/context";
 import { cleanPrompt, ratioNum, REF_LABEL, runCard } from "./generation";
 
 export type GenKind = "image" | "video" | "text" | "audio";

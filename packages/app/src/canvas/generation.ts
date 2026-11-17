@@ -254,7 +254,9 @@ export function createCard(editor: Editor, input: CardInput, size: { w: number; 
 }
 
 /** Places a file of the project on the canvas as a reference, centred on `at`. */
-export function placeRef(editor: Editor, f: { assetId: string; name: string; width?: number; height?: number; kind: string }, at: { x: number; y: number }) {
+export type RefInfo = { assetId: string; name: string; width?: number; height?: number; kind: string };
+
+export function placeRef(editor: Editor, f: RefInfo, at: { x: number; y: number }) {
   const ratio = f.width && f.height ? f.width / f.height : f.kind === "audio" ? 1 : 9 / 16;
   const w = ratio >= 1 ? 200 : 110;
   const h = Math.round(w / ratio) + REF_LABEL;
@@ -266,3 +268,20 @@ export function placeRef(editor: Editor, f: { assetId: string; name: string; wid
 }
 
 export const REF_LABEL = 20;
+
+/**
+ * Places references side by side in the upper middle of the viewport (above the composer),
+ * skipping spots already taken by a shape, and selects them.
+ */
+export function placeRefs(editor: Editor, files: RefInfo[]) {
+  if (!files.length) return;
+  const vp = editor.getViewportPageBounds();
+  const at = { x: vp.center.x, y: vp.center.y - vp.h * 0.15 };
+  const ids: TLShapeId[] = [];
+  for (const f of files) {
+    for (let i = 0; i < 12 && editor.getShapeAtPoint(at, { hitInside: true }); i++) at.x += 220;
+    ids.push(placeRef(editor, f, at));
+    at.x += 220;
+  }
+  editor.select(...ids);
+}

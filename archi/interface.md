@@ -44,6 +44,23 @@ comme les pages Figma : **Montage** et **Canvas** ([projet.md](projet.md)).
 
 Le détail du canvas est dans [canvas.md](canvas.md).
 
+## Les vues d'un projet (app actuelle)
+
+Un sélecteur flottant en haut de la zone de travail : **Timeline · Canvas · Médias · Export**
+(la vue est retenue par onglet de projet).
+
+- **Canvas** : on y génère les assets. Le canvas tldraw prend toute la largeur, avec le composer
+  en bas (image, capture du simulateur ou du web, format, références). Une référence s'ajoute avec
+  le bouton « Référence » du composer (les images et vidéos de Générés, Rushes et Captures), en
+  sélectionnant une forme du canvas ou en déposant un fichier du Finder. À droite : la sélection
+  (« Voir dans Médias ») et Claude. Les résultats s'écrivent dans `Générés/`.
+- **Médias** : n'affiche que les fichiers, comme le Finder, générés compris. Les dossiers à gauche,
+  le dossier ouvert au centre (grille ou liste Nom · Durée · Taille · Ajouté), la fiche du fichier à
+  droite (Afficher dans le Finder, Ajouter au montage, « Utiliser sur le canvas » qui ouvre le
+  Canvas avec le fichier posé comme référence). Un fichier déposé depuis le Finder va dans `Rushes/`.
+- Les deux vues partagent l'état des fichiers du projet (liste, sélection, références) : passer de
+  l'une à l'autre ne recharge rien.
+
 ## Éléments communs
 
 - **Barre d'outils flottante**, quatre outils : Sélection (V), Main (H), Commentaire (C),

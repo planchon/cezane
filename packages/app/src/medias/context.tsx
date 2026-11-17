@@ -4,9 +4,20 @@ import type { Editor } from "tldraw";
 import { get, subscribe } from "../api";
 import { useApp } from "../store";
 
-/** Drag payload of a file dragged out of the file viewer. */
-export const FILE_MIME = "application/x-cezane-file";
-export type FileDrag = { path: string; assetId?: string };
+/**
+ * Props for a view root (display: contents): Finder files dropped where no zone took them (the
+ * zones cancel dragover first) are refused, so they never open in the window.
+ */
+export const refuseStrayDrops = {
+  onDragOver: (e: React.DragEvent) => {
+    if (!e.dataTransfer.types.includes("Files") || e.nativeEvent.defaultPrevented) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "none";
+  },
+  onDrop: (e: React.DragEvent) => {
+    if (e.dataTransfer.types.includes("Files")) e.preventDefault();
+  },
+};
 
 /** "missing:<assetId>": a file deleted from the Finder that a montage still uses. */
 export const missingKey = (assetId: string) => `missing:${assetId}`;
@@ -36,6 +47,13 @@ type Ctx = {
   announce: (assetIds: string[]) => void;
   saved?: Saved;
   dismissSaved: () => void;
+  /** Médias → Canvas: uses the assets as references, places them on the canvas and opens it. */
+  toCanvas: (assetIds: string[]) => void;
+  /** Assets waiting to be placed on the canvas (the canvas takes them once its editor is ready). */
+  place: string[];
+  clearPlace: () => void;
+  /** Canvas → Médias: selects the file, opens its folder and the Médias tab. */
+  showInMedias: (path: string) => void;
   editor?: Editor;
   setEditor: (e: Editor | undefined) => void;
 };
@@ -79,7 +97,10 @@ const store = (key: string, v: string) => {
   } catch {}
 };
 
-/** The Médias view state: the project's files (reloaded on `files` events), the selection, the composer references. */
+/**
+ * State shared by the Canvas and Médias tabs of a project: its files (reloaded on `files` events),
+ * the selected file, the composer references. Mounted for the whole work area, so switching tabs keeps it.
+ */
 export function MediasProvider({ children }: { children: ReactNode }) {
   const { state, ui, setUi } = useApp();
   const projectId = state?.projectId;
@@ -90,6 +111,7 @@ export function MediasProvider({ children }: { children: ReactNode }) {
   const [refs, setRefs] = useState<string[]>([]);
   const [saved, setSaved] = useState<Saved>();
   const [pending, setPending] = useState<string[]>([]);
+  const [place, setPlace] = useState<string[]>([]);
   const [editor, setEditor] = useState<Editor>();
 
   // One load at a time; a change during a load triggers one more.
@@ -123,6 +145,7 @@ export function MediasProvider({ children }: { children: ReactNode }) {
     setListing(undefined);
     setSelected(undefined);
     setRefs([]);
+    setPlace([]);
     reload();
     const off = subscribe((e) => {
       if (e.type === "files") reload();
@@ -186,6 +209,8 @@ export function MediasProvider({ children }: { children: ReactNode }) {
     setPending((p) => p.filter((id) => !ready.includes(id)));
   }, [pending, byAsset]);
 
+  const addRefs = useCallback((ids: string[]) => setRefs((r) => [...r, ...ids.filter((id) => !r.includes(id))]), []);
+
   const value: Ctx = {
     listing,
     error,
@@ -199,11 +224,29 @@ export function MediasProvider({ children }: { children: ReactNode }) {
     select: setSelected,
     selectAsset,
     refs,
-    addRefs: useCallback((ids: string[]) => setRefs((r) => [...r, ...ids.filter((id) => !r.includes(id))]), []),
+    addRefs,
     removeRef: useCallback((id: string) => setRefs((r) => r.filter((x) => x !== id)), []),
     announce: useCallback((ids: string[]) => setPending((p) => [...p, ...ids]), []),
     saved,
     dismissSaved: useCallback(() => setSaved(undefined), []),
+    toCanvas: useCallback(
+      (ids: string[]) => {
+        addRefs(ids);
+        setPlace((p) => [...p, ...ids]);
+        setUi({ view: "canvas" });
+      },
+      [addRefs, setUi],
+    ),
+    place,
+    clearPlace: useCallback(() => setPlace([]), []),
+    showInMedias: useCallback(
+      (path: string) => {
+        setSelected(path);
+        setFolder(dirOf(path));
+        setUi({ view: "medias" });
+      },
+      [setFolder, setUi],
+    ),
     editor,
     setEditor,
   };

@@ -156,7 +156,7 @@ function CommentItem({ c, first }: { c: Comment; first: boolean }) {
 
   const focus = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest("button, input, textarea, a")) return;
-    setUi(a.kind === "canvas" ? { commentId: c.id, view: "medias" } : { commentId: c.id, view: "timeline" });
+    setUi(a.kind === "canvas" ? { commentId: c.id, view: "canvas" } : { commentId: c.id, view: "timeline" });
     if (target !== undefined && !removed) playhead.seek(target);
   };
 

@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { brandUrl } from "./api";
+import { CanvasView } from "./canvas/CanvasView";
 import { ExportView } from "./export/ExportView";
 import { Home } from "./home/Home";
+import { MediasProvider } from "./medias/context";
 import { MediasView } from "./medias/MediasView";
 import { MontageView } from "./montage/MontageView";
 import { RightPanel } from "./panels/RightPanel";
@@ -39,7 +41,7 @@ export function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, [timeline, setUi]);
 
-  // Files dropped anywhere on the timeline become assets (the Médias pane has its own drop zone).
+  // Files dropped anywhere on the timeline become assets (Canvas and Médias have their own drop zones).
   useEffect(() => {
     let depth = 0;
     const hasFiles = (e: DragEvent) => Array.from(e.dataTransfer?.types ?? []).includes("Files");
@@ -101,23 +103,27 @@ export function App() {
     );
 
   // Top strip (project tabs), then the work area: the view with its floating switcher, and the
-  // right panel (not in Export). No left panel: versions live in the right panel's header.
+  // right panel (not in Export). Canvas and Médias share the project's files (MediasProvider).
   return (
     <div className="app">
       <TopBar />
       <div className="work">
-        {ui.view === "medias" ? (
-          <MediasView />
-        ) : (
-          <>
-            <div className="mid">
-              {timeline ? <MontageView /> : <ExportView />}
-              {timeline && <ReelPicker />}
-              <ViewSwitcher />
-            </div>
-            {timeline && <RightPanel />}
-          </>
-        )}
+        <MediasProvider>
+          {ui.view === "canvas" ? (
+            <CanvasView />
+          ) : ui.view === "medias" ? (
+            <MediasView />
+          ) : (
+            <>
+              <div className="mid">
+                {timeline ? <MontageView /> : <ExportView />}
+                {timeline && <ReelPicker />}
+                <ViewSwitcher />
+              </div>
+              {timeline && <RightPanel />}
+            </>
+          )}
+        </MediasProvider>
       </div>
       {!connected && <div className="offline">Connexion au serveur perdue — reconnexion…</div>}
       {dragging && <div className="global-drop">Déposer pour importer dans le projet</div>}

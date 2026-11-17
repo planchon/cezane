@@ -259,7 +259,7 @@ export function FailureToasts() {
       seen.current.set(key, v.status);
       // Failed while we watched it render, or failed at once (a missing file stops it before it shows as rendering).
       if (v.status !== "error" || first || before === "error") continue;
-      toast(`V${v.n} : ${failureLabel(v)}`, { label: "Voir", run: () => setUi({ versionId: v.id, view: ui.view === "medias" ? "timeline" : ui.view }) });
+      toast(`V${v.n} : ${failureLabel(v)}`, { label: "Voir", run: () => setUi({ versionId: v.id, view: ui.view === "medias" || ui.view === "canvas" ? "timeline" : ui.view }) });
     }
   }, [state, ui.view, setUi]);
   return null;

@@ -1,41 +1,61 @@
-import { useApp } from "../store";
+import { useRef, useState } from "react";
+import { importFiles } from "../ui/actions";
 import { ViewSwitcher } from "../ui/Pickers";
-import { MediasProvider } from "./context";
+import { useMedias } from "./context";
 import { FilePanel } from "./FilePanel";
-import { FileViewer } from "./FileViewer";
-import { GenCanvas } from "./GenCanvas";
+import { FileBrowser, FolderSidebar } from "./FileViewer";
 import "./medias.css";
 
 const hasFiles = (e: React.DragEvent) => e.dataTransfer.types.includes("Files");
 
 /**
- * The Médias view, in the work area: the project's files (left), the generation canvas (centre),
- * the selected file and Claude (right). Its own state lives in MediasProvider.
+ * The Médias tab shows the project's files as the Finder does, generated ones included: the
+ * folders (left), the open folder (centre), the selected file (right). Nothing is generated
+ * here: that is the Canvas tab. Files dropped from the Finder are imported into Rushes/.
  */
 export function MediasView() {
-  const { state } = useApp();
+  const m = useMedias();
+  const [over, setOver] = useState(false);
+  const depth = useRef(0);
+  const importHere = (list: File[]) => {
+    if (!list.length) return;
+    importFiles(list);
+    m.setFolder("Rushes");
+  };
   return (
-    <MediasProvider>
-      {/* display: contents. Finder files dropped where nothing takes them must not open in the window. */}
-      <div
-        className="md-root"
-        onDragOver={(e) => {
-          // The file viewer and the canvas accept Finder files (they cancel dragover first); elsewhere: refused.
-          if (!hasFiles(e) || e.nativeEvent.defaultPrevented) return;
-          e.preventDefault();
-          e.dataTransfer.dropEffect = "none";
-        }}
-        onDrop={(e) => {
-          if (hasFiles(e)) e.preventDefault();
-        }}
-      >
-        <FileViewer />
-        <div className="mid">
-          <GenCanvas key={state?.projectId} />
-          <ViewSwitcher />
-        </div>
-        <FilePanel />
+    // display: contents; the whole tab takes Finder files.
+    <div
+      className="md-root"
+      onDragEnter={(e) => {
+        if (!hasFiles(e)) return;
+        depth.current++;
+        setOver(true);
+      }}
+      onDragLeave={(e) => {
+        if (!hasFiles(e)) return;
+        depth.current = Math.max(0, depth.current - 1);
+        if (!depth.current) setOver(false);
+      }}
+      onDragOver={(e) => {
+        if (!hasFiles(e)) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "copy";
+      }}
+      onDrop={(e) => {
+        depth.current = 0;
+        setOver(false);
+        if (!hasFiles(e)) return;
+        e.preventDefault();
+        importHere(Array.from(e.dataTransfer.files));
+      }}
+    >
+      <FolderSidebar />
+      <div className="mid md-browser">
+        <FileBrowser onImport={importHere} />
+        <ViewSwitcher />
+        {over && <div className="md-drop">Déposer pour importer dans Rushes</div>}
       </div>
-    </MediasProvider>
+      <FilePanel view="medias" />
+    </div>
   );
 }

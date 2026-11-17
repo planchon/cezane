@@ -1,14 +1,17 @@
-import type { CanvasDoc, ModelInfo } from "@cezane/core";
+import type { Asset, CanvasDoc, ModelInfo } from "@cezane/core";
 import { Check } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { type Editor, getSnapshot, type TLComponents, Tldraw, useValue } from "tldraw";
 import { api, get, isMock, post, uploadFiles } from "../api";
+import { FilePanel } from "../medias/FilePanel";
 import { useApp } from "../store";
+import { ViewSwitcher } from "../ui/Pickers";
 import { toast } from "../ui/toast";
 import { Composer } from "./Composer";
-import { FILE_MIME, type FileDrag, useMedias } from "./context";
-import { reveal } from "./files";
-import { applyJobs, genContext, isCard, placeRef, shapeAssetId } from "./generation";
+import { refuseStrayDrops, useMedias } from "../medias/context";
+import { reveal } from "../medias/files";
+import "./canvas.css";
+import { applyJobs, genContext, isCard, placeRef, placeRefs, type RefInfo, shapeAssetId } from "./generation";
 import { GenCardUtil, MediaRefUtil } from "./shapes";
 
 const shapeUtils = [GenCardUtil, MediaRefUtil];
@@ -57,14 +60,38 @@ function materialize(editor: Editor, records: PartialRecord[]) {
   }
 }
 
-/** Centre of the Médias view: the project's generation canvas (tldraw), its composer and the "saved" toast. */
-export function GenCanvas() {
+/**
+ * The Canvas tab: where assets are made. The project's generation canvas (tldraw, full width),
+ * its composer and the "saved" toast; the right panel shows the selection and Claude.
+ * Results land in Générés/ and show in the Médias tab like any other file.
+ */
+export function CanvasView() {
+  const { state } = useApp();
+  return (
+    <div className="md-root" {...refuseStrayDrops}>
+      <div className="mid">
+        <GenCanvas key={state?.projectId} />
+        <ViewSwitcher />
+      </div>
+      <FilePanel view="canvas" />
+    </div>
+  );
+}
+
+/** Info to place a reference: the file in the listing, else the asset. */
+function refInfo(assetId: string, m: ReturnType<typeof useMedias>, assets: Asset[]): RefInfo | undefined {
+  const f = m.byAsset.get(assetId);
+  if (f) return { assetId, name: f.name, width: f.width, height: f.height, kind: f.kind };
+  const a = assets.find((x) => x.id === assetId);
+  return a && { assetId, name: a.name, width: a.width, height: a.height, kind: a.kind };
+}
+
+function GenCanvas() {
   const { state, onCanvasEvent } = useApp();
   const m = useMedias();
   const [doc, setDoc] = useState<CanvasDoc>();
   const [editor, setEditor] = useState<Editor>();
   const [models, setModels] = useState<ModelInfo[]>([]);
-  const [over, setOver] = useState(false);
   const latest = useRef(m);
   latest.current = m;
 
@@ -136,6 +163,16 @@ export function GenCanvas() {
     if (landed.length) latest.current.announce(landed);
   }, [editor, state?.jobs]);
 
+  // Files sent from the Médias tab ("Utiliser sur le canvas"): placed once the editor is ready.
+  useEffect(() => {
+    if (!editor || !m.place.length) return;
+    placeRefs(
+      editor,
+      m.place.map((id) => refInfo(id, m, state?.project.assets ?? [])).filter((x): x is RefInfo => Boolean(x)),
+    );
+    m.clearPlace();
+  }, [editor, m.place]);
+
   // The right panel follows the canvas selection: a reference, or a card's chosen variant.
   const selectedAsset = useValue(
     "selectedAsset",
@@ -174,22 +211,6 @@ export function GenCanvas() {
     return () => void editor.registerExternalContentHandler("files", null);
   }, [editor]);
 
-  // A file dragged from the viewer becomes a reference on the canvas.
-  const onDrop = (e: React.DragEvent) => {
-    setOver(false);
-    if (!editor || !e.dataTransfer.types.includes(FILE_MIME)) return;
-    e.preventDefault();
-    e.stopPropagation();
-    const d = JSON.parse(e.dataTransfer.getData(FILE_MIME)) as FileDrag;
-    const f = m.byPath.get(d.path);
-    if (!f?.assetId) {
-      toast("Ce fichier n'est pas encore importé : il ne peut pas servir de référence.");
-      return;
-    }
-    placeRef(editor, { assetId: f.assetId, name: f.name, width: f.width, height: f.height, kind: f.kind }, editor.screenToPage({ x: e.clientX, y: e.clientY }));
-    m.addRefs([f.assetId]);
-  };
-
   if (!doc) return <div className="cv canvas-wrap md-canvas" />;
 
   // A canvas only touched by the server (Claude's `canvas` tool) has records but no tldraw schema:
@@ -199,19 +220,7 @@ export function GenCanvas() {
   const toCreate = [...(loadable ? [] : Object.values(snap?.document?.store ?? {}).filter((r) => r.typeName === "shape")), ...((doc.pending ?? []) as PartialRecord[])];
 
   return (
-    <div
-      className={`cv canvas-wrap md-canvas ${over ? "drop" : ""}`}
-      onDragOverCapture={(e) => {
-        if (!e.dataTransfer.types.includes(FILE_MIME)) return;
-        e.preventDefault();
-        e.dataTransfer.dropEffect = "copy";
-        setOver(true);
-      }}
-      onDragLeave={(e) => {
-        if (!e.currentTarget.contains(e.relatedTarget as Node)) setOver(false);
-      }}
-      onDropCapture={onDrop}
-    >
+    <div className="cv canvas-wrap md-canvas">
       <Tldraw
         snapshot={loadable ? (doc.snapshot as never) : undefined}
         shapeUtils={shapeUtils}
@@ -234,9 +243,9 @@ export function GenCanvas() {
   );
 }
 
-/** "Enregistré dans Générés/fond-studio-01.png · Afficher dans le Finder" (dark, top right of the canvas). */
+/** "Enregistré dans Générés/fond-studio-01.png · Afficher dans le Finder" (dark, top right of the canvas). The path opens the file in Médias. */
 function SavedToast() {
-  const { saved, dismissSaved, select } = useMedias();
+  const { saved, dismissSaved, showInMedias } = useMedias();
   useEffect(() => {
     if (!saved) return;
     const t = setTimeout(dismissSaved, 7000);
@@ -248,7 +257,7 @@ function SavedToast() {
       <Check size={16} />
       <span className="ell">
         Enregistré dans{" "}
-        <button className="md-link" onClick={() => select(saved.path)}>
+        <button className="md-link" onClick={() => showInMedias(saved.path)} title="Voir dans Médias">
           {saved.path}
         </button>
       </span>

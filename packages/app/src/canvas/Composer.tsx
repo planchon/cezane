@@ -1,12 +1,12 @@
-import type { ModelInfo } from "@cezane/core";
+import type { ModelInfo, ProjectFile } from "@cezane/core";
 import { Check, ChevronDown, Globe, Hand, ImageIcon, MousePointer2, Plus, Smartphone, X } from "lucide-react";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { type Editor, useValue } from "tldraw";
 import { assetThumb } from "../api";
 import { useApp } from "../store";
 import { toast } from "../ui/toast";
-import { FILE_MIME, type FileDrag, useMedias } from "./context";
-import { createCard, normalizeUrl, type Ratio, RATIOS, ratioLabel, ratioNum, shapeAssetId } from "./generation";
+import { flatten, useMedias } from "../medias/context";
+import { createCard, normalizeUrl, placeRefs, type Ratio, RATIOS, ratioLabel, ratioNum, shapeAssetId } from "./generation";
 import { cardSize } from "./shapes";
 
 type CType = "image" | "capture-ios" | "capture-web";
@@ -102,7 +102,6 @@ export function Composer({ editor, models }: { editor: Editor; models: ModelInfo
       return "";
     }
   });
-  const [over, setOver] = useState(false);
   const input = useRef<HTMLTextAreaElement>(null);
   const tool = useValue("tool", () => editor.getCurrentToolId(), [editor]);
 
@@ -154,26 +153,7 @@ export function Composer({ editor, models }: { editor: Editor; models: ModelInfo
   };
 
   return (
-    <div
-      className={`md-composer ${over ? "drop" : ""}`}
-      onPointerDown={(e) => e.stopPropagation()}
-      onDragOver={(e) => {
-        if (!e.dataTransfer.types.includes(FILE_MIME)) return;
-        e.preventDefault();
-        e.stopPropagation();
-        setOver(true);
-      }}
-      onDragLeave={() => setOver(false)}
-      onDrop={(e) => {
-        setOver(false);
-        if (!e.dataTransfer.types.includes(FILE_MIME)) return;
-        e.preventDefault();
-        e.stopPropagation();
-        const d = JSON.parse(e.dataTransfer.getData(FILE_MIME)) as FileDrag;
-        if (d.assetId) m.addRefs([d.assetId]);
-        else toast("Ce fichier n'est pas encore importé : il ne peut pas servir de référence.");
-      }}
-    >
+    <div className="md-composer" onPointerDown={(e) => e.stopPropagation()}>
       <textarea
         ref={input}
         className="md-prompt"
@@ -292,11 +272,18 @@ export function Composer({ editor, models }: { editor: Editor; models: ModelInfo
   );
 }
 
-/** "1 référence": the files the next generation starts from. Drop a file here or on the canvas to add one. */
+const PICK_FOLDERS = ["Générés", "Rushes", "Captures"] as const;
+
+/**
+ * "1 référence": the files the next generation starts from. The menu lists them, adds the canvas
+ * selection, and picks from the project's images and videos (placed on the canvas too).
+ * A file dropped from the Finder on the canvas is also a reference.
+ */
 function RefChip({ editor }: { editor: Editor }) {
   const { state } = useApp();
   const m = useMedias();
   const { open, setOpen, ref } = usePopover();
+  const [folder, setFolder] = useState<(typeof PICK_FOLDERS)[number]>(() => load("cezane.canvas.pick", PICK_FOLDERS, "Générés"));
   const selectedAssets = useValue(
     "selAssets",
     () =>
@@ -314,9 +301,24 @@ function RefChip({ editor }: { editor: Editor }) {
   };
   const nameOf = (id: string) => m.byAsset.get(id)?.name ?? assets.find((x) => x.id === id)?.name ?? id;
   const fromCanvas = selectedAssets.filter((id) => !m.refs.includes(id));
-  const selFile = m.selected ? m.byPath.get(m.selected) : undefined;
-  const fromViewer = selFile?.assetId && !m.refs.includes(selFile.assetId) && selFile.kind !== "audio" ? selFile : undefined;
   const n = m.refs.length;
+
+  // The project's images and videos that can be a reference, per top folder, newest first.
+  const pickable = useMemo(() => {
+    const by = new Map<string, ProjectFile[]>();
+    for (const node of m.listing?.folders ?? []) {
+      const files = flatten([node]).filter((f) => f.assetId && (f.kind === "image" || f.kind === "video") && f.status !== "error");
+      by.set(node.path, files.sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
+    }
+    return by;
+  }, [m.listing]);
+  const list = pickable.get(folder) ?? [];
+
+  const pick = (f: ProjectFile) => {
+    if (m.refs.includes(f.assetId!)) return m.removeRef(f.assetId!);
+    m.addRefs([f.assetId!]);
+    placeRefs(editor, [{ assetId: f.assetId!, name: f.name, width: f.width, height: f.height, kind: f.kind }]);
+  };
 
   return (
     <div className="md-dd" ref={ref}>
@@ -347,7 +349,6 @@ function RefChip({ editor }: { editor: Editor }) {
               </div>
             );
           })}
-          {n > 0 && (fromCanvas.length > 0 || fromViewer) && <div className="menu-sep" />}
           {fromCanvas.length > 0 && (
             <button className="menu-item" onClick={() => m.addRefs(fromCanvas)}>
               <span className="chk">
@@ -356,15 +357,41 @@ function RefChip({ editor }: { editor: Editor }) {
               Ajouter la sélection du canvas ({fromCanvas.length})
             </button>
           )}
-          {fromViewer && (
-            <button className="menu-item" onClick={() => m.addRefs([fromViewer.assetId!])}>
-              <span className="chk">
-                <Plus size={12} />
-              </span>
-              <span className="ell">Ajouter {fromViewer.name}</span>
-            </button>
+          {(n > 0 || fromCanvas.length > 0) && <div className="menu-sep" />}
+          <div className="md-pick-h">
+            {PICK_FOLDERS.map((p) => (
+              <button
+                key={p}
+                className={`tab ${p === folder ? "on" : ""}`}
+                onClick={() => {
+                  setFolder(p);
+                  save("cezane.canvas.pick", p);
+                }}
+              >
+                {p}
+                <span className="c3">{pickable.get(p)?.length ?? 0}</span>
+              </button>
+            ))}
+          </div>
+          {list.length ? (
+            <div className="md-pick scroll">
+              {list.map((f) => {
+                const on = m.refs.includes(f.assetId!);
+                return (
+                  <button key={f.path} className={`md-pick-f ${on ? "on" : ""}`} onClick={() => pick(f)} title={on ? `${f.name} · retirer des références` : f.name}>
+                    {f.thumbUrl ? <img src={f.thumbUrl} alt="" loading="lazy" draggable={false} /> : <span className="ph" />}
+                    {on && (
+                      <span className="md-pick-ok">
+                        <Check size={10} />
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="empty md-hint">{m.listing ? `Aucune image ni vidéo dans ${folder}. Glisse un fichier du Finder sur le canvas.` : "Chargement…"}</div>
           )}
-          {!n && !fromCanvas.length && !fromViewer && <div className="empty md-hint">Glisse un fichier de la colonne de gauche sur le canvas ou ici.</div>}
         </div>
       )}
     </div>

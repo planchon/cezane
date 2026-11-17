@@ -248,7 +248,7 @@ select.field { height: 24px; padding: 0 4px; }
 .resizing-x, .resizing-x * { cursor: col-resize !important; }
 .resizing-y, .resizing-y * { cursor: row-resize !important; }
 
-/* Médias: provisional media pane, resizable from its right edge */
+/* left docked pane (the Médias folders), resizable from its right edge */
 .fv { flex: none; background: var(--bg); border-right: 1px solid var(--border); display: flex; flex-direction: column; position: relative; z-index: 2; min-height: 0; }
 .fv-head { height: 48px; display: flex; align-items: center; gap: 8px; padding: 0 8px 0 16px; border-bottom: 1px solid var(--border); flex: none; }
 .fv-head svg.lucide { color: var(--icon); }

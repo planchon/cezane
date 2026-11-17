@@ -1,5 +1,5 @@
 import type { ReelSummary, Version } from "@cezane/core";
-import { ChartGantt, Check, ChevronDown, Images, Loader2, Pencil, Plus, Send } from "lucide-react";
+import { ChartGantt, Check, ChevronDown, Images, Loader2, Palette, Pencil, Plus, Send } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useApp, type View } from "../store";
 import { clockShort, relTime } from "./format";
@@ -28,11 +28,12 @@ export function usePopover() {
 
 const views: { id: View; label: string; Icon: typeof Send }[] = [
   { id: "timeline", label: "Timeline", Icon: ChartGantt },
+  { id: "canvas", label: "Canvas", Icon: Palette },
   { id: "medias", label: "Médias", Icon: Images },
   { id: "export", label: "Export", Icon: Send },
 ];
 
-/** Floating pill centred at the top of the work area: Timeline, Médias, Export. */
+/** Floating pill centred at the top of the work area: Timeline, Canvas, Médias, Export. */
 export function ViewSwitcher() {
   const { ui, setUi } = useApp();
   return (

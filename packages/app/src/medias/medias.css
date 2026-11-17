@@ -1,20 +1,38 @@
-/* Médias view: file viewer (left), generation canvas (centre), file panel (right).
-   Mockup: ~/Cezane/exports/maquettes/source/views.html#v2. Tokens from styles.css. */
+/* Médias tab: folders (left), the open folder (centre), file panel (right; also in the Canvas tab).
+   Tokens from styles.css. */
 
 .md-root { display: contents; }
 
-/* ───────── file viewer ───────── */
-.md-fv.drop { box-shadow: inset 0 0 0 2px var(--b-500); }
-.md-drop { position: absolute; inset: 48px 0 0; z-index: 20; display: grid; place-items: center; background: rgba(242, 246, 253, 0.85); color: var(--b-600); font-size: 13px; font-weight: 550; pointer-events: none; }
-.md-tree { padding: 8px 0; border-bottom: 1px solid var(--border); flex: none; max-height: 40%; overflow: auto; }
+/* ───────── sidebar: folders ───────── */
+.md-tree { padding: 8px 0; }
 .md-tree .row .dis button.dis { width: 16px; height: 16px; }
 .md-lost { display: grid; place-items: center; flex: none; }
 .md-lost svg.lucide { color: var(--red-500); }
 .md-err, .md-miss { color: var(--red-600); }
-.md-files { padding-bottom: 8px; }
-.md-sub { padding-bottom: 8px; }
 
-.md-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 12px 8px; padding: 4px 16px 16px; }
+/* ───────── centre: the open folder ───────── */
+.md-browser { background: var(--bg); }
+.md-drop { position: absolute; inset: 0; z-index: 450; display: grid; place-items: center; background: rgba(242, 246, 253, 0.85); box-shadow: inset 0 0 0 2px var(--b-500); color: var(--b-600); font-size: 13px; font-weight: 550; pointer-events: none; }
+/* Same row as the floating view switcher (top 12, 40 high): the breadcrumb stays left of it. */
+.md-bh { height: 64px; flex: none; display: flex; align-items: center; gap: 8px; padding: 0 16px 0 24px; }
+.md-crumbs { display: flex; align-items: center; gap: 4px; min-width: 0; max-width: calc(50% - 240px); }
+.md-crumbs .sepc { color: var(--icon-3); flex: none; }
+.md-crumb { border: 0; background: none; padding: 0; white-space: nowrap; font-size: 13px; line-height: 22px; }
+.md-crumb:hover { color: var(--text); }
+.md-crumbs .nb { margin-left: 4px; white-space: nowrap; }
+.md-seg { display: flex; gap: 2px; padding: 2px; border-radius: var(--r-m); background: var(--bg-2); flex: none; }
+.md-seg .ib { width: 28px; height: 24px; }
+.md-seg .ib.on { background: var(--bg); box-shadow: 0 0 0 1px var(--border); }
+.md-seg .ib:not(.on) svg.lucide { color: var(--icon-2); }
+.md-files { padding: 0 0 24px; }
+.md-sub { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; padding: 4px 24px 16px; }
+.md-subf { height: 36px; display: flex; align-items: center; gap: 8px; padding: 0 12px; border-radius: var(--r-m); background: var(--bg-2); white-space: nowrap; }
+.md-subf:hover { box-shadow: inset 0 0 0 1px var(--border); }
+.md-subf svg.lucide { color: var(--icon); flex: none; }
+.md-subf .ell { flex: 1; min-width: 0; }
+.md-empty { margin: 24px; }
+
+.md-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 20px 12px; padding: 4px 24px 16px; }
 .md-f { min-width: 0; }
 .md-th { position: relative; aspect-ratio: 9 / 16; border-radius: var(--r-m); background: var(--bg-2); }
 .md-th > img, .md-th > .ph { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: var(--r-m); }
@@ -32,89 +50,19 @@
 .md-dur { position: absolute; right: 4px; bottom: 4px; z-index: 1; height: 16px; padding: 0 4px; border-radius: 3px; display: flex; align-items: center; gap: 2px; background: rgba(0, 0, 0, 0.55); color: #fff; font-size: 10px; line-height: 16px; }
 .md-dur svg.lucide { color: #fff; }
 
-.md-list .row { cursor: default; }
-.md-list .row .r { max-width: 45%; overflow: hidden; text-overflow: ellipsis; }
+.md-list { padding: 0 16px; }
+.md-list .md-lrow { display: grid; grid-template-columns: minmax(0, 1fr) 96px 80px 120px; gap: 12px; align-items: center; }
+.md-list .row { cursor: default; margin: 0; padding: 0 8px; }
+.md-lrow > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.md-lname { display: flex; align-items: center; gap: 8px; }
+.md-lname .bd { flex: none; }
+.md-lhead { position: sticky; top: 0; z-index: 1; height: 28px; padding: 0 8px; background: var(--bg); border-bottom: 1px solid var(--border); margin-bottom: 4px; }
 .md-lth { position: relative; width: 16px; height: 22px; border-radius: 2px; overflow: hidden; flex: none; background: var(--bg-2); }
 .md-lth > img, .md-lth > .ph { width: 100%; height: 100%; object-fit: cover; display: grid; place-items: center; }
 .md-lth .ph svg.lucide { width: 10px; height: 10px; }
 .row.miss .nm { color: var(--text-2); }
 .row.miss .md-lth { background: var(--red-100); }
 .row.miss .md-lth svg.lucide { color: var(--red-500); }
-
-/* ───────── generation canvas ───────── */
-.md-canvas.drop::after { content: ""; position: absolute; inset: 0; z-index: 250; box-shadow: inset 0 0 0 2px var(--b-500); pointer-events: none; }
-
-.md-card {
-  width: 100%; height: 100%; display: flex; flex-direction: column; padding: 8px;
-  background: var(--bg); border-radius: var(--r-l); box-shadow: var(--e200);
-  font: 450 11px/16px var(--ui); letter-spacing: 0.055px; color: var(--text);
-}
-.md-card.error { box-shadow: var(--e200), 0 0 0 1px var(--red-500); }
-.md-pr { display: flex; gap: 6px; align-items: flex-start; height: 42px; padding: 2px 4px 8px; flex: none; }
-.md-pr .av { margin-top: 0; }
-.md-pr .txt { min-width: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
-.md-pr textarea { flex: 1; min-width: 0; height: 32px; padding: 0 4px; border: 1px solid var(--b-500); border-radius: var(--r-s); outline: none; resize: none; background: var(--bg); line-height: 15px; user-select: text; }
-.md-tiles { display: grid; gap: 6px; flex: none; }
-.md-tile { position: relative; border-radius: var(--r-m); overflow: hidden; background: var(--bg-2); display: grid; place-items: center; color: var(--text-2); }
-.md-tile > img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
-.md-tile.on { outline: 2px solid var(--b-500); outline-offset: 1px; }
-.md-tile.text { place-items: start; padding: 8px; overflow: auto; white-space: pre-wrap; background: var(--bg); box-shadow: inset 0 0 0 1px var(--border); color: var(--text); user-select: text; }
-.md-tile.text.on { outline-offset: -1px; }
-.md-tile.empty { gap: 4px; align-content: center; justify-items: center; text-align: center; padding: 8px; }
-.md-tile.wait {
-  color: var(--c-600);
-  background: repeating-linear-gradient(135deg, #f1f1f0 0 6px, #e8e8e7 6px 12px);
-  background-size: 200% 200%;
-  animation: md-stripes 2.4s linear infinite;
-}
-@keyframes md-stripes { from { background-position: 0 0; } to { background-position: 34px 0; } }
-.md-tile .md-dur { right: 4px; bottom: 4px; }
-.md-gf { display: flex; align-items: center; gap: 6px; height: 26px; padding: 8px 4px 2px; flex: none; margin-top: auto; min-width: 0; }
-.md-gf .err { color: var(--red-600); min-width: 0; }
-.md-gf .ib { width: 20px; height: 20px; margin-right: -4px; }
-.md-bar { position: relative; flex: 0 1 120px; height: 4px; border-radius: 2px; background: var(--bg-3); overflow: hidden; }
-.md-bar i { display: block; height: 100%; border-radius: 2px; background: var(--c-500); transition: width 0.4s; }
-.md-bar.indet i { width: 40%; animation: md-indet 1.4s ease-in-out infinite; }
-@keyframes md-indet { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
-
-.md-ref { width: 100%; height: 100%; display: flex; flex-direction: column; }
-.md-ref .fl { overflow: visible; }
-.md-ref .fl .ell { max-width: 240px; }
-.md-ref .fl.on { color: var(--b-500); }
-.md-ref-fr { flex: 1; min-height: 0; overflow: hidden; background: #111; display: grid; place-items: center; }
-.md-ref-fr > img { width: 100%; height: 100%; object-fit: cover; }
-
-/* composer */
-.md-composer { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 300; width: min(560px, calc(100% - 32px)); padding: 8px; background: var(--bg); border-radius: var(--r-l); box-shadow: var(--e200); }
-.md-composer.drop { box-shadow: var(--e200), 0 0 0 2px var(--b-500); }
-.md-prompt { display: block; width: 100%; height: 34px; padding: 4px 4px 10px; border: 0; outline: none; resize: none; background: transparent; font-size: 13px; line-height: 20px; letter-spacing: -0.032px; user-select: text; }
-.md-crow { display: flex; align-items: center; gap: 6px; min-width: 0; }
-.md-dd { position: relative; min-width: 0; flex: none; }
-.md-composer .in { height: 24px; max-width: 200px; display: flex; align-items: center; gap: 6px; padding: 0 8px; border-radius: var(--r-m); border: 1px solid transparent; background: var(--bg-2); white-space: nowrap; }
-.md-composer .in:hover, .md-composer .in.open { border-color: var(--border); }
-.md-composer .in svg.lucide { width: 12px; height: 12px; }
-.md-composer .in .dd { margin-left: auto; }
-.md-composer .in.ghost { background: transparent; border: 1px dashed var(--border-2); color: var(--text-2); }
-.md-composer .ib.on { background: var(--bg-2); }
-.md-composer .ib.on svg.lucide { color: var(--icon); }
-.md-menu { top: auto; bottom: 32px; left: 0; min-width: 200px; }
-.md-menu .menu-item:disabled { color: var(--text-3); }
-.md-mh { height: 24px; display: flex; align-items: center; padding: 0 16px; }
-.md-stack { display: flex; }
-.md-stack > img, .md-stack > .ph { width: 12px; height: 16px; object-fit: cover; border-radius: 2px; background: var(--bg-3); box-shadow: 0 0 0 1px var(--bg-2); }
-.md-stack > * + * { margin-left: -4px; }
-.md-refs { width: 260px; }
-.md-ref-item { height: 32px; padding: 0 8px 0 16px; }
-.md-ref-item > img, .md-ref-item > .ph { width: 16px; height: 22px; object-fit: cover; border-radius: 2px; background: var(--bg-3); flex: none; }
-.md-ref-item .ell { flex: 1; }
-.md-hint { white-space: normal; padding: 4px 16px; }
-
-/* "Enregistré dans …" */
-.md-toast { position: absolute; right: 16px; top: 64px; z-index: 350; max-width: calc(100% - 32px); display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 12px; border-radius: var(--r-l); background: #1e1e1e; color: #fff; box-shadow: var(--e400); }
-.md-toast svg.lucide { color: #fff; }
-.md-toast .btn { background: transparent; color: #fff; border-color: rgba(255, 255, 255, 0.25); }
-.md-toast .btn:hover:not(:disabled) { background: rgba(255, 255, 255, 0.1); }
-.md-link { border: 0; background: none; padding: 0; color: #fff; font-weight: 550; }
 
 /* ───────── file panel ───────── */
 .md-pvw { padding: 16px; }

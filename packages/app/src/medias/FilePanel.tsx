@@ -1,5 +1,5 @@
 import type { ProjectFile } from "@cezane/core";
-import { FileX2, Loader2, Plus, SquareArrowOutUpRight } from "lucide-react";
+import { FileX2, Images, Loader2, Palette, Plus, SquareArrowOutUpRight } from "lucide-react";
 import { useState } from "react";
 import { assetMedia } from "../api";
 import { ClaudePanel } from "../panels/RightPanel";
@@ -9,14 +9,17 @@ import { relTime } from "../ui/format";
 import { Resizer, usePanelSize } from "../ui/Resizer";
 import { useMedias } from "./context";
 import { addToMontage, duration, formatCost, formatSize, reveal } from "./files";
-import { cleanPrompt } from "./generation";
+import { cleanPrompt } from "../canvas/generation";
+import "./medias.css";
 
 const dirOf = (path: string) => path.split("/").slice(0, -1).join("/");
 const baseName = (path: string) => path.split("/").at(-1) ?? path;
 const providerName: Record<string, string> = { codex: "Codex", claude: "Claude", fal: "FAL" };
 
-/** Right column of the Médias view: the selected file ("Fichier") and Claude's activity. */
-export function FilePanel() {
+type PanelView = "canvas" | "medias";
+
+/** Right column of the Canvas and Médias tabs: the selected file ("Fichier") and Claude's activity. */
+export function FilePanel({ view }: { view: PanelView }) {
   const { ui, log } = useApp();
   const panel = usePanelSize("right", 300, 240, 480);
   const [tab, setTab] = useState<"file" | "claude">(ui.panel === "claude" ? "claude" : "file");
@@ -34,7 +37,7 @@ export function FilePanel() {
           Claude {waiting && <span className="alert" />}
         </button>
       </div>
-      {tab === "file" ? <FileInfo /> : <ClaudePanel />}
+      {tab === "file" ? <FileInfo view={view} /> : <ClaudePanel />}
     </aside>
   );
 }
@@ -68,7 +71,7 @@ function Head({ onClaude }: { onClaude: () => void }) {
   );
 }
 
-function FileInfo() {
+function FileInfo({ view }: { view: PanelView }) {
   const m = useMedias();
   const sel = m.selected;
   if (sel?.startsWith("missing:")) return <MissingInfo assetId={sel.slice(8)} />;
@@ -76,10 +79,10 @@ function FileInfo() {
   if (!f)
     return (
       <div className="empty" style={{ paddingTop: 12 }}>
-        Sélectionne un fichier dans la colonne de gauche ou un résultat sur le canvas.
+        {view === "canvas" ? "Sélectionne un résultat ou une référence sur le canvas." : "Sélectionne un fichier."}
       </div>
     );
-  return <FileDetails f={f} />;
+  return <FileDetails f={f} view={view} />;
 }
 
 function Preview({ f }: { f: ProjectFile }) {
@@ -94,7 +97,7 @@ function Preview({ f }: { f: ProjectFile }) {
   return <div className="md-pv ph" />;
 }
 
-function FileDetails({ f }: { f: ProjectFile }) {
+function FileDetails({ f, view }: { f: ProjectFile; view: PanelView }) {
   const { state } = useApp();
   const m = useMedias();
   const asset = f.assetId ? state?.project.assets.find((a) => a.id === f.assetId) : undefined;
@@ -117,6 +120,8 @@ function FileDetails({ f }: { f: ProjectFile }) {
   const montages = state?.project.montages ?? [];
   const used = (f.usedIn ?? []).map((id) => montages.find((x) => x.id === id)?.name ?? id);
   const canAdd = Boolean(asset && asset.status === "ready" && f.folder !== "Exports" && state?.montage);
+  // Images and videos can be a generation's reference.
+  const canRef = Boolean(asset && asset.status !== "error" && (f.kind === "image" || f.kind === "video"));
 
   return (
     <div className="rp-body scroll md-info">
@@ -213,6 +218,18 @@ function FileDetails({ f }: { f: ProjectFile }) {
             <button className="btn lg" onClick={() => void addToMontage(asset!, state!.montage)} title="Ajoute le fichier au montage, à la position de la tête de lecture">
               <Plus size={16} />
               Ajouter au montage
+            </button>
+          )}
+          {view === "medias" && canRef && (
+            <button className="btn lg" onClick={() => m.toCanvas([asset!.id])} title="Pose le fichier sur le canvas et s'en sert comme référence de la prochaine génération">
+              <Palette size={16} />
+              Utiliser sur le canvas
+            </button>
+          )}
+          {view === "canvas" && (
+            <button className="btn lg" onClick={() => m.showInMedias(f.path)} title={`Ouvre ${dirOf(f.path)}/ dans l'onglet Médias`}>
+              <Images size={16} />
+              Voir dans Médias
             </button>
           )}
         </div>
